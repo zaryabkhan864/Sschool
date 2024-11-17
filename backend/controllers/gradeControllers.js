@@ -1,6 +1,6 @@
 import Grade from "../models/grade.js";
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
-
+import ErrorHandler from "../utils/errorHandler.js";
 
 //CRUD operations for grades
 // Create new grade => /api/v1/grades
