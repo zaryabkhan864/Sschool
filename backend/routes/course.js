@@ -15,3 +15,6 @@ router.route("/courses").get(getCourseDetails);
 router.route("/courses/:id").put(updateCourse);
 router.route("/courses/:id").delete(deleteCourse);
 export default router;
+
+
+
