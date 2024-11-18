@@ -17,11 +17,12 @@ const courseSchema = new mongoose.Schema(
       required: [true, "Please enter the code of course"],
     },
     year: {
-      type: String,
+      type: Number,
       required: [true, "Please enter the year of course offer"],
     },
   },
   { timestamps: false }
 );
 
-export default mongoose.model()
+export default mongoose.model("Course", courseSchema);
+ 
