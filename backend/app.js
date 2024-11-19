@@ -1,5 +1,9 @@
 import express from "express";
 const app = express();
+
+//Middleware to handle JSON payload
+app.use(express.json());
+
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import { connectDatabase } from "./config/dbConnect.js";
