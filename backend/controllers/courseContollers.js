@@ -5,8 +5,7 @@ import ErrorHandler from "../utils/errorHandler.js";
 //CRUD operations for courses
 
 // Create new course => /api/v1/courses
-export const newCourse = async (res, req) => {
-  req.body.user = req.user._id;
+export const newCourse = async (req, res) => {
 
   const course = await Course.create(req.body);
 
@@ -17,9 +16,10 @@ export const newCourse = async (res, req) => {
 
 //Create get all course => /api/v1/courses
 export const getCourses = async (req, res) => {
-  const courses = await Course.find();
+  const courses = await Course.create(req.body);
+  console.log("courses.....", courses)
   res.status(200).json({
-    // courses,
+    courses,
     message: "courses",
   });
 };
