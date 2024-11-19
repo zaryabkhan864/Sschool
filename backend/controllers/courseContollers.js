@@ -1,5 +1,5 @@
 import Course from "../models/Course.js";
-
+import Grade from "../models/Grade.js";
 import ErrorHandler from "../utils/errorHandler.js";
 
 //CRUD operations for courses
@@ -43,6 +43,17 @@ export const updateCourse = async (req, res) => {
 
 // Delete course => /api/v1/courses/:id
 export const deleteCourse = async (req, res) => {
+  //check if there are any grades associated with this course
+  const associatedGrades = await Grade.find(req?.params?.id);
+  if (associatedGrades.length > 0) {
+    return next(
+      new ErrorHandler(
+        "Can not delete Course , it is associated with grades",
+        400
+      )
+    );
+  }
+  //if no grades are associated , delete the course
   const course = await Course.findById(req?.params?.id);
   if (!course) {
     return next(new ErrorHandler("Course not found", 404));
