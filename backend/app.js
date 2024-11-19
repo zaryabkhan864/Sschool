@@ -24,7 +24,7 @@ dotenv.config({ path: "backend/config/config.env" });
 
 // using cookie parser
 app.use(cookieParser());
-
+app.use(express.json());
 // import all routes here
 import courseRoutes from "./routes/course.js";
 
