@@ -6,8 +6,12 @@ import ErrorHandler from "../utils/errorHandler.js";
 
 // Create new course => /api/v1/courses
 export const newCourse = async (req, res) => {
+<<<<<<< HEAD
   // req.body.course = await req.course._id;
   console.log(req.body);
+=======
+
+>>>>>>> bf921d0b676284edf77d7eec14be67e40c9c40d6
   const course = await Course.create(req.body);
 
   res.status(200).json({
@@ -17,9 +21,14 @@ export const newCourse = async (req, res) => {
 
 //Create get all course => /api/v1/courses
 export const getCourses = async (req, res) => {
-  const courses = await Course.find();
+  const courses = await Course.create(req.body);
+  console.log("courses.....", courses)
   res.status(200).json({
     courses,
+<<<<<<< HEAD
+=======
+    message: "courses",
+>>>>>>> bf921d0b676284edf77d7eec14be67e40c9c40d6
   });
 };
 
