@@ -82,3 +82,4 @@ export const getCourseDetails = async (res, req, next) => {
     course,
   });
 };
+ 
