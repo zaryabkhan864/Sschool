@@ -1,11 +1,11 @@
-import catchAsyncErrors from "../../../SMS/SMS/backend/middlewares/catchAsyncErrors";
+import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import User from "../models/user.js";
 import { getResetPasswordTemplate } from "../utils/emailTemplates.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import sendToken from "../utils/sendToken.js";
-import sendEmail from "../utils/sendEmail.js";
+// import sendEmail from "../utils/sendEmail.js";
 import crypto from "crypto";
-import { delete_file, upload_file } from "../utils/cloudinary.js";
+// import { delete_file, upload_file } from "../utils/cloudinary.js";
 import bcrypt from 'bcryptjs'; // Import bcrypt for password hashing
 
 
@@ -95,7 +95,7 @@ export const getUserDetails = catchAsyncErrors(async (req, res) => {
 })
 
 // Login User  =>  /api/v1/login
-export const loginUser = catchAsyncErrors(async (req, res,next) => {
+export const loginUser = catchAsyncErrors(async (req, res, next) => {
     const { email, password } = req.body;
 
     if (!email || !password) {

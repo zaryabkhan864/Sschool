@@ -12,7 +12,7 @@ import errorMiddleware from "./middlewares/errors.js";
 // Handle Uncaught exceptions
 process.on("uncaughtException", (err) => {
   console.log(`ERROR: ${err}`);
-  console.log("Shutting down due to uncaught expection");
+  console.log("Shutting down due to uncaught exception");
   process.exit(1);
 });
 
