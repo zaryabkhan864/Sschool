@@ -31,10 +31,11 @@ app.use(cookieParser());
 app.use(express.json());
 // import all routes here
 import courseRoutes from "./routes/course.js";
+import auth from "./routes/auth.js";
 
 // calling routes here
 app.use("/api/v1", courseRoutes);
-
+app.use("/api/v1", auth);
 // Using error middleware
 app.use(errorMiddleware);
 
