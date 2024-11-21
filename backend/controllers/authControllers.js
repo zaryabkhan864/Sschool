@@ -1,4 +1,4 @@
-yimport catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
+import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import User from "../models/user.js";
 import { getResetPasswordTemplate } from "../utils/emailTemplates.js";
 import ErrorHandler from "../utils/errorHandler.js";
@@ -7,7 +7,6 @@ import sendToken from "../utils/sendToken.js";
 import crypto from "crypto";
 // import { delete_file, upload_file } from "../utils/cloudinary.js";
 import bcrypt from 'bcryptjs'; // Import bcrypt for password hashing
-
 
 
 // Register a user  =>  /api/v1/register
