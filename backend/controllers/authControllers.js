@@ -11,32 +11,45 @@ import bcrypt from 'bcryptjs'; // Import bcrypt for password hashing
 
 
 // Register a user  =>  /api/v1/register
+// Register a user  =>  /api/v1/register
 export const registerUser = catchAsyncErrors(async (req, res) => {
     const { name, email, password, role } = req.body;
-    const accountExist = User.findOne({ email });
+
+    // Check if user already exists
+    const accountExist = await User.findOne({ email });
     if (accountExist) {
         return res.status(400).json({
             message: "User already exists"
-        })
+        });
     }
-    const user = new User({
-        name,
-        email,
-        password,
-        role
-    });
-    user.save((err, user) => {
-        if (err) {
-            return res.status(400).json({
-                message: "Something went wrong"
-            })
-        }
-        res.status(200).json({
-            user
-        })
-    })
 
-})
+    try {
+        // Create a new user
+        const user = new User({
+            name,
+            email,
+            password,
+            role
+        });
+
+        // Save the user
+        await user.save();
+
+        // Send success response
+        res.status(200).json({
+            message: "User registered successfully",
+            user
+        });
+    } catch (err) {
+        // Handle any errors during saving
+        console.error("Error saving user:", err);
+        res.status(500).json({
+            message: "Something went wrong",
+            error: err.message
+        });
+    }
+});
+
 
 // Read all User List  =>  /api/v1/users
 export const getUsers = catchAsyncErrors(async (req, res) => {
