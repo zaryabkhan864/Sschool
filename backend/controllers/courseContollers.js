@@ -26,7 +26,7 @@ export const getCourses = async (req, res) => {
   res.status(200).json({
     courses,
     message: "courses",
-bf921d0b676284edf77d7eec14be67e40c9c40d6
+
   });
 };
 
