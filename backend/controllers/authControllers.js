@@ -87,7 +87,7 @@ export const deleteUser = catchAsyncErrors(async (req, res) => {
             message: "User not found"
         })
     }
-    user.remove();
+    await user.deleteOne();
     res.status(200).json({
         message: "User deleted successfully"
     })
