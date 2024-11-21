@@ -6,30 +6,22 @@ import ErrorHandler from "../utils/errorHandler.js";
 
 // Create new course => /api/v1/courses
 export const newCourse = async (req, res) => {
-
   // req.body.course = await req.course._id;
-  console.log(req.body);
-
-
-
   const course = await Course.create(req.body);
 
   res.status(200).json({
     course,
   });
 };
-
 //Create get all course => /api/v1/courses
 export const getCourses = async (req, res) => {
-  const courses = await Course.create(req.body);
-  console.log("courses.....", courses)
+  const courses = await Course.find(req.body);
+  console.log("courses.....", courses);
   res.status(200).json({
     courses,
     message: "courses",
-
   });
 };
-
 // Update course => /api/v1/courses/:id
 export const updateCourse = async (req, res) => {
   let course = await Course.findById(req?.params?.id);
@@ -46,7 +38,6 @@ export const updateCourse = async (req, res) => {
     course,
   });
 };
-
 // Delete course => /api/v1/courses/:id
 export const deleteCourse = async (req, res, next) => {
   //check if there are any grades associated with this course
@@ -82,4 +73,3 @@ export const getCourseDetails = async (res, req, next) => {
     course,
   });
 };
- 
