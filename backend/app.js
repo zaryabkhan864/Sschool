@@ -32,10 +32,13 @@ app.use(express.json());
 // import all routes here
 import courseRoutes from "./routes/course.js";
 import auth from "./routes/auth.js";
-
+import studentRoutes from "./routes/students.js";
+import gradeRoute from "./routes/grade.js";
 // calling routes here
 app.use("/api/v1", courseRoutes);
 app.use("/api/v1", auth);
+app.use('/api/v1', studentRoutes);
+app.use('/api/v1',gradeRoute);
 // Using error middleware
 app.use(errorMiddleware);
 

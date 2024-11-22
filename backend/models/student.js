@@ -53,7 +53,7 @@ const studentSchema = new mongoose.Schema({
   grade: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Grade",
-    required: true,
+    required: false,
   }, // Current grade
   enrolledCourses: [
     {
