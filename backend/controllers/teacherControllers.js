@@ -1,4 +1,6 @@
+import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import Teacher from "../models/teacher";
+import APIFilters from "../utils/apiFilters.js";
 import ErrorHandler from "../utils/errorHandler.js";
 
 // CRUD operations for courses
@@ -79,16 +81,20 @@ export const deleteTeacher = async (req, res, next) => {
 // extra controller for teacher
 
 // Get single teacher details => /api/v1/teachers/:id
-export const getTeacherDetails = async (req, res, next) => {
+export const getTeacherDetails = catchAsyncErrors(async (req, res, next) => {
   try {
-    const teacher = await Teacher.findById(req?.params?.id);
+    const teacher = await Teacher.findById(req?.params?.id)
+
     if (!teacher) {
-      return next(new ErrorHandler("Course not found", 404));
+      return next(new ErrorHandler("Teacher not found", 404));
     }
+
     res.status(200).json({
       teacher,
     });
   } catch (error) {
-    next ErrorHandler(erroe.message|| "Failed to fetch teacher details")
+    next(new ErrorHandler(error.message || "Failed to fetch teacher", 500));
+
   }
-};
+
+});
