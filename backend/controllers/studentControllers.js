@@ -33,7 +33,7 @@ export const updateStudent = catchAsyncErrors(async (req, res) => {
             message: "Student not found"
         })
     }
-    try{
+    try {
         const newStudentData = {
             name: req.body.name,
             age: req.body.age,
@@ -53,7 +53,7 @@ export const updateStudent = catchAsyncErrors(async (req, res) => {
         res.status(200).json({
             updatedStudent
         })
-    }catch(err){
+    } catch (err) {
         res.status(500).json({
             message: err.message
         })

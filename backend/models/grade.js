@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+
 const gradeSchema = new mongoose.Schema(
   {
     gradeName: {
@@ -19,16 +20,12 @@ const gradeSchema = new mongoose.Schema(
       type: Number,
       required: [true, "Please enter the year to of the grade"],
     },
-    courses: [
-      {
-        course: {
-          type: mongoose.Schema.Types.ObjectId,
-          required: false,
-          ref: "Course",
-        },
-      },
-    ], //Courses offered in this grade
+    courses: [{ type: mongoose.Schema.Types.ObjectId, ref: "Course" }], // Courses offered in this grade
   },
   { timestamps: false }
 );
-export default mongoose.model("Grade", gradeSchema);
+
+// Check if the model already exists before defining it
+const Grade = mongoose.models.Grade || mongoose.model("Grade", gradeSchema);
+
+export default Grade;

@@ -43,24 +43,22 @@ const teacherSchema = new mongoose.Schema(
       maxLength: [10, "Contact number should be 10 digits"],
     },
     expertise: [
-      {
-        type: String,
-        maxLength: [200, "experties cannot exceed 200 charactors"],
-      },
+      { 
+        type: String 
+      }
     ], // List of subjects they can teach
     assignedCourses: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Course",
-      },
-    ],
+      { 
+        type: mongoose.Schema.Types.ObjectId, ref: 'Course' 
+      }
+    ], 
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
   },
-  { timestaamps: false }
+  { timestamps: false }
 );
 
 export default mongoose.model("Teacher", teacherSchema);
