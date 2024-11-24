@@ -1,12 +1,25 @@
-import express from 'express';
+import express from "express";
+import {
+  newTeacher,
+  getTeachers,
+  updateTeacher,
+  deleteTeacher,
+  getTeacherDetails,
+} from "../controllers/teacherControllers.js";
+import { isAuthenticatedUser, authorizeRoles } from "../middlewares/auth";
+
 const router = express.Router();
-import { newTeacher, getTeachers, updateTeacher, deleteTeacher, getTeacherDetails } from '../controllers/teacherControllers.js';
 
-router.route('/teacher').post(newTeacher);
-router.route('/teachers').get(getTeachers);
-router.route('/teacher/:id').put(updateTeacher);
-router.route('/teacher/:id').delete(deleteTeacher);
-router.route('/teacher/:id').get(getTeacherDetails);
-
+router
+  .route("/admin/teacher")
+  .post(isAuthenticatedUser, authorizeRoles("admin"), newTeacher);
+router.route("/teachers").get(getTeachers);
+router
+  .route("/admin/teacher/:id")
+  .put(isAuthenticatedUser, authorizeRoles("admin"), updateTeacher);
+router
+  .route("/admin/teacher/:id")
+  .delete(isAuthenticatedUser, authorizeRoles("admin"), deleteTeacher);
+router.route("/teacher/:id").get(getTeacherDetails);
 
 export default router;
