@@ -6,15 +6,21 @@ import {
   updateCourse,
   deleteCourse,
 } from "../controllers/courseContollers.js";
+import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth";
 
 const router = express.Router();
 
 router.route("/courses").get(getCourses);
-router.route("/courses").post(newCourse);
-router.route("/courses/:id").get(getCourseDetails);
-router.route("/courses/:id").put(updateCourse);
-router.route("/courses/:id").delete(deleteCourse);
+router
+  .route("/admin/courses")
+  .post(isAuthenticated, authorizeRoles("admin"), newCourse);
+router
+  .route("/admin/courses/:id")
+  .get(isAuthenticated, authorizeRoles("admin"), getCourseDetails);
+router
+  .route("admin/courses/:id")
+  .put(isAuthenticated, authorizeRoles("admin"), updateCourse);
+router
+  .route("admin/courses/:id")
+  .delete(isAuthenticated, authorizeRoles("admin"), deleteCourse);
 export default router;
-
-
-
