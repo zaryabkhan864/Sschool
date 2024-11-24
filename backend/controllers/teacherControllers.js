@@ -1,6 +1,5 @@
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
-import Teacher from "../models/teacher";
-import APIFilters from "../utils/apiFilters.js";
+import Teacher from "../models/teacher.js";
 import ErrorHandler from "../utils/errorHandler.js";
 
 // CRUD operations for courses

@@ -1,4 +1,4 @@
-import Grade from "../models/Grade.js";
+import Grade from "../models/grade.js";
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import ErrorHandler from "../utils/errorHandler.js";
 
@@ -18,7 +18,7 @@ export const getGrades = catchAsyncErrors(async (req, res) => {
     const grades = await Grade.find();
     res.status(200).json({
         grades,
-        
+
     });
 });
 // Update grade => /api/v1/grades/:id
