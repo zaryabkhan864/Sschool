@@ -1,5 +1,6 @@
 import express from 'express';
 const router = express.Router();
+import {} from '../middlewares/auth.js';
 import { createGrade, getGrades, updateGrade, deleteGrade, getGradeDetails } from '../controllers/gradeControllers.js';
 
 router.route('/grade').post(createGrade);
