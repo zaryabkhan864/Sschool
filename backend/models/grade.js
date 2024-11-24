@@ -25,7 +25,4 @@ const gradeSchema = new mongoose.Schema(
   { timestamps: false }
 );
 
-// Check if the model already exists before defining it
-const Grade = mongoose.models.Grade || mongoose.model("Grade", gradeSchema);
-
-export default Grade;
+export default mongoose.model("Grade", gradeSchema);
