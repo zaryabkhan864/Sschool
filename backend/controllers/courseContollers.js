@@ -20,7 +20,7 @@ export const newCourse = async (req, res, next) => {
 export const getCourses = async (req, res, next) => {
   try {
     const courses = await Course.find(req.body);
-    console.log("courses.....", courses);
+
     res.status(200).json({
       courses,
       message: "courses",

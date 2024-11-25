@@ -13,9 +13,7 @@ import {
 router.route("/admin/grade").post(isAuthenticatedUser, createGrade);
 
 router.route("/grades").get(getGrades);
-router
-  .route("/admin/grade/:id")
-  .put(isAuthenticatedUser, authorizeRoles("admin"), updateGrade)
+router.route("/admin/grade/:id").put(isAuthenticatedUser, authorizeRoles("admin"), updateGrade)
   .delete(isAuthenticatedUser,authorizeRoles("admin"),deleteGrade);
 
 router.route("/grade/:id").get(getGradeDetails);
