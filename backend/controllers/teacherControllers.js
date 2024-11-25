@@ -18,10 +18,16 @@ export const newTeacher = async (req, res, next) => {
 };
 // Create get all teacher => /api/v1/teachers
 export const getTeachers = async (req, res, next) => {
+  const resPerPage = 8;
+  const apiFilters = new APIFilters(Teacher, req.query).search().filters();
   try {
-    const teachers = await Teacher.find(req.body);
-
+    let teachers = await apiFilters.query;
+    let filteredTeachersCount = teachers.length;
+    apiFilters.pagination(resPerPage);
+    teachers = await apiFilters.query.clone();
     res.status(200).json({
+      resPerPage,
+      filteredTeachersCount,
       teachers,
     });
   } catch (error) {

@@ -18,11 +18,23 @@ export const createStudent = async (req, res) => {
 }
 
 // Get all students =>  /api/v1/students
-export const getStudents = catchAsyncErrors(async (req, res) => {
-    const students = await Student.find();
-    res.status(200).json({
-        students
-    })
+export const getStudents = catchAsyncErrors(async (req, res, next) => {
+    const resPerPage = 8;
+    const apiFilters = new APIFilters(Student, req.query).search().filters();
+    try {
+        let students = await apiFilters.query;
+        let filteredStudentsCount = students.length;
+        apiFilters.pagination(resPerPage);
+        students = await apiFilters.query.clone();
+        res.status(200).json({
+            resPerPage,
+            filteredStudentsCount,
+            students,
+        });
+    } catch (error) {
+        next(new ErrorHandler(error.message || "Failed to fetch students", 500));
+    }
+
 })
 
 // update student =>  /api/v1/student/:id
