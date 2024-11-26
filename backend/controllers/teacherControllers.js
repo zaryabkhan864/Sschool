@@ -18,11 +18,21 @@ export const newTeacher = catchAsyncErrors(async (req, res, next) => {
 });
 
 // Create get all teacher => /api/v1/teachers
+<<<<<<< HEAD
 export const getTeachers = catchAsyncErrors(async (req, res, next) => {
+=======
+export const getTeachers = async (req, res, next) => {
+  const resPerPage = 8;
+  const apiFilters = new APIFilters(Teacher, req.query).search().filters();
+>>>>>>> e050d08a96a11c36d72ba4e5671a0b64ff075462
   try {
-    const teachers = await Teacher.find(req.body);
-
+    let teachers = await apiFilters.query;
+    let filteredTeachersCount = teachers.length;
+    apiFilters.pagination(resPerPage);
+    teachers = await apiFilters.query.clone();
     res.status(200).json({
+      resPerPage,
+      filteredTeachersCount,
       teachers,
     });
   } catch (error) {
