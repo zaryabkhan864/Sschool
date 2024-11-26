@@ -17,16 +17,11 @@ export const newCourse = catchAsyncErrors(async (req, res, next) => {
     next(new ErrorHandler(error.message || "Failed to create course", 500));
   }
 });
-<<<<<<< HEAD
 
-//Create get all course => /api/v1/courses
-export const getCourses = catchAsyncErrors(async (req, res, next) => {
-=======
 //Create get all course => /api/v1/courses
 export const getCourses = catchAsyncErrors(async (req, res, next) => {
   const resPerPage = 8;
   const apiFilters = new APIFilters(Course, req.query).search().filters();
->>>>>>> e050d08a96a11c36d72ba4e5671a0b64ff075462
   try {
     let courses = await apiFilters.query;
     let filteredCoursesCount = courses.length;
@@ -42,10 +37,7 @@ export const getCourses = catchAsyncErrors(async (req, res, next) => {
   }
 });
 
-<<<<<<< HEAD
-=======
 
->>>>>>> e050d08a96a11c36d72ba4e5671a0b64ff075462
 // Update course => /api/v1/courses/:id
 export const updateCourse = catchAsyncErrors(async (req, res, next) => {
   try {
@@ -66,10 +58,7 @@ export const updateCourse = catchAsyncErrors(async (req, res, next) => {
     next(new ErrorHandler(error.message || "Failed to update course", 500));
   }
 });
-<<<<<<< HEAD
 
-=======
->>>>>>> e050d08a96a11c36d72ba4e5671a0b64ff075462
 // Delete course => /api/v1/courses/:id
 export const deleteCourse = catchAsyncErrors(async (req, res, next) => {
   try {

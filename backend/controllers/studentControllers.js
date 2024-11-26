@@ -18,14 +18,6 @@ export const createStudent = catchAsyncErrors(async (req, res) => {
 });
 
 // Get all students =>  /api/v1/students
-<<<<<<< HEAD
-export const getStudents = catchAsyncErrors(async (req, res) => {
-  const students = await Student.find();
-  res.status(200).json({
-    students,
-  });
-});
-=======
 export const getStudents = catchAsyncErrors(async (req, res, next) => {
     const resPerPage = 8;
     const apiFilters = new APIFilters(Student, req.query).search().filters();
@@ -44,7 +36,6 @@ export const getStudents = catchAsyncErrors(async (req, res, next) => {
     }
 
 })
->>>>>>> e050d08a96a11c36d72ba4e5671a0b64ff075462
 
 // update student =>  /api/v1/student/:id
 export const updateStudent = catchAsyncErrors(async (req, res) => {

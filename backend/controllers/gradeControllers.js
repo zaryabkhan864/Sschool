@@ -13,31 +13,22 @@ export const createGrade = catchAsyncErrors(async (req, res) => {
   });
 });
 //Create get all grades => /api/v1/grades
-<<<<<<< HEAD
-export const getGrades = catchAsyncErrors(async (req, res) => {
-  const grades = await Grade.find();
-  res.status(200).json({
-    grades,
-  });
-=======
 export const getGrades = catchAsyncErrors(async (req, res, next) => {
-    const resPerPage = 8;
-    const apiFilters = new APIFilters(Grade, req.query).search().filters();
-    try {
-        let grades = await apiFilters.query;
-        let filteredGradesCount = grades.length;
-        apiFilters.pagination(resPerPage);
-        grades = await apiFilters.query.clone();
-        res.status(200).json({
-            resPerPage,
-            filteredGradesCount,
-            grades,
-        });
-    } catch (error) {
-        next(new ErrorHandler(error.message || "Failed to fetch courses", 500));
-    }
-
->>>>>>> e050d08a96a11c36d72ba4e5671a0b64ff075462
+  const resPerPage = 8;
+  const apiFilters = new APIFilters(Grade, req.query).search().filters();
+  try {
+    let grades = await apiFilters.query;
+    let filteredGradesCount = grades.length;
+    apiFilters.pagination(resPerPage);
+    grades = await apiFilters.query.clone();
+    res.status(200).json({
+      resPerPage,
+      filteredGradesCount,
+      grades,
+    });
+  } catch (error) {
+    next(new ErrorHandler(error.message || "Failed to fetch courses", 500));
+  }
 });
 // Update grade => /api/v1/grades/:id
 export const updateGrade = catchAsyncErrors(async (req, res) => {
