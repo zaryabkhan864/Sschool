@@ -32,6 +32,7 @@ export const getGrades = catchAsyncErrors(async (req, res, next) => {
             filteredGradesCount,
             grades,
         });
+  
 
 });
 // Update grade => /api/v1/grades/:id
