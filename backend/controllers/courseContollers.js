@@ -1,6 +1,4 @@
-import Course from "../models/Course.js";
-// import Grade from "../models/grade.js";
-// import Teacher from "../models/grade.js";
+import Course from "../models/course.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 
@@ -68,7 +66,7 @@ export const deleteCourse = catchAsyncErrors(async (req, res, next) => {
     if (!course) {
       return next(new ErrorHandler("Course not found", 404));
     }
-    await Course.findOneAndDelete({_id: req?.params?.id});
+    await Course.findOneAndDelete({ _id: req?.params?.id });
     res.status(200).json({
       message: "Course deleted successfully",
     });

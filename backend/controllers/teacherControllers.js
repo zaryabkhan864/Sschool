@@ -1,5 +1,6 @@
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import Teacher from "../models/teacher.js";
+import Course from "../models/course.js";
 import APIFilters from "../utils/apiFilters.js";
 import ErrorHandler from "../utils/errorHandler.js";
 
@@ -56,27 +57,26 @@ export const updateTeacher = catchAsyncErrors(async (req, res, next) => {
 
 // Delete teacher => /api/v1/teachers/:id
 export const deleteTeacher = catchAsyncErrors(async (req, res, next) => {
-  try {
-    //check if there is any teacher with req id
-    const teacher = await Teacher.findById(req?.params?.id);
-    if (!teacher) {
-      return next(new ErrorHandler("teacher not found", 404));
-    }
-
-    //check if there are any courses associated with this teacher
-    if (teacher.assignedCourses.length > 0) {
-      return next(
-        new ErrorHandler("Can not delete Teacher ,Delete teacher courses", 404)
-      );
-    }
-    //if no courses are associated, delete the teacher
-    await teacher.deleteOne();
-    res.status(200).json({
-      message: "Teacher deleted successfully",
-    });
-  } catch (error) {
-    next(new ErrorHandler(error.message || "Failed to delete teacher", 500));
+  //check if there is any teacher with req id
+  const teacher = await Teacher.findById(req?.params?.id);
+  if (!teacher) {
+    return next(new ErrorHandler("teacher not found", 404));
   }
+  if (Course.teacher == req?.params?.id) {
+    return next(new ErrorHandler("teacher is assigned to a course, first removed this teacher from course", 404));
+  }
+  //check if there are any courses associated with this teacher
+  if (teacher.assignedCourses.length > 0) {
+    return next(
+      new ErrorHandler("Can not delete Teacher ,Delete teacher courses", 404)
+    );
+  }
+  //if no courses are associated, delete the teacher
+  await teacher.deleteOne();
+  res.status(200).json({
+    message: "Teacher deleted successfully",
+  });
+
 });
 
 // extra controller for teacher

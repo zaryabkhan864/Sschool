@@ -6,18 +6,15 @@ import APIFilters from "../utils/apiFilters.js";
 //CRUD operations for grades
 
 // Create new grade => /api/v1/grades
-export const createGrade = catchAsyncErrors(async (req, res, next) => {
-  try {
-    const grade = await Grade.create(req.body);
+export const createGrade = catchAsyncErrors(async (req, res) => {
 
-    res.status(200).json({
-      grade,
-      message: "Grade Created successfully",
-    });
-  } catch (error) {
-    next(new ErrorHandler(error.message || "Failed to create grade", 500));
-  }
-});
+  const grade = await Grade.create(req.body);
+
+  res.status(200).json({
+    grade,
+    message: "Grade Created successfully",
+  });
+})
 //Create get all grades => /api/v1/grades
 export const getGrades = catchAsyncErrors(async (req, res, next) => {
   const resPerPage = 8;
