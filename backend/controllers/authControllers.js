@@ -7,6 +7,7 @@ import sendToken from "../utils/sendToken.js";
 import crypto from "crypto";
 // import { delete_file, upload_file } from "../utils/cloudinary.js";
 import bcrypt from 'bcryptjs'; // Import bcrypt for password hashing
+import APIFilters from "../utils/apiFilters.js";
 
 
 // Register a user  =>  /api/v1/register

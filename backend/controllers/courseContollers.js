@@ -2,10 +2,13 @@ import Course from "../models/Course.js";
 import Grade from "../models/grade.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
+import APIFilters from "../utils/apiFilters.js";
+
 //CRUD operations for courses
 
 // Create new course => /api/v1/courses
 export const newCourse = catchAsyncErrors(async (req, res, next) => {
+  console.log("getCourses", req.body);
   try {
     const course = await Course.create(req.body);
 
@@ -20,20 +23,23 @@ export const newCourse = catchAsyncErrors(async (req, res, next) => {
 export const getCourses = catchAsyncErrors(async (req, res, next) => {
   const resPerPage = 8;
   const apiFilters = new APIFilters(Course, req.query).search().filters();
-  try {
-    let courses = await apiFilters.query;
-    let filteredCoursesCount = courses.length;
-    apiFilters.pagination(resPerPage);
-    courses = await apiFilters.query.clone();
-    res.status(200).json({
-      resPerPage,
-      filteredCoursesCount,
-      courses,
-    });
-  } catch (error) {
-    next(new ErrorHandler(error.message || "Failed to fetch courses", 500));
-  }
+
+
+  let courses = await apiFilters.query;
+  const filteredCoursesCount = courses.length;
+
+
+  apiFilters.pagination(resPerPage);
+  courses = await apiFilters.query.clone();
+
+  res.status(200).json({
+    success: true,
+    resPerPage,
+    filteredCoursesCount,
+    courses,
+  });
 });
+
 
 
 // Update course => /api/v1/courses/:id

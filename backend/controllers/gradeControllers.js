@@ -1,6 +1,7 @@
 import Grade from "../models/grade.js";
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import ErrorHandler from "../utils/errorHandler.js";
+import APIFilters from "../utils/apiFilters.js";
 
 //CRUD operations for grades
 // Create new grade => /api/v1/grades
@@ -17,19 +18,20 @@ export const createGrade = catchAsyncErrors(async (req, res) => {
 export const getGrades = catchAsyncErrors(async (req, res, next) => {
     const resPerPage = 8;
     const apiFilters = new APIFilters(Grade, req.query).search().filters();
-    try {
+
         let grades = await apiFilters.query;
         let filteredGradesCount = grades.length;
+
         apiFilters.pagination(resPerPage);
+
         grades = await apiFilters.query.clone();
+
         res.status(200).json({
+            success: true,
             resPerPage,
             filteredGradesCount,
             grades,
         });
-    } catch (error) {
-        next(new ErrorHandler(error.message || "Failed to fetch courses", 500));
-    }
 
 });
 // Update grade => /api/v1/grades/:id

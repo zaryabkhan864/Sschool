@@ -1,5 +1,6 @@
 import catchAsyncErrors from '../middlewares/catchAsyncErrors.js';
 import Student from '../models/Student.js';
+import APIFilters from '../utils/apiFilters.js';
 
 // Create a new student =>  /api/v1/student/create_student
 export const createStudent = async (req, res) => {
@@ -21,20 +22,19 @@ export const createStudent = async (req, res) => {
 export const getStudents = catchAsyncErrors(async (req, res, next) => {
     const resPerPage = 8;
     const apiFilters = new APIFilters(Student, req.query).search().filters();
-    try {
+ 
         let students = await apiFilters.query;
         let filteredStudentsCount = students.length;
+
         apiFilters.pagination(resPerPage);
         students = await apiFilters.query.clone();
+        
         res.status(200).json({
+            success: true,
             resPerPage,
             filteredStudentsCount,
             students,
         });
-    } catch (error) {
-        next(new ErrorHandler(error.message || "Failed to fetch students", 500));
-    }
-
 })
 
 // update student =>  /api/v1/student/:id

@@ -1,5 +1,6 @@
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import Teacher from "../models/teacher.js";
+import APIFilters from "../utils/apiFilters.js";
 import ErrorHandler from "../utils/errorHandler.js";
 
 // CRUD operations for courses
@@ -17,10 +18,10 @@ export const newTeacher = async (req, res, next) => {
   }
 };
 // Create get all teacher => /api/v1/teachers
-export const getTeachers = async (req, res, next) => {
+export const getTeachers = catchAsyncErrors(async (req, res, next) => {
   const resPerPage = 8;
   const apiFilters = new APIFilters(Teacher, req.query).search().filters();
-  try {
+
     let teachers = await apiFilters.query;
     let filteredTeachersCount = teachers.length;
     apiFilters.pagination(resPerPage);
@@ -30,10 +31,7 @@ export const getTeachers = async (req, res, next) => {
       filteredTeachersCount,
       teachers,
     });
-  } catch (error) {
-    next(new ErrorHandler(error.message || "Failed to fetch teachers", 500));
-  }
-};
+});
 // Update teacher => /api/v1/teachers/:id
 export const updateTeacher = async (req, res, next) => {
   try {
