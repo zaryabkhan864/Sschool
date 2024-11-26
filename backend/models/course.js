@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import Teacher from "./teacher.js";
+import Grade from "./grade.js";
 
 const courseSchema = new mongoose.Schema(
   {
@@ -34,4 +36,40 @@ const courseSchema = new mongoose.Schema(
   { timestamps: false }
 );
 
+//middlewares to add course to grade and teacher
+courseSchema.post("save", async function (doc, text) {
+  try {
+    //add course to courses array inside grade
+    await Grade.findByIdAndUpdate(
+      doc.grade,
+      { $addToSet: { courses: doc._id } },
+      { new: true }
+    );
+    //add course to assignedCourses array inside teacher
+    await Teacher.findByIdAndUpdate(
+      doc.teacher,
+      { $addToSet: { assignedCourses: doc._id } },
+      { new: true }
+    );
+    next();
+  } catch (error) {
+    console.error("Error updating Grade and Teacher", error.message);
+    next(error);
+  }
+});
+
+//middleware to delete course from assignedcourses in Teachers and courses in Grade
+courseSchema.pre("findOneAndDelete", async function (next) {
+  const courseId = this.getQuery()._id;
+  //find  all teachers that has this course
+  await Teacher.updateMany(
+    { assignedCourses: courseId },
+    { $pull: { assignedCourses: courseId } }
+  );
+  await grade.updateMany(
+    { courses: courseId },
+    { $pull: { courses: courseId } }
+  );
+  next();
+});
 export default mongoose.model("Course", courseSchema);

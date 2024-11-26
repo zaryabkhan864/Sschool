@@ -23,15 +23,15 @@ export const getTeachers = catchAsyncErrors(async (req, res, next) => {
   const resPerPage = 8;
   const apiFilters = new APIFilters(Teacher, req.query).search().filters();
 
-    let teachers = await apiFilters.query;
-    let filteredTeachersCount = teachers.length;
-    apiFilters.pagination(resPerPage);
-    teachers = await apiFilters.query.clone();
-    res.status(200).json({
-      resPerPage,
-      filteredTeachersCount,
-      teachers,
-    });
+  let teachers = await apiFilters.query;
+  let filteredTeachersCount = teachers.length;
+  apiFilters.pagination(resPerPage);
+  teachers = await apiFilters.query.clone();
+  res.status(200).json({
+    resPerPage,
+    filteredTeachersCount,
+    teachers,
+  });
 });
 // Update teacher => /api/v1/teachers/:id
 export const updateTeacher = catchAsyncErrors(async (req, res, next) => {
@@ -58,7 +58,6 @@ export const updateTeacher = catchAsyncErrors(async (req, res, next) => {
 export const deleteTeacher = catchAsyncErrors(async (req, res, next) => {
   try {
     //check if there is any teacher with req id
-
     const teacher = await Teacher.findById(req?.params?.id);
     if (!teacher) {
       return next(new ErrorHandler("teacher not found", 404));
@@ -66,9 +65,11 @@ export const deleteTeacher = catchAsyncErrors(async (req, res, next) => {
 
     //check if there are any courses associated with this teacher
     if (teacher.assignedCourses.length > 0) {
-      return next(new ErrorHandler("First delete courses pa", 404));
+      return next(
+        new ErrorHandler("Can not delete Teacher ,Delete teacher courses", 404)
+      );
     }
-    //if no courses are associated, delte the teacher
+    //if no courses are associated, delete the teacher
     await teacher.deleteOne();
     res.status(200).json({
       message: "Teacher deleted successfully",
