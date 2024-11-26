@@ -51,11 +51,22 @@ export const registerUser = catchAsyncErrors(async (req, res) => {
 
 
 // Read all User List  =>  /api/v1/users
-export const getUsers = catchAsyncErrors(async (req, res) => {
-    const users = await User.find();
-    res.status(200).json({
-        users
-    })
+export const getUsers = catchAsyncErrors(async (req, res, next) => {
+    const resPerPage = 8;
+    const apiFilters = new APIFilters(User, req.query).search().filters();
+    try {
+        let users = await apiFilters.query;
+        let filteredUsersCount = users.length;
+        apiFilters.pagination(resPerPage);
+        users = await apiFilters.query.clone();
+        res.status(200).json({
+            resPerPage,
+            filteredUsersCount,
+            users,
+        });
+    } catch (error) {
+        next(new ErrorHandler(error.message || "Failed to fetch users", 500));
+    }
 })
 
 //Update User  =>  /api/v1/user/:id
