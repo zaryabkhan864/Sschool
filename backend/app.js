@@ -39,9 +39,9 @@ import gradeRoutes from "./routes/grade.js";
 // calling routes here
 app.use("/api/v1", courseRoutes);
 app.use("/api/v1", auth);
-app.use('/api/v1', studentRoutes);
-app.use('/api/v1', gradeRoutes);
-app.use('/api/v1', teacherRoutes)
+app.use("/api/v1", studentRoutes);
+app.use("/api/v1", gradeRoutes);
+app.use("/api/v1", teacherRoutes);
 // Using error middleware
 app.use(errorMiddleware);
 
