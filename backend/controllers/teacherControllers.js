@@ -8,15 +8,11 @@ import ErrorHandler from "../utils/errorHandler.js";
 
 // Create new teacher => /api/v1/teachers
 export const newTeacher = catchAsyncErrors(async (req, res, next) => {
-  try {
     const teacher = await Teacher.create(req.body);
 
     res.status(200).json({
       teacher,
     });
-  } catch (error) {
-    next(new ErrorHandler(error.message || "Failed to create teacher", 500));
-  }
 });
 
 // Create get all teacher => /api/v1/teachers
@@ -36,7 +32,6 @@ export const getTeachers = catchAsyncErrors(async (req, res, next) => {
 });
 // Update teacher => /api/v1/teachers/:id
 export const updateTeacher = catchAsyncErrors(async (req, res, next) => {
-  try {
     let teacher = await Teacher.findById(req?.params?.id);
 
     if (!teacher) {
@@ -50,9 +45,6 @@ export const updateTeacher = catchAsyncErrors(async (req, res, next) => {
     res.status(200).json({
       teacher,
     });
-  } catch (error) {
-    next(new ErrorHandler(error.message || "Failed to update teacher", 500));
-  }
 });
 
 // Delete teacher => /api/v1/teachers/:id
@@ -83,7 +75,6 @@ export const deleteTeacher = catchAsyncErrors(async (req, res, next) => {
 
 // Get single teacher details => /api/v1/teachers/:id
 export const getTeacherDetails = catchAsyncErrors(async (req, res, next) => {
-  try {
     const teacher = await Teacher.findById(req?.params?.id);
 
     if (!teacher) {
@@ -93,7 +84,5 @@ export const getTeacherDetails = catchAsyncErrors(async (req, res, next) => {
     res.status(200).json({
       teacher,
     });
-  } catch (error) {
-    next(new ErrorHandler(error.message || "Failed to fetch teacher", 500));
-  }
+
 });

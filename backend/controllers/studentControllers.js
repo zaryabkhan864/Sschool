@@ -4,18 +4,11 @@ import APIFilters from '../utils/apiFilters.js';
 
 // Create a new student =>  /api/v1/student/create_student
 export const createStudent = catchAsyncErrors(async (req, res) => {
-  try {
     const student = await Student.create(req.body);
     res.status(201).json({
       success: true,
       student,
     });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
 });
 
 // Get all students =>  /api/v1/students
@@ -45,7 +38,6 @@ export const updateStudent = catchAsyncErrors(async (req, res) => {
       message: "Student not found",
     });
   }
-  try {
     const newStudentData = {
       name: req.body.name,
       age: req.body.age,
@@ -69,11 +61,7 @@ export const updateStudent = catchAsyncErrors(async (req, res) => {
     res.status(200).json({
       updatedStudent,
     });
-  } catch (err) {
-    res.status(500).json({
-      message: err.message,
-    });
-  }
+
 });
 
 // Delete student =>  /api/v1/student/:id
