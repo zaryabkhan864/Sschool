@@ -105,11 +105,11 @@ export const addCourseInGrade = catchAsyncErrors(async (req, res, next) => {
   }
   grade.courses.push(courseId);
   await grade.save();
-  res.status(200).json({ message: "Course added to teacher" });
+  res.status(200).json({ message: "Course added to grade" });
 });
 
 //remove course from grade
-export const deleteCourseInGrade = catchAsyncErrors(async (req, res) => {
+export const deleteCourseInGrade = catchAsyncErrors(async (req, res, next) => {
   const { gradeId, courseId } = req.body;
   const grade = await Grade.findById(gradeId);
   if (!grade) {
