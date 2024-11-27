@@ -1,6 +1,6 @@
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import Teacher from "../models/teacher.js";
-import Course from "../models/course.js";
+import Course from "../models/course.js"
 import APIFilters from "../utils/apiFilters.js";
 import ErrorHandler from "../utils/errorHandler.js";
 
@@ -86,3 +86,27 @@ export const getTeacherDetails = catchAsyncErrors(async (req, res, next) => {
     });
 
 });
+
+// add course to teacher
+export const addCourseInTeacher = async (req, res) => {
+  const { teacherId, courseId } = req.body;
+  const teacher = await Teacher.findById(teacherId);
+  const course = await Course.findById(courseId);
+
+  teacher.assignedCourses.push(courseId);
+  await teacher.save();
+  res.status(200).json({ message: "Course added to teacher" });
+};
+
+//remove course from teacher
+export const deleteCourseInTeacher = async (req, res) => {
+  const { teacherId, courseId } = req.body;
+  const teacher = await Teacher.findById(teacherId);
+
+  teacher.assignedCourses = teacher.assignedCourses.filter(
+    (course) => course.toString() !== courseId
+  );
+  await teacher.save();
+
+  res.status(200).json({ message: "Course removed from teacher" });
+};

@@ -1,4 +1,5 @@
 import Grade from "../models/grade.js";
+import Course from "../models/course.js";
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import APIFilters from "../utils/apiFilters.js";
@@ -7,14 +8,13 @@ import APIFilters from "../utils/apiFilters.js";
 
 // Create new grade => /api/v1/grades
 export const createGrade = catchAsyncErrors(async (req, res) => {
-
   const grade = await Grade.create(req.body);
 
   res.status(200).json({
     grade,
     message: "Grade Created successfully",
   });
-})
+});
 //Create get all grades => /api/v1/grades
 export const getGrades = catchAsyncErrors(async (req, res, next) => {
   const resPerPage = 8;
@@ -86,5 +86,29 @@ export const getGradeDetails = catchAsyncErrors(async (req, res) => {
     grade,
   });
 });
+
+// add course to grade
+export const addCourseInGrade = async (req, res) => {
+  const { gradeId, courseId } = req.body;
+  const grade = await Grade.findById(gradeId);
+  const course = await Course.findById(courseId);
+
+  grade.courses.push(courseId);
+  await grade.save();
+  res.status(200).json({ message: "Course added to teacher" });
+};
+
+//remove course from grade
+export const deleteCourseInGrade = async (req, res) => {
+  const { gradeId, courseId } = req.body;
+  const grade = await Grade.findById(gradeId);
+
+  grade.courses = grade.courses.filter(
+    (course) => course.toString() !== courseId
+  );
+  await grade.save();
+
+  res.status(200).json({ message: "Course removed from grade" });
+};
 
 //
