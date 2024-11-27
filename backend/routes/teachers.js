@@ -19,10 +19,15 @@ router.route("/teachers").get(getTeachers);
 router
   .route("/admin/teacher/:id")
   .put(isAuthenticatedUser, authorizeRoles("admin"), updateTeacher)
-  .delete(isAuthenticatedUser, authorizeRoles("admin"), deleteTeacher)
-  .patch(isAuthenticatedUser, authorizeRoles("admin"), addCourseInTeacher)
-  .patch(isAuthenticatedUser, authorizeRoles("admin"), deleteCourseInTeacher);
+  .delete(isAuthenticatedUser, authorizeRoles("admin"), deleteTeacher);
 
 router.route("/teacher/:id").get(getTeacherDetails);
+router
+  .route("/admin/teacher/add/:id")
+  .patch(isAuthenticatedUser, authorizeRoles("admin"), addCourseInTeacher);
+
+router
+  .route("/admin/teacher/remove/:id")
+  .patch(isAuthenticatedUser, authorizeRoles("admin"), deleteCourseInTeacher);
 
 export default router;

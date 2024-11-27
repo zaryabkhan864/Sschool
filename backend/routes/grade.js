@@ -18,10 +18,16 @@ router.route("/grades").get(getGrades);
 router
   .route("/admin/grade/:id")
   .put(isAuthenticatedUser, authorizeRoles("admin"), updateGrade)
-  .delete(isAuthenticatedUser, authorizeRoles("admin"), deleteGrade)
-  .patch(isAuthenticatedUser, authorizeRoles("admin"), addCourseInGrade)
-  .patch(isAuthenticatedUser, authorizeRoles("admin"), deleteCourseInGrade);
+  .delete(isAuthenticatedUser, authorizeRoles("admin"), deleteGrade);
 
 router.route("/grade/:id").get(getGradeDetails);
+
+router
+  .route("/admin/grade/add/:id")
+  .patch(isAuthenticatedUser, authorizeRoles("admin"), addCourseInGrade);
+
+router
+  .route("/admin/grade/remove/:id")
+  .patch(isAuthenticatedUser, authorizeRoles("admin"), deleteCourseInGrade);
 
 export default router;
