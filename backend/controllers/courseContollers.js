@@ -44,6 +44,7 @@ export const updateCourse = catchAsyncErrors(async (req, res, next) => {
 
   course = await Course.findByIdAndUpdate(req?.params?.id, req.body, {
     new: true,
+
   });
 
   res.status(200).json({

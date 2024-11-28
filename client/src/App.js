@@ -1,12 +1,13 @@
 import React from 'react';
-import './App.css';
+import { BrowserRouter as Router } from 'react-router-dom';
+import AppRoutes from './components/Routes/AppRoutes.jsx';
 
-function App() {
+const App = () => {
   return (
-    <React.Fragment>
-      <h1>App</h1>
-    </React.Fragment>
+    <Router>
+      <AppRoutes />
+    </Router>
   );
-}
+};
 
 export default App;
