@@ -1,6 +1,6 @@
 import express from "express";
 import {
-  createStudent,
+  newStudent,
   getStudents,
   updateStudent,
   deleteStudent,
@@ -11,8 +11,9 @@ import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 const router = express.Router();
 
 router
-  .route("/admin/student")
-  .post(isAuthenticatedUser, authorizeRoles("admin"), createStudent);
+  .route("/admin/students")
+  .post(isAuthenticatedUser, authorizeRoles("admin"), newStudent);
+
 router.route("/students").get(getStudents);
 router
   .route("/admin/student/:id")

@@ -1,18 +1,19 @@
 import express from "express";
 const app = express();
-
-//Middleware to handle JSON payload
-app.use(express.json());
-
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import { connectDatabase } from "./config/dbConnect.js";
 import errorMiddleware from "./middlewares/errors.js";
 
+import path from "path";
+// import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Handle Uncaught exceptions
 process.on("uncaughtException", (err) => {
   console.log(`ERROR: ${err}`);
-  console.log("Shutting down due to uncaught exception");
+  console.log("Shutting down due to uncaught expection");
   process.exit(1);
 });
 
@@ -23,29 +24,49 @@ if (process.env.NODE_ENV !== "PRODUCTION") {
 // Connecting to database
 connectDatabase();
 
-// environment variables callings
-dotenv.config({ path: "backend/config/config.env" });
-
-// using cookie parser
+app.use(
+  express.json({
+    limit: "10mb",
+    verify: (req, res, buf) => {
+      req.rawBody = buf.toString();
+    },
+  })
+);
 app.use(cookieParser());
-app.use(express.json());
-// import all routes here
+
+// Import all routes
+
+import authRoutes from "./routes/auth.js";
+
+
 import courseRoutes from "./routes/course.js";
-import auth from "./routes/auth.js";
 import studentRoutes from "./routes/students.js";
 import teacherRoutes from "./routes/teachers.js";
 import gradeRoutes from "./routes/grade.js";
 
-// calling routes here
+
+
+import { fileURLToPath } from "url";
+
+
 app.use("/api/v1", courseRoutes);
-app.use("/api/v1", auth);
 app.use("/api/v1", studentRoutes);
-app.use("/api/v1", gradeRoutes);
 app.use("/api/v1", teacherRoutes);
+app.use("/api/v1", gradeRoutes);
+app.use("/api/v1", authRoutes);
+
+
+if (process.env.NODE_ENV === "PRODUCTION") {
+  app.use(express.static(path.join(__dirname, "../frontend/build")));
+
+  app.get("*", (req, res) => {
+    res.sendFile(path.resolve(__dirname, "../frontend/build/index.html"));
+  });
+}
+
 // Using error middleware
 app.use(errorMiddleware);
 
-// server running function
 const server = app.listen(process.env.PORT, () => {
   console.log(
     `Server started on PORT: ${process.env.PORT} in ${process.env.NODE_ENV} mode.`

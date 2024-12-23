@@ -21,7 +21,7 @@ module.exports = {
         'SemiBold ': 600,
         'Bold': 700,
         'ExtraBold': 800, // Adjust based on your needs
-    
+
 
       },
       fontFamily: {

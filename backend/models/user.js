@@ -27,8 +27,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["admin", "teacher", "student"],
-      required: true,
+      default: "user",
     },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
@@ -59,10 +58,10 @@ userSchema.methods.comparePassword = async function (enteredPassword) {
 
 // Generate password reset token
 userSchema.methods.getResetPasswordToken = function () {
-  // Generate token
+  // Gernerate token
   const resetToken = crypto.randomBytes(20).toString("hex");
 
-  // Hash and set to resetPasswordToken
+  // Hash and set to resetPasswordToken field
   this.resetPasswordToken = crypto
     .createHash("sha256")
     .update(resetToken)
@@ -73,4 +72,5 @@ userSchema.methods.getResetPasswordToken = function () {
 
   return resetToken;
 };
+
 export default mongoose.model("User", userSchema);

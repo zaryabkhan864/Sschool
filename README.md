@@ -1,2 +1,0 @@
-# Sschool
-Educational web app

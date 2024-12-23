@@ -3,38 +3,33 @@ import Student from '../models/Student.js';
 import APIFilters from '../utils/apiFilters.js';
 
 // Create a new student =>  /api/v1/student/create_student
-export const createStudent = catchAsyncErrors(async (req, res) => {
-  try {
-    const student = await Student.create(req.body);
-    res.status(201).json({
-      success: true,
-      student,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
+export const newStudent = catchAsyncErrors(async (req, res) => {
+  req.body.user = req.user._id;
+  console.log(req.body.user)
+  const student = await Student.create(req.body);
+
+  res.status(200).json({
+    student,
+  });
 });
 
 // Get all students =>  /api/v1/students
 export const getStudents = catchAsyncErrors(async (req, res, next) => {
-    const resPerPage = 8;
-    const apiFilters = new APIFilters(Student, req.query).search().filters();
- 
-        let students = await apiFilters.query;
-        let filteredStudentsCount = students.length;
+  const resPerPage = 8;
+  const apiFilters = new APIFilters(Student, req.query).search().filters();
 
-        apiFilters.pagination(resPerPage);
-        students = await apiFilters.query.clone();
-        
-        res.status(200).json({
-            success: true,
-            resPerPage,
-            filteredStudentsCount,
-            students,
-        });
+  let students = await apiFilters.query;
+  let filteredStudentsCount = students.length;
+
+  apiFilters.pagination(resPerPage);
+  students = await apiFilters.query.clone();
+
+  res.status(200).json({
+    success: true,
+    resPerPage,
+    filteredStudentsCount,
+    students,
+  });
 })
 
 // update student =>  /api/v1/student/:id
@@ -45,35 +40,30 @@ export const updateStudent = catchAsyncErrors(async (req, res) => {
       message: "Student not found",
     });
   }
-  try {
-    const newStudentData = {
-      name: req.body.name,
-      age: req.body.age,
-      gender: req.body.gender,
-      nationality: req.body.nationality,
-      images: req.body.images,
-      studentPhoneNumber: req.body.studentPhoneNumber,
-      parentOnePhoneNumber: req.body.parentOnePhoneNumber,
-      parentTwoPhoneNumber: req.body.parentTwoPhoneNumber,
-      user: req.body.user,
-      grade: req.body.grade,
-      enrolledCourses: req.body.enrolledCourses,
-    };
-    const updatedStudent = await Student.findByIdAndUpdate(
-      req.params.id,
-      newStudentData,
-      {
-        new: true,
-      }
-    );
-    res.status(200).json({
-      updatedStudent,
-    });
-  } catch (err) {
-    res.status(500).json({
-      message: err.message,
-    });
-  }
+  const newStudentData = {
+    name: req.body.name,
+    age: req.body.age,
+    gender: req.body.gender,
+    nationality: req.body.nationality,
+    images: req.body.images,
+    studentPhoneNumber: req.body.studentPhoneNumber,
+    parentOnePhoneNumber: req.body.parentOnePhoneNumber,
+    parentTwoPhoneNumber: req.body.parentTwoPhoneNumber,
+    user: req.body.user,
+    grade: req.body.grade,
+    enrolledCourses: req.body.enrolledCourses,
+  };
+  const updatedStudent = await Student.findByIdAndUpdate(
+    req.params.id,
+    newStudentData,
+    {
+      new: true,
+    }
+  );
+  res.status(200).json({
+    updatedStudent,
+  });
+
 });
 
 // Delete student =>  /api/v1/student/:id
