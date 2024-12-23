@@ -16,8 +16,14 @@ const Header = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const logoutHandler = () => {
-    logout();
-    navigate(0);
+    logout()
+      .then(() => {
+        console.log("Logout successful");
+        window.location.href = "/"; // Force reload and redirect
+      })
+      .catch((error) => {
+        console.error("Logout failed:", error);
+      });
   };
 
   return (

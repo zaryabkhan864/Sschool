@@ -17,7 +17,7 @@ const Dashboard = () => {
   return (
     <AdminLayout>
       <MetaData title="Admin Dashboard" />
-    
+
 
       <div className="flex flex-col md:flex-row items-center justify-between bg-gray-100 p-4 shadow rounded-md">
         <div className="flex items-center space-x-4">
@@ -52,7 +52,7 @@ const Dashboard = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mt-6">
         <div className="bg-green-500 text-white p-6 rounded-lg shadow-md">
           <h2 className="text-2xl font-bold">Total Students</h2>
           <p className="text-lg mt-2">1234</p>

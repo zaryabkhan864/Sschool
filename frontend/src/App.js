@@ -14,21 +14,15 @@ function App() {
 
   return (
     <Router>
-      <div className="flex flex-col min-h-screen">
         <Toaster position="top-center" />
 {/* 
         <Header /> */}
-
-        <div className="flex-grow container mx-auto ">
           <Routes>
             {userRoutes}
             {adminRoutes}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </div>
-
         <Footer />
-      </div>
     </Router>
   );
 }
