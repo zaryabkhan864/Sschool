@@ -33,6 +33,9 @@ module.exports = {
         darkBlue: "#0d1117",
         dark: "#0d1117",
       },
+      animation: {
+        spin: "spin 1.2s linear infinite",
+      },
     },
 
   },
