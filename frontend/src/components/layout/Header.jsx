@@ -2,16 +2,15 @@ import React, { useState } from "react";
 import Search from "./Search";
 import { useGetMeQuery } from "../../redux/api/userApi";
 import { useSelector } from "react-redux";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useLazyLogoutQuery } from "../../redux/api/authApi";
-import { Cog6ToothIcon } from "@heroicons/react/24/outline"; // Example for Heroicons
+import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 
 const Header = () => {
   const navigate = useNavigate();
-
+  const location = useLocation(); // Get the current route
   const { isLoading } = useGetMeQuery();
   const [logout] = useLazyLogoutQuery();
-
   const { user } = useSelector((state) => state.auth);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -26,23 +25,33 @@ const Header = () => {
       });
   };
 
+  // If on "/" route, render nothing
+  if (location.pathname === "/") {
+    return null; // Don't render anything
+  }
+
   return (
-    <nav className="flex flex-col md:flex-row items-center justify-between px-4 bg-gray-100 shadow-lg">
-      <div className="flex items-center justify-start w-full md:w-1/3">
-        <div className="navbar-brand">
-          <Link to="/">
-            <img src="/images/Logo.png" alt="School Logo" className="w-16 md:w-24" />
-          </Link>
-        </div>
-      </div>
+    <nav className="flex items-center justify-between px-4 bg-gray-100 shadow-lg">
+      {user ? (
+        <>
+          {/* Logo */}
+          <div className="flex items-center">
+            <Link to="/">
+              <img
+                src="/images/Logo.png"
+                alt="School Logo"
+                className="w-16 md:w-24"
+              />
+            </Link>
+          </div>
 
-      <div className="w-full md:w-1/3 mt-4 md:mt-0">
-        <Search />
-      </div>
+          {/* Search Bar */}
+          <div className="w-full md:w-1/3">
+            <Search />
+          </div>
 
-      <div className="flex items-center justify-end w-full md:w-1/3 mt-4 md:mt-0 text-center">
-        {user ? (
-          <div className="relative">
+          {/* User Info and Settings */}
+          <div className="relative flex items-center">
             <button
               className="flex items-center text-gray-700 hover:text-gray-900 focus:outline-none"
               type="button"
@@ -51,7 +60,9 @@ const Header = () => {
               <figure className="w-10 h-10 rounded-full overflow-hidden mr-2">
                 <img
                   src={
-                    user?.avatar ? user?.avatar?.url : "/images/default_avatar.jpg"
+                    user?.avatar
+                      ? user?.avatar?.url
+                      : "/images/default_avatar.jpg"
                   }
                   alt="User Avatar"
                   className="w-full h-full object-cover"
@@ -63,7 +74,7 @@ const Header = () => {
               </button>
             </button>
             {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+              <div className="absolute right-0 mt-40 w-48 bg-white rounded-md shadow-lg z-10">
                 {user?.role === "admin" && (
                   <Link
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -72,14 +83,12 @@ const Header = () => {
                     Dashboard
                   </Link>
                 )}
-
                 <Link
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   to="/me/profile"
                 >
                   Profile
                 </Link>
-
                 <button
                   className="block w-full text-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
                   onClick={logoutHandler}
@@ -88,21 +97,20 @@ const Header = () => {
                 </button>
               </div>
             )}
-
           </div>
-        ) : (
-          !isLoading && (
+        </>
+      ) : (
+        !isLoading && (
+          <div className="flex justify-center w-full">
             <Link
               to="/"
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
               Login
             </Link>
-          )
-        )}
-        {/* Settings Icon */}
-
-      </div>
+          </div>
+        )
+      )}
     </nav>
   );
 };

@@ -5,10 +5,11 @@ import { toast } from "react-hot-toast";
 import MetaData from "../layout/MetaData";
 import AdminLayout from "../layout/AdminLayout";
 import { useNavigate } from "react-router-dom";
-import { useCreateGradeMutation } from "../../redux/api/gradesApi";
+import { useCreateGradeMutation, useGetGradesQuery } from "../../redux/api/gradesApi";
 
 const NewGrade = () => {
     const navigate = useNavigate();
+    const { refetch } = useGetGradesQuery();
 
     const [grade, setGrade] = useState({
         gradeName: "",
@@ -29,8 +30,9 @@ const NewGrade = () => {
         if (isSuccess) {
             toast.success("Grade created");
             navigate("/admin/grades");
+            refetch();
         }
-    }, [error, isSuccess, navigate]);
+    }, [error, isSuccess, navigate, refetch]);
 
     const onChange = (e) => {
         setGrade({ ...grade, [e.target.name]: e.target.value });

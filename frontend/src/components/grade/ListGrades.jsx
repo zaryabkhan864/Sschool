@@ -11,7 +11,7 @@ import AdminLayout from "../layout/AdminLayout";
 
 const ListGrades = () => {
     const navigate = useNavigate();
-    const { data, isLoading, error } = useGetGradesQuery();
+    const { data, isLoading, error, refetch } = useGetGradesQuery();
 
     const [
         deleteGrade,
@@ -29,10 +29,9 @@ const ListGrades = () => {
 
         if (isSuccess) {
             toast.success("Grade Deleted");
-            navigate("/admin/grades");
+            refetch(); // Delete ke baad data refresh kare
         }
-    }, [error, deleteError, isSuccess, navigate]);
-
+    }, [error, deleteError, isSuccess, navigate, refetch]);
     const deleteGradeHandler = (id) => {
         deleteGrade(id);
     };
@@ -84,7 +83,7 @@ const ListGrades = () => {
                             <i className="fa fa-pencil"></i>
                         </Link>
                         <Link
-                            to={`/admin/grades/${grade?._id}/details`}
+                            to={`/admin/grade/${grade?._id}/details`}
                             className="px-3 py-2 text-green-600 border border-green-600 rounded hover:bg-green-600 hover:text-white focus:outline-none"
                         >
                             <i className="fa fa-eye"></i>

@@ -14,15 +14,15 @@ function App() {
 
   return (
     <Router>
-        <Toaster position="top-center" />
-{/* 
-        <Header /> */}
-          <Routes>
-            {userRoutes}
-            {adminRoutes}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        <Footer />
+      <Toaster position="top-center" />
+
+      <Header />
+      <Routes>
+        {userRoutes}
+        {adminRoutes}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <Footer />
     </Router>
   );
 }

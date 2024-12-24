@@ -16,7 +16,7 @@ export const gradeApi = createApi({
             }),
         }),
         getGradeDetails: builder.query({
-            query: (id) => `/admin/Grade/${id}`,
+            query: (id) => `/grade/${id}`,
             providesTags: ["Grade"],
         }),
         createGrade: builder.mutation({
@@ -29,17 +29,16 @@ export const gradeApi = createApi({
             },
             invalidatesTags: ["AdminGrades"],
         }),
-        updateUpdate: builder.mutation({
+        updateGrade: builder.mutation({
             query({ id, body }) {
                 return {
-                    url: `/admin/grade/${id}`,
+                    url: `/admin/grades/${id}`,
                     method: "PUT",
                     body,
                 };
             },
             invalidatesTags: ["Grade", "AdminGrades"],
         }),
-
         deleteGrade: builder.mutation({
             query(id) {
 

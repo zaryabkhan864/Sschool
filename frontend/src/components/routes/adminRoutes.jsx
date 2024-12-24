@@ -10,6 +10,9 @@ import ListStudents from "../admin/ListStudents";
 import NewGrade from "../grade/NewGrade";
 import ListGrades from "../grade/ListGrades";
 import Header from "../layout/Header";
+import UpdateStudent from "../grade/UpdateGrade";
+import GradeDetails from "../grade/GradeDetails";
+import UpdateGrade from "../grade/UpdateGrade";
 
 const adminRoutes = () => {
   return (
@@ -32,14 +35,6 @@ const adminRoutes = () => {
         }
       />
       <Route
-        path="/admin/students"
-        element={
-          <ProtectedRoute admin={true}>
-            <ListStudents />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/admin/grades"
         element={
           <ProtectedRoute admin={true}>
@@ -47,6 +42,37 @@ const adminRoutes = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin/grades/:id"
+        element={
+          <ProtectedRoute admin={true}>
+            <UpdateGrade />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/grade/:id/details"
+        element={
+          <ProtectedRoute admin={true}>
+            <GradeDetails />
+          </ProtectedRoute>
+        }
+      />
+
+
+
+
+
+
+      <Route
+        path="/admin/students"
+        element={
+          <ProtectedRoute admin={true}>
+            <ListStudents />
+          </ProtectedRoute>
+        }
+      />
+
 
       <Route
         path="/admin/student/new"
@@ -56,10 +82,6 @@ const adminRoutes = () => {
           </ProtectedRoute>
         }
       />
-
-
-
-
 
 
       <Route
