@@ -28,7 +28,7 @@ const CustomPagination = ({ resPerPage, filteredStudentsCount }) => {
   };
 
   return (
-    <div className="d-flex justify-content-center my-5">
+    <div className="flex justify-center my-5">
       {filteredStudentsCount > resPerPage && (
         <Pagination
           activePage={currentPage}
@@ -39,8 +39,8 @@ const CustomPagination = ({ resPerPage, filteredStudentsCount }) => {
           prevPageText={"Prev"}
           firstPageText={"First"}
           lastPageText={"Last"}
-          itemClass="page-item"
-          linkClass="page-link"
+          itemClass="px-3 py-2 border rounded-lg text-blue-500 hover:bg-blue-100"
+          linkClass="text-sm"
         />
       )}
     </div>

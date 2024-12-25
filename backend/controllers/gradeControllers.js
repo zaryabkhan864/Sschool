@@ -18,23 +18,18 @@ export const newGrade = catchAsyncErrors(async (req, res) => {
 });
 //Create get all grades => /api/v1/grades
 export const getGrades = catchAsyncErrors(async (req, res, next) => {
-  const resPerPage = 8;
   const apiFilters = new APIFilters(Grade, req.query).search().filters();
 
   let grades = await apiFilters.query;
   let filteredGradesCount = grades.length;
 
-  apiFilters.pagination(resPerPage);
-
-  grades = await apiFilters.query.clone();
-
   res.status(200).json({
     success: true,
-    resPerPage,
     filteredGradesCount,
     grades,
   });
 });
+
 // Update grade => /api/v1/grades/:id
 export const updateGrade = catchAsyncErrors(async (req, res, next) => {
   let grade = await Grade.findById(req?.params?.id);

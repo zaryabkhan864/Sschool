@@ -1,6 +1,7 @@
 module.exports = {
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
+    "./node_modules/flowbite-react/**/*.js", // Add this line
   ],
   theme: {
     extend: {
@@ -39,5 +40,7 @@ module.exports = {
     },
 
   },
-  plugins: [],
+  plugins: [
+    require('flowbite/plugin'), // Add this plugin
+  ],
 }

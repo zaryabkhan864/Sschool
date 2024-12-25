@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Search from "./Search";
 import { useGetMeQuery } from "../../redux/api/userApi";
 import { useSelector } from "react-redux";
@@ -8,32 +8,56 @@ import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 
 const Header = () => {
   const navigate = useNavigate();
-  const location = useLocation(); // Get the current route
+  const location = useLocation();
   const { isLoading } = useGetMeQuery();
   const [logout] = useLazyLogoutQuery();
   const { user } = useSelector((state) => state.auth);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const dropdownTimeoutRef = useRef(null);
+
+  const handleMouseEnter = () => {
+    clearTimeout(dropdownTimeoutRef.current);
+    setIsDropdownOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    dropdownTimeoutRef.current = setTimeout(() => {
+      setIsDropdownOpen(false);
+    }, 300);
+  };
 
   const logoutHandler = () => {
     logout()
       .then(() => {
         console.log("Logout successful");
-        window.location.href = "/"; // Force reload and redirect
+        window.location.href = "/";
       })
       .catch((error) => {
         console.error("Logout failed:", error);
       });
   };
 
-  // If on "/" route, render nothing
+  const toggleMenu = () => {
+    setMenuOpen(!menuOpen);
+  };
+
   if (location.pathname === "/") {
-    return null; // Don't render anything
+    return null;
   }
 
   return (
-    <nav className="flex items-center justify-between px-4 bg-gray-100 shadow-lg">
+    <nav className="flex items-center justify-between px-4 bg-gray-100 shadow-lg relative">
       {user ? (
         <>
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden text-gray-700 px-4 py-2"
+            onClick={toggleMenu}
+          >
+            {menuOpen ? "✖" : "☰"}
+          </button>
+
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/">
@@ -45,18 +69,42 @@ const Header = () => {
             </Link>
           </div>
 
+          {/* Mobile Dropdown Menu */}
+          {menuOpen && (
+            <div className="absolute top-12 left-0 w-full bg-white shadow-md md:hidden z-10">
+              <ul className="flex flex-col items-start">
+                <li className="w-full px-4 py-2 hover:bg-gray-200">
+                  <Link to="/me/profile">Profile</Link>
+                </li>
+                {user?.role === "admin" && (
+                  <li className="w-full px-4 py-2 hover:bg-gray-200">
+                    <Link to="/admin/dashboard">Dashboard</Link>
+                  </li>
+                )}
+                <li className="w-full px-4 py-2 hover:bg-gray-200">
+                  <button
+                    className="text-red-600"
+                    onClick={logoutHandler}
+                  >
+                    Logout
+                  </button>
+                </li>
+              </ul>
+            </div>
+          )}
+
           {/* Search Bar */}
-          <div className="w-full md:w-1/3">
+          <div className="hidden md:block md:w-1/3">
             <Search />
           </div>
 
           {/* User Info and Settings */}
-          <div className="relative flex items-center">
-            <button
-              className="flex items-center text-gray-700 hover:text-gray-900 focus:outline-none"
-              type="button"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            >
+          <div
+            className="hidden md:flex relative items-center"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
+            <div className="flex items-center text-gray-700 hover:text-gray-900">
               <figure className="w-10 h-10 rounded-full overflow-hidden mr-2">
                 <img
                   src={
@@ -72,9 +120,13 @@ const Header = () => {
               <button className="ml-4 p-2 rounded-full bg-gray-200 hover:bg-gray-300">
                 <Cog6ToothIcon className="w-6 h-6 text-gray-700" />
               </button>
-            </button>
+            </div>
             {isDropdownOpen && (
-              <div className="absolute right-0 mt-40 w-48 bg-white rounded-md shadow-lg z-10">
+              <div
+                className="absolute right-0 mt-40 w-48 bg-white rounded-md shadow-lg z-10"
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
                 {user?.role === "admin" && (
                   <Link
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
