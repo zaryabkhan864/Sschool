@@ -19,6 +19,16 @@ const AdminLayout = ({ children }) => {
       icon: "fab fa-product-hunt",
     },
     {
+      name: "New Course",
+      url: "/admin/course/new",
+      icon: "fas fa-plus",
+    },
+    {
+      name: "Courses",
+      url: "/admin/courses",
+      icon: "fab fa-product-hunt",
+    },
+    {
       name: "New Student",
       url: "/admin/student/new",
       icon: "fas fa-plus",

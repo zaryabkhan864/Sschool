@@ -23,12 +23,12 @@ const courseSchema = new mongoose.Schema(
     grade: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Grade",
-      required: true,
+      required: false,
     }, // Associated grade
     teacher: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Teacher",
-      required: true,
+      required: false,
     }, //Assigned teacher
   },
   { timestamps: false }

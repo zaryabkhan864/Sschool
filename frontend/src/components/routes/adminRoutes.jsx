@@ -1,23 +1,24 @@
 import React from "react";
 import { Route } from "react-router-dom";
-import ProtectedRoute from "../auth/ProtectedRoute";
 import Dashboard from "../admin/Dashboard";
-import ListUsers from "../admin/ListUsers";
-import UpdateUser from "../admin/UpdateUser";
-import StudentReviews from "../admin/StudentReviews";
-import NewStudent from "../admin/NewStudent";
 import ListStudents from "../admin/ListStudents";
-import NewGrade from "../grade/NewGrade";
-import ListGrades from "../grade/ListGrades";
-import Header from "../layout/Header";
-import UpdateStudent from "../grade/UpdateGrade";
+import ListUsers from "../admin/ListUsers";
+import NewStudent from "../admin/NewStudent";
+import StudentReviews from "../admin/StudentReviews";
+import UpdateUser from "../admin/UpdateUser";
+import ProtectedRoute from "../auth/ProtectedRoute";
+import NewCourse from "../course/NewCourse";
 import GradeDetails from "../grade/GradeDetails";
+import ListGrades from "../grade/ListGrades";
+import NewGrade from "../grade/NewGrade";
 import UpdateGrade from "../grade/UpdateGrade";
+import ListCourses from "../course/ListCourses";
+import UpdateCourse from "../course/UpdateCourse";
+import CourseDetails from "../course/CourseDetails";
 
 const adminRoutes = () => {
   return (
     <>
-
       <Route
         path="/admin/dashboard"
         element={
@@ -58,12 +59,38 @@ const adminRoutes = () => {
           </ProtectedRoute>
         }
       />
-
-
-
-
-
-
+      <Route
+        path="/admin/course/new"
+        element={
+          <ProtectedRoute admin={true}>
+            <NewCourse />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/courses"
+        element={
+          <ProtectedRoute admin={true}>
+            <ListCourses />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/courses/:id"
+        element={
+          <ProtectedRoute admin={true}>
+            <UpdateCourse />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/course/:id/details"
+        element={
+          <ProtectedRoute admin={true}>
+            <CourseDetails />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/admin/students"
         element={
@@ -72,8 +99,6 @@ const adminRoutes = () => {
           </ProtectedRoute>
         }
       />
-
-
       <Route
         path="/admin/student/new"
         element={
@@ -82,8 +107,6 @@ const adminRoutes = () => {
           </ProtectedRoute>
         }
       />
-
-
       <Route
         path="/admin/users"
         element={
@@ -92,7 +115,6 @@ const adminRoutes = () => {
           </ProtectedRoute>
         }
       />
-
       <Route
         path="/admin/users/:id"
         element={
@@ -101,7 +123,6 @@ const adminRoutes = () => {
           </ProtectedRoute>
         }
       />
-
       <Route
         path="/admin/reviews"
         element={
