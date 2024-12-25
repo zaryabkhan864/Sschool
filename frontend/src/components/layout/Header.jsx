@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Search from "./Search";
 import { useGetMeQuery } from "../../redux/api/userApi";
 import { useSelector } from "react-redux";
@@ -13,6 +13,18 @@ const Header = () => {
   const [logout] = useLazyLogoutQuery();
   const { user } = useSelector((state) => state.auth);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownTimeoutRef = useRef(null);
+
+  const handleMouseEnter = () => {
+    clearTimeout(dropdownTimeoutRef.current);
+    setIsDropdownOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    dropdownTimeoutRef.current = setTimeout(() => {
+      setIsDropdownOpen(false);
+    }, 300); // 300ms delay to allow interaction with dropdown
+  };
 
   const logoutHandler = () => {
     logout()
@@ -51,12 +63,12 @@ const Header = () => {
           </div>
 
           {/* User Info and Settings */}
-          <div className="relative flex items-center">
-            <button
-              className="flex items-center text-gray-700 hover:text-gray-900 focus:outline-none"
-              type="button"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            >
+          <div
+            className="relative flex items-center"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
+            <div className="flex items-center text-gray-700 hover:text-gray-900">
               <figure className="w-10 h-10 rounded-full overflow-hidden mr-2">
                 <img
                   src={
@@ -72,9 +84,13 @@ const Header = () => {
               <button className="ml-4 p-2 rounded-full bg-gray-200 hover:bg-gray-300">
                 <Cog6ToothIcon className="w-6 h-6 text-gray-700" />
               </button>
-            </button>
+            </div>
             {isDropdownOpen && (
-              <div className="absolute right-0 mt-40 w-48 bg-white rounded-md shadow-lg z-10">
+              <div
+                className="absolute right-0 mt-40 w-48 bg-white rounded-md shadow-lg z-10"
+                onMouseEnter={handleMouseEnter} // Prevent dropdown from closing
+                onMouseLeave={handleMouseLeave}
+              >
                 {user?.role === "admin" && (
                   <Link
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

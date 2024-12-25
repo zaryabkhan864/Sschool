@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Loader from "../layout/Loader";
 import { toast } from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
@@ -8,6 +8,7 @@ import {
     useGetGradesQuery,
 } from "../../redux/api/gradesApi";
 import AdminLayout from "../layout/AdminLayout";
+import { Table, Pagination } from "flowbite-react";
 
 const ListGrades = () => {
     const navigate = useNavigate();
@@ -17,6 +18,10 @@ const ListGrades = () => {
         deleteGrade,
         { isLoading: isDeleteLoading, error: deleteError, isSuccess },
     ] = useDeleteGradeMutation();
+
+    const [searchTerm, setSearchTerm] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(5);
 
     useEffect(() => {
         if (error) {
@@ -29,117 +34,121 @@ const ListGrades = () => {
 
         if (isSuccess) {
             toast.success("Grade Deleted");
-            refetch(); // Delete ke baad data refresh kare
+            refetch();
         }
     }, [error, deleteError, isSuccess, navigate, refetch]);
+
     const deleteGradeHandler = (id) => {
         deleteGrade(id);
     };
 
-    const setGrades = () => {
-        const grades = {
-            columns: [
-                {
-                    label: "ID",
-                    field: "id",
-                    sort: "asc",
-                },
-                {
-                    label: "Grade Name",
-                    field: "gradeName",
-                    sort: "asc",
-                },
-                {
-                    label: "Year From",
-                    field: "yearFrom",
-                    sort: "asc",
-                },
-                {
-                    label: "Year To",
-                    field: "yearTo",
-                    sort: "asc",
-                },
-                {
-                    label: "Actions",
-                    field: "actions",
-                    sort: "asc",
-                },
-            ],
-            rows: [],
-        };
+    // Filter and paginate the grades
+    const filteredGrades = data?.grades?.filter((grade) =>
+        grade?.gradeName?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-        data?.grades?.forEach((grade) => {
-            grades.rows.push({
-                id: grade?._id,
-                gradeName: `${grade?.gradeName?.substring(0, 20)}...`,
-                yearFrom: grade?.yearFrom,
-                yearTo: grade?.yearTo,
-                actions: (
-                    <div className="flex space-x-2">
-                        <Link
-                            to={`/admin/grades/${grade?._id}`}
-                            className="px-3 py-2 text-blue-600 border border-blue-600 rounded hover:bg-blue-600 hover:text-white focus:outline-none"
-                        >
-                            <i className="fa fa-pencil"></i>
-                        </Link>
-                        <Link
-                            to={`/admin/grade/${grade?._id}/details`}
-                            className="px-3 py-2 text-green-600 border border-green-600 rounded hover:bg-green-600 hover:text-white focus:outline-none"
-                        >
-                            <i className="fa fa-eye"></i>
-                        </Link>
-                        <button
-                            className="px-3 py-2 text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white focus:outline-none"
-                            onClick={() => deleteGradeHandler(grade?._id)}
-                            disabled={isDeleteLoading}
-                        >
-                            <i className="fa fa-trash"></i>
-                        </button>
-                    </div>
-                ),
-            });
-        });
-
-        return grades;
-    };
+    const totalPages = Math.ceil((filteredGrades?.length || 0) / itemsPerPage);
+    const paginatedGrades = filteredGrades?.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
 
     if (isLoading) return <Loader />;
 
     return (
         <AdminLayout>
-            <MetaData title={"All Grades"} />
+            <div className="flex flex-col items-center px-4 w-full">
+                <MetaData title={"All Grades"} />
+                <div className="w-full max-w-7xl">
+                    <h1 className="text-2xl font-bold my-5 text-center">
+                        {data?.grades?.length} Grades
+                    </h1>
 
-            <h1 className="text-2xl font-bold my-5 text-center">{data?.grades?.length} Grades</h1>
+                    {/* Controls Section */}
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-4">
+                        {/* Search Bar */}
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            className="block w-full md:w-1/3 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
 
-            <div className="overflow-x-auto">
-                <table className="min-w-full bg-white border border-gray-200">
-                    <thead>
-                        <tr>
-                            {setGrades().columns.map((col) => (
-                                <th
-                                    key={col.field}
-                                    className="px-4 py-2 text-left text-gray-600 border-b border-gray-200"
-                                >
-                                    {col.label}
-                                </th>
+                        {/* Records per Page Dropdown */}
+                        <div className="flex items-center mt-2 md:mt-0">
+                            <label htmlFor="itemsPerPage" className="mr-2 text-sm font-medium">
+                                Entries per page:
+                            </label>
+                            <select
+                                id="itemsPerPage"
+                                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                value={itemsPerPage}
+                                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                            >
+                                <option value={5}>5</option>
+                                <option value={10}>10</option>
+                                <option value={15}>15</option>
+                                <option value={20}>20</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Grades Table */}
+                    <Table hoverable={true} className="w-full">
+                        <Table.Head>
+                            <Table.HeadCell>ID</Table.HeadCell>
+                            <Table.HeadCell>Grade Name</Table.HeadCell>
+                            <Table.HeadCell>Year From</Table.HeadCell>
+                            <Table.HeadCell>Year To</Table.HeadCell>
+                            <Table.HeadCell>Actions</Table.HeadCell>
+                        </Table.Head>
+                        <Table.Body>
+                            {paginatedGrades?.map((grade) => (
+                                <Table.Row key={grade?._id} className="bg-white dark:bg-gray-800">
+                                    <Table.Cell>{grade?._id}</Table.Cell>
+                                    <Table.Cell>{grade?.gradeName}</Table.Cell>
+                                    <Table.Cell>{grade?.yearFrom}</Table.Cell>
+                                    <Table.Cell>{grade?.yearTo}</Table.Cell>
+                                    <Table.Cell>
+                                        <div className="flex space-x-2">
+                                            <Link
+                                                to={`/admin/grades/${grade?._id}`}
+                                                className="px-3 py-2 text-blue-600 border border-blue-600 rounded hover:bg-blue-600 hover:text-white focus:outline-none"
+                                            >
+                                                <i className="fa fa-pencil"></i>
+                                            </Link>
+                                            <Link
+                                                to={`/admin/grade/${grade?._id}/details`}
+                                                className="px-3 py-2 text-green-600 border border-green-600 rounded hover:bg-green-600 hover:text-white focus:outline-none"
+                                            >
+                                                <i className="fa fa-eye"></i>
+                                            </Link>
+                                            <button
+                                                className="px-3 py-2 text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white focus:outline-none"
+                                                onClick={() => deleteGradeHandler(grade?._id)}
+                                                disabled={isDeleteLoading}
+                                            >
+                                                <i className="fa fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </Table.Cell>
+                                </Table.Row>
                             ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {setGrades().rows.map((row, index) => (
-                            <tr key={index} className="hover:bg-gray-50">
-                                {Object.keys(row).map((key, i) => (
-                                    <td
-                                        key={i}
-                                        className="px-4 py-2 text-gray-700 border-b border-gray-200"
-                                    >
-                                        {row[key]}
-                                    </td>
-                                ))}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </Table.Body>
+                    </Table>
+
+                    {/* Pagination */}
+                    <div className="flex justify-center mt-4">
+                        <Pagination
+                            currentPage={currentPage}
+                            layout="navigation"
+                            onPageChange={(page) => setCurrentPage(page)}
+                            showIcons={true}
+                            totalPages={totalPages}
+                        />
+                    </div>
+                </div>
             </div>
         </AdminLayout>
     );
