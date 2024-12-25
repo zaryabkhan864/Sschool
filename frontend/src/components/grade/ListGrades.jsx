@@ -57,12 +57,11 @@ const ListGrades = () => {
 
     return (
         <AdminLayout>
-            <div className="flex flex-col items-center px-4 w-full">
-                <MetaData title={"All Grades"} />
+            <MetaData title={"All Grades"} />
+            <div className="flex justify-center items-center pt-5 pb-10">
+              
                 <div className="w-full max-w-7xl">
-                    <h1 className="text-2xl font-bold my-5 text-center">
-                        {data?.grades?.length} Grades
-                    </h1>
+                    <h2 className="text-2xl font-semibold mb-6">{data?.grades?.length} Grades</h2>
 
                     {/* Controls Section */}
                     <div className="flex flex-col md:flex-row justify-between items-center mb-4">

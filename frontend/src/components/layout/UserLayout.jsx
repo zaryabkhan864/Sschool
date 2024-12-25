@@ -28,22 +28,21 @@ const UserLayout = ({ children }) => {
 
   return (
     <React.Fragment>
-
-      <div className="my-4 py-4">
-        <h2 className="text-center font-bold text-xl md:text-2xl text-gray-800">
-          User Settings
-        </h2>
-      </div>
-
-      <div className="flex flex-col md:flex-row justify-between">
-        <div className="w-full md:w-1/6 mb-4 md:mb-0">
+      <div className="flex flex-col md:flex-row justify-between p-5 relative">
+        {/* No additional toggle button here */}
+        <div className="md:w-2/12 self-end sm:self-auto">
           <SideMenu menuItems={menuItems} />
         </div>
+
         <div className="w-full md:w-9/12 bg-gray-50 shadow-md p-4 rounded-md">
+          <div className="text-center">
+            <h2 className="font-bold text-xl md:text-2xl">User Setting</h2>
+          </div>
           {children}
         </div>
       </div>
     </React.Fragment>
+
   );
 };
 

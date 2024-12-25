@@ -8,11 +8,12 @@ import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 
 const Header = () => {
   const navigate = useNavigate();
-  const location = useLocation(); // Get the current route
+  const location = useLocation();
   const { isLoading } = useGetMeQuery();
   const [logout] = useLazyLogoutQuery();
   const { user } = useSelector((state) => state.auth);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const dropdownTimeoutRef = useRef(null);
 
   const handleMouseEnter = () => {
@@ -23,29 +24,40 @@ const Header = () => {
   const handleMouseLeave = () => {
     dropdownTimeoutRef.current = setTimeout(() => {
       setIsDropdownOpen(false);
-    }, 300); // 300ms delay to allow interaction with dropdown
+    }, 300);
   };
 
   const logoutHandler = () => {
     logout()
       .then(() => {
         console.log("Logout successful");
-        window.location.href = "/"; // Force reload and redirect
+        window.location.href = "/";
       })
       .catch((error) => {
         console.error("Logout failed:", error);
       });
   };
 
-  // If on "/" route, render nothing
+  const toggleMenu = () => {
+    setMenuOpen(!menuOpen);
+  };
+
   if (location.pathname === "/") {
-    return null; // Don't render anything
+    return null;
   }
 
   return (
-    <nav className="flex items-center justify-between px-4 bg-gray-100 shadow-lg">
+    <nav className="flex items-center justify-between px-4 bg-gray-100 shadow-lg relative">
       {user ? (
         <>
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden text-gray-700 px-4 py-2"
+            onClick={toggleMenu}
+          >
+            {menuOpen ? "✖" : "☰"}
+          </button>
+
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/">
@@ -57,14 +69,38 @@ const Header = () => {
             </Link>
           </div>
 
+          {/* Mobile Dropdown Menu */}
+          {menuOpen && (
+            <div className="absolute top-12 left-0 w-full bg-white shadow-md md:hidden z-10">
+              <ul className="flex flex-col items-start">
+                <li className="w-full px-4 py-2 hover:bg-gray-200">
+                  <Link to="/me/profile">Profile</Link>
+                </li>
+                {user?.role === "admin" && (
+                  <li className="w-full px-4 py-2 hover:bg-gray-200">
+                    <Link to="/admin/dashboard">Dashboard</Link>
+                  </li>
+                )}
+                <li className="w-full px-4 py-2 hover:bg-gray-200">
+                  <button
+                    className="text-red-600"
+                    onClick={logoutHandler}
+                  >
+                    Logout
+                  </button>
+                </li>
+              </ul>
+            </div>
+          )}
+
           {/* Search Bar */}
-          <div className="w-full md:w-1/3">
+          <div className="hidden md:block md:w-1/3">
             <Search />
           </div>
 
           {/* User Info and Settings */}
           <div
-            className="relative flex items-center"
+            className="hidden md:flex relative items-center"
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
@@ -88,7 +124,7 @@ const Header = () => {
             {isDropdownOpen && (
               <div
                 className="absolute right-0 mt-40 w-48 bg-white rounded-md shadow-lg z-10"
-                onMouseEnter={handleMouseEnter} // Prevent dropdown from closing
+                onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
               >
                 {user?.role === "admin" && (
