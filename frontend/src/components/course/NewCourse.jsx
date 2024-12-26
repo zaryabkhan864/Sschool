@@ -7,6 +7,7 @@ import AdminLayout from "../layout/AdminLayout";
 import { useNavigate } from "react-router-dom";
 
 import { useCreateCourseMutation, useGetCoursesQuery } from "../../redux/api/courseApi";
+import { useGetGradesQuery } from "../../redux/api/gradesApi";
 
 const NewCourse = () => {
     const navigate = useNavigate();
@@ -15,12 +16,17 @@ const NewCourse = () => {
     const [course, setCourse] = useState({
         courseName: "",
         description: "",
-        code:"",
-        year: "",  
+        code: "",
+        year: "",
+        grade: "", // Store grade ID
     });
-    const { courseName, description, code, year } = course;
+
+    const { courseName, description, code, year, grade } = course;
 
     const [createCourse, { isLoading, error, isSuccess }] = useCreateCourseMutation();
+    const { data: gradesData, isLoading: gradeLoading } = useGetGradesQuery();
+    const grades = gradesData?.grades || []; // Ensure it's an array
+    console.log("What is grade here", grades);
 
     useEffect(() => {
         if (error) {
@@ -49,8 +55,7 @@ const NewCourse = () => {
             <div className="flex justify-center items-center pt-5 pb-10">
                 <div className="w-full max-w-7xl">
                     <h2 className="text-2xl font-semibold mb-6">New Course</h2>
-                    <form onSubmit={submitHandler} >
-
+                    <form onSubmit={submitHandler}>
                         <div className="mb-4">
                             <label htmlFor="courseName_field" className="block text-sm font-medium text-gray-700">
                                 Course Name
@@ -108,6 +113,29 @@ const NewCourse = () => {
                                 />
                             </div>
                         </div>
+
+                        {/* Grade Dropdown */}
+                        <div className="mb-4">
+                            <label htmlFor="grade_field" className="block text-sm font-medium text-gray-700">
+                                Grade
+                            </label>
+                            <select
+                                id="grade_field"
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                name="grade"
+                                value={grade}
+                                onChange={onChange}
+                            >
+                                <option value="">Select Grade</option>
+                                {!gradeLoading &&
+                                    grades?.map((g) => (
+                                        <option key={g._id} value={g._id}>
+                                            {g.gradeName}
+                                        </option>
+                                    ))}
+                            </select>
+                        </div>
+
                         <button
                             type="submit"
                             className={`w-full py-2 text-white font-semibold rounded-md ${isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"} focus:outline-none focus:ring focus:ring-blue-300`}

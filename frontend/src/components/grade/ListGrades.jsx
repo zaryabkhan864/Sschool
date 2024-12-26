@@ -59,7 +59,7 @@ const ListGrades = () => {
         <AdminLayout>
             <MetaData title={"All Grades"} />
             <div className="flex justify-center items-center pt-5 pb-10">
-              
+
                 <div className="w-full max-w-7xl">
                     <h2 className="text-2xl font-semibold mb-6">{data?.grades?.length} Grades</h2>
 
