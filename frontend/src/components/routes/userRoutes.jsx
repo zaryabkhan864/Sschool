@@ -18,48 +18,18 @@ const userRoutes = () => {
       {/* <Route path="/" element={<Home />} /> */}
 
       <Route path="/" element={<Login />} exact />
-      <Route path="/register" element={<Register />} />
+  
 
       <Route path="/password/forgot" element={<ForgotPassword />} />
       <Route path="/password/reset/:token" element={<ResetPassword />} />
 
-      <Route
-        path="/me/profile"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/me/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
-      <Route
-        path="/me/update_profile"
-        element={
-          <ProtectedRoute>
-            <UpdateProfile />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/me/update_profile" element={<ProtectedRoute><UpdateProfile /></ProtectedRoute>} />
 
-      <Route
-        path="/me/upload_avatar"
-        element={
-          <ProtectedRoute>
-            <UploadAvatar />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/me/upload_avatar" element={<ProtectedRoute><UploadAvatar /></ProtectedRoute>} />
 
-      <Route
-        path="/me/update_password"
-        element={
-          <ProtectedRoute>
-            <UpdatePassword />
-          </ProtectedRoute>
-        }
-      />
-
-
+      <Route path="/me/update_password" element={<ProtectedRoute><UpdatePassword /></ProtectedRoute>} />
     </>
   );
 };

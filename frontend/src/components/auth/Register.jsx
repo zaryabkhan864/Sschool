@@ -4,108 +4,123 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import MetaData from "../layout/MetaData";
+import AdminLayout from "../layout/AdminLayout";
+import { useGetAdminUsersQuery } from "../../redux/api/userApi";
 
 const Register = () => {
+  const navigate = useNavigate();
+  const { refetch } = useGetAdminUsersQuery();
+
   const [user, setUser] = useState({
     name: "",
     email: "",
     password: "",
+    role: "user",
   });
 
-  const { name, email, password } = user;
+  const { name, email, password, role } = user;
 
-  const navigate = useNavigate();
-
-  const [register, { isLoading, error, data }] = useRegisterMutation();
-
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const [register, { isLoading, error, isSuccess }] = useRegisterMutation();
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/");
-    }
     if (error) {
       toast.error(error?.data?.message);
     }
-  }, [error, isAuthenticated]);
 
-  const submitHandler = (e) => {
-    e.preventDefault();
-
-    const signUpData = {
-      name,
-      email,
-      password,
-    };
-
-    register(signUpData);
-  };
+    if (isSuccess) {
+      toast.success("User registered successfully");
+      navigate("/admin/users");
+      refetch();
+    }
+  }, [error, isSuccess, navigate, refetch]);
 
   const onChange = (e) => {
     setUser({ ...user, [e.target.name]: e.target.value });
   };
-  return (
-    <>
-      <MetaData title={"Register"} />
-      <div className="row wrapper">
-        <div className="col-10 col-lg-5">
-          <form className="shadow rounded bg-body" onSubmit={submitHandler}>
-            <h2 className="mb-4">Register</h2>
 
-            <div className="mb-3">
-              <label htmlFor="name_field" className="form-label">
+  const submitHandler = (e) => {
+    e.preventDefault();
+    register(user);
+  };
+
+  return (
+    <AdminLayout>
+      <MetaData title={"Register New User"} />
+      <div className="flex justify-center items-center pt-5 pb-10">
+        <div className="w-full max-w-7xl">
+          <h2 className="text-2xl font-semibold mb-6">Register New User</h2>
+          <form onSubmit={submitHandler}>
+            <div className="mb-4">
+              <label htmlFor="name_field" className="block text-sm font-medium text-gray-700">
                 Name
               </label>
               <input
                 type="text"
                 id="name_field"
-                className="form-control"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 name="name"
                 value={name}
                 onChange={onChange}
               />
             </div>
 
-            <div className="mb-3">
-              <label htmlFor="email_field" className="form-label">
+            <div className="mb-4">
+              <label htmlFor="email_field" className="block text-sm font-medium text-gray-700">
                 Email
               </label>
               <input
                 type="email"
                 id="email_field"
-                className="form-control"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 name="email"
                 value={email}
                 onChange={onChange}
               />
             </div>
 
-            <div className="mb-3">
-              <label htmlFor="password_field" className="form-label">
+            <div className="mb-4">
+              <label htmlFor="password_field" className="block text-sm font-medium text-gray-700">
                 Password
               </label>
               <input
                 type="password"
                 id="password_field"
-                className="form-control"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 name="password"
                 value={password}
                 onChange={onChange}
               />
             </div>
 
+            <div className="mb-4">
+              <label htmlFor="role_field" className="block text-sm font-medium text-gray-700">
+                Role
+              </label>
+              <select
+                id="role_field"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                name="role"
+                value={role}
+                onChange={onChange}
+              >
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+                <option value="teacher">Teacher</option>
+                <option value="student">Student</option>
+              </select>
+            </div>
+
             <button
-              id="register_button"
               type="submit"
-              className="btn w-100 py-2"
+              className={`w-full py-2 text-white font-semibold rounded-md ${isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"} focus:outline-none focus:ring focus:ring-blue-300`}
               disabled={isLoading}
             >
-              {isLoading ? "Creating..." : "REGISTER"}
+              {isLoading ? "Registering..." : "REGISTER"}
             </button>
           </form>
         </div>
       </div>
-    </>
+    </AdminLayout>
   );
 };
 

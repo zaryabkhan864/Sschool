@@ -9,13 +9,14 @@ import APIFilters from "../utils/apiFilters.js";
 // Create new grade => /api/v1/grades
 export const newGrade = catchAsyncErrors(async (req, res) => {
   req.body.user = req.user._id;
-  console.log(req.body);
+
   const grade = await Grade.create(req.body);
 
   res.status(200).json({
     grade,
   });
 });
+
 //Create get all grades => /api/v1/grades
 export const getGrades = catchAsyncErrors(async (req, res, next) => {
   const apiFilters = new APIFilters(Grade, req.query).search().filters();

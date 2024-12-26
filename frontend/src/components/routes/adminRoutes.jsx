@@ -15,6 +15,7 @@ import UpdateGrade from "../grade/UpdateGrade";
 import ListCourses from "../course/ListCourses";
 import UpdateCourse from "../course/UpdateCourse";
 import CourseDetails from "../course/CourseDetails";
+import Register from "../auth/Register";
 
 const adminRoutes = () => {
   return (
@@ -24,6 +25,14 @@ const adminRoutes = () => {
         element={
           <ProtectedRoute admin={true}>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/register"
+        element={
+          <ProtectedRoute admin={true}>
+            <Register />
           </ProtectedRoute>
         }
       />

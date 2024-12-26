@@ -43,7 +43,7 @@ import courseRoutes from "./routes/course.js";
 import studentRoutes from "./routes/students.js";
 import teacherRoutes from "./routes/teachers.js";
 import gradeRoutes from "./routes/grade.js";
-
+import eventRoutes from "./routes/event.js";
 
 
 import { fileURLToPath } from "url";
@@ -54,6 +54,7 @@ app.use("/api/v1", studentRoutes);
 app.use("/api/v1", teacherRoutes);
 app.use("/api/v1", gradeRoutes);
 app.use("/api/v1", authRoutes);
+app.use("/api/v1", eventRoutes);
 
 
 if (process.env.NODE_ENV === "PRODUCTION") {

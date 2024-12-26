@@ -6,49 +6,55 @@ const AdminLayout = ({ children }) => {
     {
       name: "Dashboard",
       url: "/admin/dashboard",
-      icon: "fas fa-tachometer-alt",
+      icon: "fas fa-tachometer-alt", // Dashboard icon
     },
     {
       name: "New Grade",
       url: "/admin/grade/new",
-      icon: "fas fa-plus",
+      icon: "fas fa-plus-circle", // Add icon for "New" actions
     },
     {
       name: "Grades",
       url: "/admin/grades",
-      icon: "fab fa-product-hunt",
+      icon: "fas fa-graduation-cap", // Education-related icon for grades
     },
     {
       name: "New Course",
       url: "/admin/course/new",
-      icon: "fas fa-plus",
+      icon: "fas fa-plus-circle", // Add icon for "New" actions
     },
     {
       name: "Courses",
       url: "/admin/courses",
-      icon: "fab fa-product-hunt",
+      icon: "fas fa-book", // Book icon for courses
     },
     {
       name: "New Student",
       url: "/admin/student/new",
-      icon: "fas fa-plus",
+      icon: "fas fa-user-plus", // Add user icon for new student
     },
     {
       name: "Students",
       url: "/admin/students",
-      icon: "fab fa-product-hunt",
-    },
-    {
-      name: "Users",
-      url: "/admin/users",
-      icon: "fas fa-user",
+      icon: "fas fa-users", // Group icon for students
     },
     {
       name: "Reviews",
       url: "/admin/reviews",
-      icon: "fas fa-star",
+      icon: "fas fa-star", // Star icon for reviews
+    },
+    {
+      name: "Create User",
+      url: "/admin/register",
+      icon: "fas fa-user-plus", // Add user icon for creating a user
+    },
+    {
+      name: "Users",
+      url: "/admin/users",
+      icon: "fas fa-user-friends", // Friends/group icon for users
     },
   ];
+
 
   return (
     <React.Fragment>
