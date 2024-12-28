@@ -16,7 +16,7 @@ export const courseApi = createApi({
             }),
         }),
         getCourseDetails: builder.query({
-            query: (id) => `/course/${id}`,
+            query: (id) => `/courses/${id}`,
             providesTags: ["Course"],
         }),
         createCourse: builder.mutation({
