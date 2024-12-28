@@ -9,10 +9,15 @@ import {
 } from "../../redux/api/gradesApi";
 import AdminLayout from "../layout/AdminLayout";
 import { Table, Pagination } from "flowbite-react";
+import { useSelector } from "react-redux";
+import { use } from "react";
 
 const ListGrades = () => {
     const navigate = useNavigate();
     const { data, isLoading, error, refetch } = useGetGradesQuery();
+    const { isAuthenticated, user, loading } = useSelector((state) => state.auth);
+
+    const [userRole,setUserRole] = useState("");
 
     const [
         deleteGrade,
@@ -35,6 +40,9 @@ const ListGrades = () => {
         if (isSuccess) {
             toast.success("Grade Deleted");
             refetch();
+        }
+        if (user.role == "admin") {
+            setUserRole(user?.role);
         }
     }, [error, deleteError, isSuccess, navigate, refetch]);
 
@@ -111,25 +119,30 @@ const ListGrades = () => {
                                     <Table.Cell>{grade?.yearTo}</Table.Cell>
                                     <Table.Cell>
                                         <div className="flex space-x-2">
+                                            {userRole === "admin" && (
                                             <Link
                                                 to={`/admin/grades/${grade?._id}`}
                                                 className="px-3 py-2 text-blue-600 border border-blue-600 rounded hover:bg-blue-600 hover:text-white focus:outline-none"
                                             >
                                                 <i className="fa fa-pencil"></i>
                                             </Link>
+                                            )}
                                             <Link
                                                 to={`/admin/grade/${grade?._id}/details`}
                                                 className="px-3 py-2 text-green-600 border border-green-600 rounded hover:bg-green-600 hover:text-white focus:outline-none"
                                             >
                                                 <i className="fa fa-eye"></i>
                                             </Link>
+                                            {userRole === "admin" && (
                                             <button
                                                 className="px-3 py-2 text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white focus:outline-none"
                                                 onClick={() => deleteGradeHandler(grade?._id)}
                                                 disabled={isDeleteLoading}
                                             >
+                                            
                                                 <i className="fa fa-trash"></i>
                                             </button>
+                                            )}
                                         </div>
                                     </Table.Cell>
                                 </Table.Row>

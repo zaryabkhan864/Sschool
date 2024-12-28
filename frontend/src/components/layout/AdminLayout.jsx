@@ -1,65 +1,81 @@
 import React from "react";
+import { useSelector } from "react-redux";
 import SideMenu from "./SideMenu";
 
 const AdminLayout = ({ children }) => {
-  const menuItems = [
+  const { user } = useSelector((state) => state.auth);
+
+  const allMenuItems = [
     {
       name: "Dashboard",
       url: "/admin/dashboard",
-      icon: "fas fa-tachometer-alt", // Dashboard icon
+      icon: "fas fa-tachometer-alt",
+      roles: ["admin", "teacher"], // Accessible by admin and teacher
     },
     {
       name: "New Grade",
       url: "/admin/grade/new",
-      icon: "fas fa-plus-circle", // Add icon for "New" actions
+      icon: "fas fa-plus-circle",
+      roles: ["admin"], // Only accessible by admin
     },
     {
       name: "Grades",
       url: "/admin/grades",
-      icon: "fas fa-graduation-cap", // Education-related icon for grades
+      icon: "fas fa-graduation-cap",
+      roles: ["admin", "teacher"], // Accessible by admin and teacher
     },
     {
       name: "New Course",
       url: "/admin/course/new",
-      icon: "fas fa-plus-circle", // Add icon for "New" actions
+      icon: "fas fa-plus-circle",
+      roles: ["admin"], // Only accessible by admin
     },
     {
       name: "Courses",
       url: "/admin/courses",
-      icon: "fas fa-book", // Book icon for courses
+      icon: "fas fa-book",
+      roles: ["admin", "teacher"], // Accessible by admin and teacher
     },
     {
       name: "New Student",
       url: "/admin/student/new",
-      icon: "fas fa-user-plus", // Add user icon for new student
+      icon: "fas fa-user-plus",
+      roles: ["admin"], // Only accessible by admin
     },
     {
       name: "Students",
       url: "/admin/students",
-      icon: "fas fa-users", // Group icon for students
+      icon: "fas fa-users",
+      roles: ["admin"], // Only accessible by admin
     },
     {
       name: "Reviews",
       url: "/admin/reviews",
-      icon: "fas fa-star", // Star icon for reviews
+      icon: "fas fa-star",
+      roles: ["admin"], // Only accessible by admin
     },
     {
       name: "Create User",
       url: "/admin/register",
-      icon: "fas fa-user-plus", // Add user icon for creating a user
+      icon: "fas fa-user-plus",
+      roles: ["admin"], // Only accessible by admin
     },
     {
       name: "Users",
       url: "/admin/users",
-      icon: "fas fa-user-friends", // Friends/group icon for users
+      icon: "fas fa-user-friends",
+      roles: ["admin"], // Only accessible by admin
     },
   ];
 
+  // Filter menu items based on user role
+  const menuItems = allMenuItems.filter((item) =>
+    item.roles.includes(user?.role)
+  );
 
   return (
     <React.Fragment>
       <div className="flex flex-col md:flex-row justify-between p-5 relative">
-        {/* No additional toggle button here */}
         <div className="md:w-2/12 self-end sm:self-auto">
           <SideMenu menuItems={menuItems} />
         </div>

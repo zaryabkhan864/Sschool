@@ -23,7 +23,7 @@ const adminRoutes = () => {
       <Route
         path="/admin/dashboard"
         element={
-          <ProtectedRoute admin={true}>
+          <ProtectedRoute admin={true} teacher={true}>
             <Dashboard />
           </ProtectedRoute>
         }
