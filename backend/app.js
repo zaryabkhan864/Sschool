@@ -42,7 +42,6 @@ import courseRoutes from "./routes/course.js";
 import gradeRoutes from "./routes/grade.js";
 import studentRoutes from "./routes/students.js";
 import teacherRoutes from "./routes/teachers.js";
-import gradeRoutes from "./routes/grade.js";
 import eventRoutes from "./routes/event.js";
 
 

@@ -93,12 +93,6 @@ const Login = () => {
               >
                 Forgot Password?
               </a>
-              <a
-                href="/register"
-                className="text-sm text-gray-500 hover:underline"
-              >
-                New User?
-              </a>
             </div>
 
             <button
