@@ -37,6 +37,16 @@ const AdminLayout = ({ children }) => {
       roles: ["admin", "teacher"], // Accessible by admin and teacher
     },
     {
+      name: "New Teacher",
+      url: "/admin/teacher/new",
+      icon: "fas fa-plus",
+    },
+    {
+      name: "Teachers",
+      url: "/admin/teachers",
+      icon: "fab fa-product-hunt",
+    },
+    {
       name: "New Student",
       url: "/admin/student/new",
       icon: "fas fa-user-plus",

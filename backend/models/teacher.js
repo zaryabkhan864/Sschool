@@ -42,11 +42,11 @@ const teacherSchema = new mongoose.Schema(
       required: [true, "Please enter the teacher whatsapp number"],
       maxLength: [10, "Contact number should be 10 digits"],
     },
-    expertise: [
-      {
-        type: String,
-      },
-    ], // List of subjects they can teach
+    // expertise: [
+    //   {
+    //     type: String,
+    //   },
+    // ], // List of subjects they can teach
     assignedCourses: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -56,7 +56,7 @@ const teacherSchema = new mongoose.Schema(
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
     },
   },
   { timestamps: false }

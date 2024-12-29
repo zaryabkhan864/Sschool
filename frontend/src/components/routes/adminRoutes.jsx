@@ -7,15 +7,19 @@ import NewStudent from "../admin/NewStudent";
 import StudentReviews from "../admin/StudentReviews";
 import UpdateUser from "../admin/UpdateUser";
 import ProtectedRoute from "../auth/ProtectedRoute";
+import CourseDetails from "../course/CourseDetails";
+import ListCourses from "../course/ListCourses";
 import NewCourse from "../course/NewCourse";
+import UpdateCourse from "../course/UpdateCourse";
 import GradeDetails from "../grade/GradeDetails";
 import ListGrades from "../grade/ListGrades";
 import NewGrade from "../grade/NewGrade";
 import UpdateGrade from "../grade/UpdateGrade";
-import ListCourses from "../course/ListCourses";
-import UpdateCourse from "../course/UpdateCourse";
-import CourseDetails from "../course/CourseDetails";
 import Register from "../auth/Register";
+import ListTeachers from "../teacher/ListTeachers";
+import NewTeacher from "../teacher/NewTeacher";
+import TeacherDetails from "../teacher/TeacherDetails";
+import UpdateTeacher from "../teacher/UpdateTeacher";
 
 const adminRoutes = () => {
   return (
@@ -97,6 +101,38 @@ const adminRoutes = () => {
         element={
           <ProtectedRoute admin={true}>
             <CourseDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/teacher/new"
+        element={
+          <ProtectedRoute admin={true}>
+            <NewTeacher />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/teachers"
+        element={
+          <ProtectedRoute admin={true}>
+            <ListTeachers />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/teachers/:id"
+        element={
+          <ProtectedRoute admin={true}>
+            <UpdateTeacher />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/teacher/:id/details"
+        element={
+          <ProtectedRoute admin={true}>
+            <TeacherDetails />
           </ProtectedRoute>
         }
       />

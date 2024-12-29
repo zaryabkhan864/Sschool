@@ -1,9 +1,9 @@
-import express from "express";
-const app = express();
-import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
+import dotenv from "dotenv";
+import express from "express";
 import { connectDatabase } from "./config/dbConnect.js";
 import errorMiddleware from "./middlewares/errors.js";
+const app = express();
 
 import path from "path";
 // import { fileURLToPath } from "url";
@@ -38,8 +38,8 @@ app.use(cookieParser());
 
 import authRoutes from "./routes/auth.js";
 
-
 import courseRoutes from "./routes/course.js";
+import gradeRoutes from "./routes/grade.js";
 import studentRoutes from "./routes/students.js";
 import teacherRoutes from "./routes/teachers.js";
 import gradeRoutes from "./routes/grade.js";
@@ -48,14 +48,12 @@ import eventRoutes from "./routes/event.js";
 
 import { fileURLToPath } from "url";
 
-
 app.use("/api/v1", courseRoutes);
 app.use("/api/v1", studentRoutes);
 app.use("/api/v1", teacherRoutes);
 app.use("/api/v1", gradeRoutes);
 app.use("/api/v1", authRoutes);
 app.use("/api/v1", eventRoutes);
-
 
 if (process.env.NODE_ENV === "PRODUCTION") {
   app.use(express.static(path.join(__dirname, "../frontend/build")));

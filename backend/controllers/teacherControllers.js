@@ -1,6 +1,6 @@
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
-import Teacher from "../models/teacher.js";
 import Course from "../models/course.js";
+import Teacher from "../models/teacher.js";
 import APIFilters from "../utils/apiFilters.js";
 import ErrorHandler from "../utils/errorHandler.js";
 
@@ -33,7 +33,6 @@ export const getTeachers = catchAsyncErrors(async (req, res, next) => {
 // Update teacher => /api/v1/teachers/:id
 export const updateTeacher = catchAsyncErrors(async (req, res, next) => {
   let teacher = await Teacher.findById(req?.params?.id);
-
   if (!teacher) {
     return next(new ErrorHandler("Teacher not found", 404));
   }
