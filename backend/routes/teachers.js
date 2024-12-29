@@ -11,7 +11,6 @@ import {
 import { isAuthenticatedUser, authorizeRoles } from "../middlewares/auth.js";
 
 const router = express.Router();
-console.log("i am in route now")
 router
   .route("/admin/teacher")
   .post(isAuthenticatedUser, authorizeRoles("admin"), newTeacher);

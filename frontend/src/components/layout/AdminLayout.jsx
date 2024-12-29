@@ -40,13 +40,13 @@ const AdminLayout = ({ children }) => {
       name: "New Teacher",
       url: "/admin/teacher/new",
       icon: "fas fa-plus",
-      roles: ["admin", "teacher"], 
+      roles: ["admin"],
     },
     {
       name: "Teachers",
       url: "/admin/teachers",
       icon: "fab fa-product-hunt",
-      roles: ["admin", "teacher"], 
+      roles: ["admin", "teacher"],
     },
     {
       name: "New Student",
