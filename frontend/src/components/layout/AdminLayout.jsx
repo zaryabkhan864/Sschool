@@ -61,6 +61,18 @@ const AdminLayout = ({ children }) => {
       roles: ["admin"], // Only accessible by admin
     },
     {
+      name: "New Event",
+      url: "/admin/event/new",
+      icon: "fas fa-plus-circle",
+      roles: ["admin"], // Only accessible by admin
+    },
+    {
+      name: "Events",
+      url: "/admin/events",
+      icon: "fas fa-book",
+      roles: ["admin"], // Accessible by admin
+    },
+    {
       name: "Reviews",
       url: "/admin/reviews",
       icon: "fas fa-star",

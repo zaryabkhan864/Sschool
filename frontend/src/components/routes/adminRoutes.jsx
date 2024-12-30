@@ -7,15 +7,19 @@ import NewStudent from "../admin/NewStudent";
 import StudentReviews from "../admin/StudentReviews";
 import UpdateUser from "../admin/UpdateUser";
 import ProtectedRoute from "../auth/ProtectedRoute";
+import Register from "../auth/Register";
 import CourseDetails from "../course/CourseDetails";
 import ListCourses from "../course/ListCourses";
 import NewCourse from "../course/NewCourse";
 import UpdateCourse from "../course/UpdateCourse";
+import EventDetails from "../event/EventDetails";
+import ListEvents from "../event/ListEvents";
+import NewEvent from "../event/NewEvent";
+import UpdateEvent from "../event/UpdateEvent";
 import GradeDetails from "../grade/GradeDetails";
 import ListGrades from "../grade/ListGrades";
 import NewGrade from "../grade/NewGrade";
 import UpdateGrade from "../grade/UpdateGrade";
-import Register from "../auth/Register";
 import ListTeachers from "../teacher/ListTeachers";
 import NewTeacher from "../teacher/NewTeacher";
 import TeacherDetails from "../teacher/TeacherDetails";
@@ -149,6 +153,38 @@ const adminRoutes = () => {
         element={
           <ProtectedRoute admin={true}>
             <NewStudent />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/event/new"
+        element={
+          <ProtectedRoute admin={true}>
+            <NewEvent />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/events"
+        element={
+          <ProtectedRoute admin={true}>
+            <ListEvents />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/teachers/:id"
+        element={
+          <ProtectedRoute admin={true}>
+            <UpdateEvent />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/teacher/:id/details"
+        element={
+          <ProtectedRoute admin={true}>
+            <EventDetails />
           </ProtectedRoute>
         }
       />

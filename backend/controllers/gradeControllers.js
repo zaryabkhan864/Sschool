@@ -75,7 +75,7 @@ export const deleteGrade = catchAsyncErrors(async (req, res, next) => {
 // extra controller for Grade
 // Get single grade details => /api/v1/grades/:id
 export const getGradeDetails = catchAsyncErrors(async (req, res) => {
-  const grade = await Grade.findById(req?.params?.id);
+  const grade = await Grade.findById(req?.params?.id).populate("courses");
   if (!grade) {
     return next(new ErrorHandler("Grade not found", 404));
   }

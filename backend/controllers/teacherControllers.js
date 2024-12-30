@@ -78,7 +78,7 @@ export const deleteTeacher = catchAsyncErrors(async (req, res, next) => {
 
 // Get single teacher details => /api/v1/teachers/:id
 export const getTeacherDetails = catchAsyncErrors(async (req, res, next) => {
-  const teacher = await Teacher.findById(req?.params?.id);
+  const teacher = await Teacher.findById(req?.params?.id).populate("assignedCourses");
 
   if (!teacher) {
     return next(new ErrorHandler("Teacher not found", 404));

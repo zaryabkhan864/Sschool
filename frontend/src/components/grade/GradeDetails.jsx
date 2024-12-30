@@ -14,6 +14,7 @@ const GradeDetails = () => {
     description: "",
     yearFrom: "",
     yearTo: "",
+    courses: [],
   });
 
   useEffect(() => {
@@ -23,6 +24,7 @@ const GradeDetails = () => {
         description: data?.grade?.description,
         yearFrom: data?.grade?.yearFrom,
         yearTo: data?.grade?.yearTo,
+        courses: data?.grade?.courses,
       });
     }
 
@@ -57,6 +59,16 @@ const GradeDetails = () => {
             <div className="mb-4">
               <p className="text-sm font-medium text-gray-700">Year To:</p>
               <p className="text-lg text-gray-900">{grade.yearTo}</p>
+            </div>
+            <div className="mb-4">
+              <p className="text-sm font-medium text-gray-700">Courses:</p>
+              <ul>
+                {grade.courses?.map((course) => (
+                  <li key={course._id} className="text-lg text-gray-900">
+                    {course.courseName}
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>

@@ -94,50 +94,27 @@ const NewTeacher = () => {
                   onChange={onChange}
                 />
               </div>
-
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="gender_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Gender
                 </label>
-                <div className="flex items-center space-x-4 mt-1">
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      id="male"
-                      name="gender"
-                      value="Male"
-                      checked={gender === "Male"}
-                      onChange={onChange}
-                      className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                    />
-                    <label
-                      htmlFor="male"
-                      className="ml-2 text-sm text-gray-700"
-                    >
-                      Male
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      id="female"
-                      name="gender"
-                      value="Female"
-                      checked={gender === "Female"}
-                      onChange={onChange}
-                      className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                    />
-                    <label
-                      htmlFor="female"
-                      className="ml-2 text-sm text-gray-700"
-                    >
-                      Female
-                    </label>
-                  </div>
-                </div>
+                <select
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  id="gender_field"
+                  name="gender"
+                  value={gender}
+                  onChange={onChange}
+                >
+                  <option value="" disabled>Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
             </div>
-
             <div className="mb-4">
               <label
                 htmlFor="nationality_field"
@@ -154,21 +131,32 @@ const NewTeacher = () => {
                 onChange={onChange}
               />
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label
                   htmlFor="teacherPhoneNumber_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Teacher Phone Number
+                  Contact No
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   id="teacherPhoneNumber_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   name="teacherPhoneNumber"
                   value={teacherPhoneNumber}
+                  maxLength={11}
+                  minLength={11}
+                  pattern="\d{11}"
+                  required
+                  onInvalid={(e) =>
+                    e.target.setCustomValidity(
+                      "Phone number must be exactly 11 digits"
+                    )
+                  }
+                  onInput={(e) => {
+                    e.target.setCustomValidity("");
+                  }}
                   onChange={onChange}
                 />
               </div>
@@ -178,14 +166,26 @@ const NewTeacher = () => {
                   htmlFor="teacherSecondPhoneNumber_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  teacher Second Phone Number
+                  Contact No(2)
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   id="teacherSecondPhoneNumber_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   name="teacherSecondPhoneNumber"
                   value={teacherSecondPhoneNumber}
+                  maxLength={11}
+                  minLength={11}
+                  pattern="\d{11}"
+                  required
+                  onInvalid={(e) =>
+                    e.target.setCustomValidity(
+                      "Phone number must be exactly 11 digits"
+                    )
+                  }
+                  onInput={(e) => {
+                    e.target.setCustomValidity("");
+                  }}
                   onChange={onChange}
                 />
               </div>

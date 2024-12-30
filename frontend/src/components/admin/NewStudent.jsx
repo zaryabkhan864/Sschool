@@ -108,7 +108,7 @@ const NewStudent = () => {
                   value={gender}
                   onChange={onChange}
                 >
-                  <option value="">Select Gender</option>
+                  <option value="" disabled>Select Gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Other">Other</option>
@@ -138,7 +138,7 @@ const NewStudent = () => {
                 htmlFor="studentPhoneNumber_field"
                 className="block text-sm font-medium text-gray-700"
               >
-                Student Phone Number
+                Contact No
               </label>
               <input
                 type="text"
@@ -146,6 +146,18 @@ const NewStudent = () => {
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 name="studentPhoneNumber"
                 value={studentPhoneNumber}
+                maxLength={11}
+                minLength={11}
+                pattern="\d{11}"
+                required
+                onInvalid={(e) =>
+                  e.target.setCustomValidity(
+                    "Phone number must be exactly 11 digits"
+                  )
+                }
+                onInput={(e) => {
+                  e.target.setCustomValidity("");
+                }}
                 onChange={onChange}
               />
             </div>
@@ -156,14 +168,26 @@ const NewStudent = () => {
                   htmlFor="parentOnePhoneNumber_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Parent 1 Phone Number
+                  Parent Contact No
                 </label>
                 <input
-                  type="text"
+                  type="number"
                   id="parentOnePhoneNumber_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   name="parentOnePhoneNumber"
                   value={parentOnePhoneNumber}
+                  maxLength={11}
+                  minLength={11}
+                  pattern="\d{11}"
+                  required
+                  onInvalid={(e) =>
+                    e.target.setCustomValidity(
+                      "Phone number must be exactly 11 digits"
+                    )
+                  }
+                  onInput={(e) => {
+                    e.target.setCustomValidity("");
+                  }}
                   onChange={onChange}
                 />
               </div>
@@ -173,14 +197,26 @@ const NewStudent = () => {
                   htmlFor="parentTwoPhoneNumber_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Parent 2 Phone Number (Optional)
+                  Parent Contact No(2)
                 </label>
                 <input
-                  type="text"
+                  type="number"
                   id="parentTwoPhoneNumber_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   name="parentTwoPhoneNumber"
                   value={parentTwoPhoneNumber}
+                  maxLength={11}
+                  minLength={11}
+                  pattern="\d{11}"
+                  required
+                  onInvalid={(e) =>
+                    e.target.setCustomValidity(
+                      "Phone number must be exactly 11 digits"
+                    )
+                  }
+                  onInput={(e) => {
+                    e.target.setCustomValidity("");
+                  }}
                   onChange={onChange}
                 />
               </div>

@@ -8,6 +8,7 @@ import { gradeApi } from "./api/gradesApi";
 import { studentApi } from "./api/studentsApi";
 import { userApi } from "./api/userApi";
 import { teacherApi } from "./api/teacherApi";
+import { eventApi } from "./api/eventApi";
 
 export const store = configureStore({
   reducer: {
@@ -16,6 +17,7 @@ export const store = configureStore({
     [gradeApi.reducerPath]: gradeApi.reducer,
     [courseApi.reducerPath]: courseApi.reducer,
     [teacherApi.reducerPath]: teacherApi.reducer,
+    [eventApi.reducerPath]: eventApi.reducer,
     [authApi.reducerPath]: authApi.reducer,
     [userApi.reducerPath]: userApi.reducer,
   },
@@ -25,6 +27,7 @@ export const store = configureStore({
       gradeApi.middleware,
       courseApi.middleware,
       teacherApi.middleware,
+      eventApi.middleware,
       authApi.middleware,
       userApi.middleware,
     ]),
