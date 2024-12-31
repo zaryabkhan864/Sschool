@@ -32,6 +32,8 @@ const Header = () => {
       .then(() => {
         console.log("Logout successful");
         window.location.href = "/";
+        localStorage.clear();
+        sessionStorage.clear();
       })
       .catch((error) => {
         console.error("Logout failed:", error);

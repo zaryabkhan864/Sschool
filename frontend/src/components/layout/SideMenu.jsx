@@ -19,7 +19,7 @@ const SideMenu = ({ menuItems }) => {
     <>
       {/* Single Toggle Button */}
       <button
-        className="md:hidden bg-teal-800 text-white px-4 py-2 mb-2 "
+        className="md:hidden bg-teal-800 text-white px-4 py-2 mb-2"
         onClick={toggleMenu}
       >
         Menu {isOpen ? "✖" : "☰"}
@@ -28,6 +28,7 @@ const SideMenu = ({ menuItems }) => {
       <div
         className={`fixed top-0 left-0 h-full bg-white shadow-md z-50 transform transition-transform duration-300 ${isOpen ? "translate-x-0" : "-translate-x-full"
           } md:relative md:translate-x-0 md:w-auto md:h-auto`}
+        style={{ maxHeight: "100vh", overflowY: "auto" }} // Ensure proper scrolling
       >
         <div className="mt-5 p-4">
           {menuItems?.map((menuItem, index) => (

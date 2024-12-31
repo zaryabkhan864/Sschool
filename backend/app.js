@@ -33,6 +33,13 @@ app.use(
   })
 );
 app.use(cookieParser());
+// Cache Control Middleware
+app.use((req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
 
 // Import all routes
 

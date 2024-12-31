@@ -55,6 +55,11 @@ export const logout = catchAsyncErrors(async (req, res, next) => {
     httpOnly: true,
   });
 
+  // Disable caching
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+
   res.status(200).json({
     message: "Logged Out",
   });

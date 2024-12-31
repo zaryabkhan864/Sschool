@@ -90,6 +90,7 @@ const AdminLayout = ({ children }) => {
       icon: "fas fa-user-friends",
       roles: ["admin"], // Only accessible by admin
     },
+
   ];
 
   // Filter menu items based on user role

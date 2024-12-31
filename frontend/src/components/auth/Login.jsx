@@ -30,7 +30,7 @@ const Login = () => {
       email,
       password,
     };
-    console.log("what is data in login", loginData);
+
     login(loginData);
   };
 
