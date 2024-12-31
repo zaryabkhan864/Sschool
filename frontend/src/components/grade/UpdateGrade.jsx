@@ -1,73 +1,90 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  useGetGradeDetailsQuery,
-  useGetGradesQuery,
-  useUpdateGradeMutation,
-} from "../../redux/api/gradesApi";
+
 import AdminLayout from "../layout/AdminLayout";
-import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
+import { useGetCoursesQuery } from "../../redux/api/courseApi";
+import { useGetGradeDetailsQuery, useUpdateGradeMutation } from "../../redux/api/gradesApi";
 
 const UpdateGrade = () => {
-  const navigate = useNavigate();
   const params = useParams();
-  const { refetch } = useGetGradesQuery();
-  console.log(params);
+  const navigate = useNavigate();
+
+  const { data: coursesData } = useGetCoursesQuery();
+  const { data, isLoading: gradeLoading, error: gradeError, refetch } = useGetGradeDetailsQuery(params.id);
+  const [updateGrade, { isLoading: updateLoading, error: updateError, isSuccess: updateSuccess }] = useUpdateGradeMutation();
 
   const [grade, setGrade] = useState({
     gradeName: "",
     description: "",
     yearFrom: "",
     yearTo: "",
+    courses: []
   });
 
-  const { gradeName, description, yearFrom, yearTo } = grade;
-
-  const [updateGrade, { isLoading, error, isSuccess }] =
-    useUpdateGradeMutation();
-  const { data, loading } = useGetGradeDetailsQuery(params?.id);
+  const { gradeName, description, yearFrom, yearTo, courses: selectedCourses } = grade;
 
   useEffect(() => {
-    if (data?.grade) {
+    if (data) {
+      const selectedCourseIds = data.grade.courses.map(course => course.course);
       setGrade({
-        gradeName: data?.grade?.gradeName,
-        description: data?.grade?.description,
-        yearFrom: data?.grade?.yearFrom,
-        yearTo: data?.grade?.yearTo,
+        gradeName: data.grade.gradeName,
+        description: data.grade.description,
+        yearFrom: data.grade.yearFrom,
+        yearTo: data.grade.yearTo,
+        courses: selectedCourseIds
       });
     }
+  }, [data]);
 
-    if (error) {
-      toast.error(error?.data?.message);
+  useEffect(() => {
+    if (updateError) {
+      toast.error(updateError?.data?.message);
     }
-
-    if (isSuccess) {
-      toast.success("Grade updated");
+    if (updateSuccess) {
+      toast.success("Grade updated successfully");
       navigate("/admin/grades");
-      refetch();
     }
-  }, [data, error, isSuccess, navigate, refetch]);
-
-  if ((!data && isLoading) || loading) {
-    return <Loader />;
-  }
+  }, [updateError, updateSuccess, navigate]);
 
   const onChange = (e) => {
     setGrade({ ...grade, [e.target.name]: e.target.value });
   };
 
+  const addCourse = () => {
+    setGrade({ ...grade, courses: [...selectedCourses, ""] });
+  };
+
+  const updateCourse = (index, courseValue) => {
+    const updatedCourses = [...selectedCourses];
+    updatedCourses[index] = courseValue;
+    setGrade({ ...grade, courses: updatedCourses });
+  };
+
+  const removeCourse = (index) => {
+    const updatedCourses = [...selectedCourses];
+    updatedCourses.splice(index, 1);
+    setGrade({ ...grade, courses: updatedCourses });
+  };
+
   const submitHandler = (e) => {
     e.preventDefault();
-    updateGrade({ id: params?.id, body: grade });
+    const formattedGrade = {
+      gradeName,
+      description,
+      yearFrom,
+      yearTo,
+      courses: selectedCourses.map(course => ({ course })),
+    };
+    updateGrade({ id: params.id, body: formattedGrade });
   };
 
   return (
     <AdminLayout>
       <MetaData title={"Update Grade"} />
-      <div className="flex justify-center items-center py-10">
-        <div className="w-full max-w-2xl bg-white shadow-md rounded-lg p-8">
+      <div className="flex justify-center items-center pt-5 pb-10">
+        <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">Update Grade</h2>
           <form onSubmit={submitHandler}>
             <div className="mb-4">
@@ -95,10 +112,10 @@ const UpdateGrade = () => {
                 Description
               </label>
               <textarea
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 id="description_field"
-                rows="4"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 name="description"
+                rows="4"
                 value={description}
                 onChange={onChange}
               ></textarea>
@@ -140,12 +157,53 @@ const UpdateGrade = () => {
               </div>
             </div>
 
+            <div className="mb-4">
+              <label
+                htmlFor="courses_field"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Courses
+              </label>
+              {selectedCourses.map((course, index) => (
+                <div key={index} className="flex items-center space-x-4 mb-2">
+                  <select
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={course}
+                    onChange={(e) => updateCourse(index, e.target.value)}
+                  >
+                    <option value="" disabled>
+                      Select a course
+                    </option>
+                    {coursesData?.courses?.map((course) => (
+                      <option key={course._id} value={course._id}>
+                        {course.courseName}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="py-2 px-4 text-white bg-red-600 hover:bg-red-700 rounded-md"
+                    onClick={() => removeCourse(index)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="py-2 px-4 text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+                onClick={addCourse}
+              >
+                Add Course
+              </button>
+            </div>
+
             <button
               type="submit"
-              className="w-full py-2 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isLoading}
+              className={`w-full py-2 text-white font-semibold rounded-md ${updateLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"} focus:outline-none focus:ring focus:ring-blue-300`}
+              disabled={updateLoading}
             >
-              {isLoading ? "Updating..." : "UPDATE"}
+              {updateLoading ? "Updating..." : "UPDATE"}
             </button>
           </form>
         </div>
