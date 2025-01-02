@@ -155,31 +155,33 @@ const NewEvent = () => {
                 </div>
               )}
 
-              {isPaid&&(<div className="mb-4">
-                <label
-                  htmlFor="currency_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Currency
-                </label>
-                <select
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  id="currency_field"
-                  name="currency"
-                  value={currency}
-                  onChange={onChange}
-                >
-                  <option value="" disabled>
-                    Select Currency
-                  </option>
-                  <option value="USD">USD</option>
-                  <option value="CAD">CAD</option>
-                  <option value="AUD">AUD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="GPB">GPB</option>
-                  <option value="TRY">TRY</option>
-                </select>
-              </div>)}
+              {isPaid && (
+                <div className="mb-4">
+                  <label
+                    htmlFor="currency_field"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Currency
+                  </label>
+                  <select
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    id="currency_field"
+                    name="currency"
+                    value={currency}
+                    onChange={onChange}
+                  >
+                    <option value="" disabled>
+                      Select Currency
+                    </option>
+                    <option value="USD">USD</option>
+                    <option value="CAD">CAD</option>
+                    <option value="AUD">AUD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GPB">GPB</option>
+                    <option value="TRY">TRY</option>
+                  </select>
+                </div>
+              )}
             </div>
             <button
               type="submit"
