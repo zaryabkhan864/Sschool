@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import AdminLayout from "../layout/AdminLayout";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "react-hot-toast";
+import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
-import Header from "../layout/Header";
 import Slider from "../layout/Slider";
 // import Slider from "../layout/Slider";
 
@@ -19,7 +18,6 @@ const Dashboard = () => {
   return (
     <AdminLayout>
       <MetaData title="Admin Dashboard" />
-
 
       <div className="flex flex-col md:flex-row items-center justify-between bg-gray-100 p-4 shadow rounded-md">
         <div className="flex items-center space-x-4">
@@ -77,13 +75,23 @@ const Dashboard = () => {
       </div>
 
       <div className="mt-8">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Activities</h2>
+        <h2 className="text-xl font-bold text-gray-800 mb-4">
+          Recent Activities
+        </h2>
         <div className="bg-white shadow-md rounded-md p-4">
           <ul className="divide-y divide-gray-200">
-            <li className="py-2">Student John Doe submitted the assignment "Math Homework".</li>
-            <li className="py-2">Teacher Jane Smith uploaded new study material for "Physics".</li>
-            <li className="py-2">New event "Annual Sports Day" scheduled for next month.</li>
-            <li className="py-2">Parent meeting scheduled for class 10th on Friday.</li>
+            <li className="py-2">
+              Student John Doe submitted the assignment "Math Homework".
+            </li>
+            <li className="py-2">
+              Teacher Jane Smith uploaded new study material for "Physics".
+            </li>
+            <li className="py-2">
+              New event "Annual Sports Day" scheduled for next month.
+            </li>
+            <li className="py-2">
+              Parent meeting scheduled for class 10th on Friday.
+            </li>
           </ul>
         </div>
       </div>
