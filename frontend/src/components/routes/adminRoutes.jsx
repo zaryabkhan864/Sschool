@@ -173,7 +173,7 @@ const adminRoutes = () => {
         }
       />
       <Route
-        path="/admin/teachers/:id"
+        path="/admin/events/:id"
         element={
           <ProtectedRoute admin={true}>
             <UpdateEvent />
@@ -181,7 +181,7 @@ const adminRoutes = () => {
         }
       />
       <Route
-        path="/admin/teacher/:id/details"
+        path="/admin/event/:id/details"
         element={
           <ProtectedRoute admin={true}>
             <EventDetails />

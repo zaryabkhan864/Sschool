@@ -6,6 +6,7 @@ import useUserRoutes from "./components/routes/userRoutes";
 import useAdminRoutes from "./components/routes/adminRoutes";
 import NotFound from "./components/layout/NotFound";
 
+
 function App() {
   const userRoutes = useUserRoutes();
   const adminRoutes = useAdminRoutes();

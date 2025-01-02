@@ -15,6 +15,8 @@ const courseSchema = new mongoose.Schema(
     code: {
       type: String,
       required: [true, "Please enter the code of course"],
+      maxLength: [8, "Code cannot exceed 8 characters"],
+
     },
     year: {
       type: Number,

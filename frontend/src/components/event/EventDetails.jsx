@@ -16,6 +16,7 @@ const EventDetails = () => {
     venue: "",
     isPaid: false,
     amount: "",
+    currency: "",
     createdAt: "",
     updatedAt: "",
   });
@@ -29,6 +30,7 @@ const EventDetails = () => {
         venue: data?.event?.venue,
         isPaid: data?.event?.isPaid,
         amount: data?.event?.amount,
+        currency: data?.event?.currency,
         createdAt: data?.event?.createdAt,
         updatedAt: data?.event?.updatedAt,
       });
@@ -66,14 +68,26 @@ const EventDetails = () => {
               <p className="text-sm font-medium text-gray-700">Venue</p>
               <p className="text-lg text-gray-900">{event.venue}</p>
             </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
             <div className="mb-4">
               <p className="text-sm font-medium text-gray-700">Paid</p>
               <p className="text-lg text-gray-900">{event.isPaid}</p>
             </div>
-            <div className="mb-4">
-              <p className="text-sm font-medium text-gray-700">Amount</p>
-              <p className="text-lg text-gray-900">{event.amount}</p>
-            </div>
+            {event.isPaid && (
+              <div className="mb-4">
+                <p className="text-sm font-medium text-gray-700">Amount</p>
+                <p className="text-lg text-gray-900">{event.amount}</p>
+              </div>
+            )}
+            {event.isPaid && (
+              <div className="mb-4">
+                <p className="text-sm font-medium text-gray-700">Currency</p>
+                <p className="text-lg text-gray-900">{event.currency}</p>
+              </div>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <div className="mb-4">
               <p className="text-sm font-medium text-gray-700">Created At</p>
               <p className="text-lg text-gray-900">{event.createdAt}</p>

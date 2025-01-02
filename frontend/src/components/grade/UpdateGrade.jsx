@@ -9,11 +9,15 @@ import { useGetGradeDetailsQuery, useUpdateGradeMutation } from "../../redux/api
 
 const UpdateGrade = () => {
   const params = useParams();
+<<<<<<< HEAD
   const navigate = useNavigate();
 
   const { data: coursesData } = useGetCoursesQuery();
   const { data, isLoading: gradeLoading, error: gradeError, refetch } = useGetGradeDetailsQuery(params.id);
   const [updateGrade, { isLoading: updateLoading, error: updateError, isSuccess: updateSuccess }] = useUpdateGradeMutation();
+=======
+  const { refetch } = useGetGradesQuery();
+>>>>>>> aysan
 
   const [grade, setGrade] = useState({
     gradeName: "",

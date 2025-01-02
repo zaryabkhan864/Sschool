@@ -37,6 +37,13 @@ const eventSchema = new mongoose.Schema(
       },
       min: [0, "Amount cannot be negative"],
     },
+    currency: {
+      type: String,
+      required: function () {
+        return this.isPaid; // Only required if the event is paid
+      },
+      enum: ["USD", "CAD", "AUD", "EUR", "GPB", "TRY"],
+    },
     organizer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Teacher", // Assuming a teacher organizes the event
