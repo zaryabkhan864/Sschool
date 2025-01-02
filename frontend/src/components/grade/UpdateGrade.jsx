@@ -67,7 +67,6 @@ const UpdateGrade = () => {
     updatedCourses.splice(index, 1);
     setGrade({ ...grade, courses: updatedCourses });
   };
-
   const submitHandler = (e) => {
     e.preventDefault();
     const formattedGrade = {
@@ -75,8 +74,9 @@ const UpdateGrade = () => {
       description,
       yearFrom,
       yearTo,
-      courses: selectedCourses.map(course => ({ course })),
+      courses: selectedCourses.map(courseId => courseId), // Ensure it sends an array of ObjectIds
     };
+    console.log("what is formatted data", formattedGrade);
     updateGrade({ id: params.id, body: formattedGrade });
   };
 

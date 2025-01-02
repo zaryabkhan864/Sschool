@@ -34,6 +34,7 @@ export const getGrades = catchAsyncErrors(async (req, res, next) => {
 // Update grade => /api/v1/grades/:id
 export const updateGrade = catchAsyncErrors(async (req, res, next) => {
   let grade = await Grade.findById(req?.params?.id);
+  console.log("what is grade", req.body)
 
   //check if there is any grade with req id
   if (!grade) {
