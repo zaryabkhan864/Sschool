@@ -5,6 +5,7 @@ import OwlCarousel from 'react-owl-carousel';
 import 'owl.carousel/dist/assets/owl.carousel.css';
 import 'owl.carousel/dist/assets/owl.theme.default.css';
 import Loader from './Loader';
+
 const Slider = () => {
     const { data, isLoading, error } = useGetEventsQuery();
 
@@ -34,7 +35,7 @@ const Slider = () => {
                         <div className="max-w-sm mx-auto p-4 my-8 flex flex-col h-full min-h-[400px]">
                             <div className="flex-shrink-0 h-40 overflow-hidden rounded-t-lg">
                                 <img
-                                    src={events.image}
+                                    src="/images/trip.jpg"
                                     alt={events.eventName}
                                     className="w-full h-full object-cover rounded"
                                 />
