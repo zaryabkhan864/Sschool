@@ -1,57 +1,60 @@
-// import "owl.carousel/dist/assets/owl.carousel.min.css"; 
-// import React, { useEffect } from "react";
-// import OwlCarousel from "react-owl-carousel";
-// import { Link } from "react-router-dom"; 
-// import { ResourcesData } from "../../constants/constants";
+import React from 'react';
+import { useGetEventsQuery } from '../../redux/api/eventApi';
+import { Link } from 'react-router-dom';
+import OwlCarousel from 'react-owl-carousel';
+import 'owl.carousel/dist/assets/owl.carousel.css';
+import 'owl.carousel/dist/assets/owl.theme.default.css';
+import Loader from './Loader';
+const Slider = () => {
+    const { data, isLoading, error } = useGetEventsQuery();
 
-// const Slider = () => {
-//   useEffect(() => {
-//     const $ = window.$; 
 
-//     $(".owl-carousel").owlCarousel({
-//       items: 1,
-//       loop: true,
-//       margin: 10,
-//       autoplay: true,
-//       nav: true,
-//       dots: false,
-//       center: true,
-//       responsive: {
-//         0: { item: 1 },
-//         640: { item: 2 },
-//         1024: { item: 3 },
-//         1280: { item: 5 },
-//       },
-//     });
+    if (isLoading) return <Loader />;
 
-//     return () => {
-//       $(".owl-carousel").trigger("destroy.owl.carousel");
-//     };
-//   }, []);
+    return (
+        <div>
+            <h1>Events</h1>
+            <OwlCarousel
+                className="owl-theme lg:py-5 md:py-5"
+                loop
+                margin={10}
+                autoplay={true}
+                items={5}
+                dots={false}
+                center={true}
+                responsive={{
+                    0: { items: 1 },
+                    640: { items: 2 },
+                    1024: { items: 3 },
+                    1280: { items: 5 }
+                }}
+            >
+                {data?.events && data?.events.map((events) => (
+                    <div className="item" key={events.id}>
+                        <div className="max-w-sm mx-auto p-4 my-8 flex flex-col h-full min-h-[400px]">
+                            <div className="flex-shrink-0 h-40 overflow-hidden rounded-t-lg">
+                                <img
+                                    src={events.image}
+                                    alt={events.eventName}
+                                    className="w-full h-full object-cover rounded"
+                                />
+                            </div>
 
-//   return (
-//     <div className="slider-container mx-auto px-4 py-6 max-w-7xl">
-//       <OwlCarousel className="owl-theme owl-carousel">
-//         {ResourcesData.map((item) => (
-//           <div key={item.id} className="slider-item relative group">
-//             <img
-//               src={item.image}
-//               alt={item.title}
-//               className="w-full h-auto object-cover rounded-lg"
-//             />
-//             <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-//               <Link
-//                 to={item.link}
-//                 className="text-white text-xl font-semibold hover:text-gray-300"
-//               >
-//                 {item.title}
-//               </Link>
-//             </div>
-//           </div>
-//         ))}
-//       </OwlCarousel>
-//     </div>
-//   );
-// };
+                            <div className="p-4 flex flex-col justify-between flex-grow">
+                                <h2 className="text-xl font-bold text-gray-800 mb-2 h-[60px] ">
+                                    {events.name}
+                                </h2>
+                                <Link to={events.link} className="text-purple-600 hover:underline flex items-center mt-auto">
+                                    Read More <span className="ml-2">→</span>
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </OwlCarousel>
+        </div>
 
-// export default Slider;
+    );
+};
+
+export default Slider;

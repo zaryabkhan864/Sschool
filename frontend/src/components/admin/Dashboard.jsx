@@ -5,6 +5,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "react-hot-toast";
 import MetaData from "../layout/MetaData";
 import Header from "../layout/Header";
+import Slider from "../layout/Slider";
 // import Slider from "../layout/Slider";
 
 const Dashboard = () => {
@@ -86,7 +87,7 @@ const Dashboard = () => {
           </ul>
         </div>
       </div>
-      {/* <Slider/> */}
+      <Slider />
     </AdminLayout>
   );
 };
