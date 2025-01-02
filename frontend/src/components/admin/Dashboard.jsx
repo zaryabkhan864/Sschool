@@ -5,6 +5,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "react-hot-toast";
 import MetaData from "../layout/MetaData";
 import Header from "../layout/Header";
+// import Slider from "../layout/Slider";
 
 const Dashboard = () => {
   const [startDate, setStartDate] = useState(new Date().setDate(1));
@@ -85,6 +86,7 @@ const Dashboard = () => {
           </ul>
         </div>
       </div>
+      {/* <Slider/> */}
     </AdminLayout>
   );
 };

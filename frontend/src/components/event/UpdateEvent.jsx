@@ -14,7 +14,6 @@ const UpdateEvent = () => {
   const navigate = useNavigate();
   const params = useParams();
   const { refetch } = useGetEventsQuery();
-  console.log(params);
 
   const [event, setEvent] = useState({
     eventName: "",
@@ -23,20 +22,11 @@ const UpdateEvent = () => {
     venue: "",
     isPaid: false,
     amount: "",
-    createdAt: "",
-    updatedAt: "",
+    currency: "",
   });
 
-  const {
-    eventName,
-    description,
-    date,
-    venue,
-    isPaid,
-    amount,
-    createdAt,
-    updatedAt,
-  } = event;
+  const { eventName, description, date, venue, isPaid, amount, currency } =
+    event;
 
   const [updateEvent, { isLoading, error, isSuccess }] =
     useUpdateEventMutation();
@@ -47,12 +37,11 @@ const UpdateEvent = () => {
       setEvent({
         eventName: data?.event?.eventName,
         description: data?.event?.description,
-        date: data?.event?.date,
+        date: date?.event?.date,
         venue: data?.event?.venue,
         isPaid: data?.event?.isPaid,
         amount: data?.event?.amount,
-        createdAt: data?.event?.createdAt,
-        updatedAt: data?.event?.updatedAt,
+        currency: data?.event?.currency,
       });
     }
 
@@ -119,127 +108,101 @@ const UpdateEvent = () => {
                 onChange={onChange}
               ></textarea>
             </div>
-            <div className="mb-4">
-              <label
-                htmlFor="date_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Date
-              </label>
-              <input
-                type="date"
-                id="date_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="date"
-                value={date}
-                onChange={onChange}
-              />
-            </div>
-            <div className="mb-4">
-              <label
-                htmlFor="venue_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Venue
-              </label>
-              <input
-                type="text"
-                id="venue_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="venue"
-                value={venue}
-                onChange={onChange}
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700">
-                Paid
-              </label>
-              <div className="flex items-center space-x-4 mt-1">
-                <div className="flex items-center">
-                  <input
-                    type="radio"
-                    id="yes"
-                    name="isPaid"
-                    value={true}
-                    checked={isPaid === true}
-                    onChange={onChange}
-                    className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                  />
-                  <label htmlFor="yes" className="ml-2 text-sm text-gray-700">
-                    Yes
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="radio"
-                    id="no"
-                    name="isPaid"
-                    value={false}
-                    checked={isPaid === false}
-                    onChange={onChange}
-                    className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                  />
-                  <label htmlFor="no" className="ml-2 text-sm text-gray-700">
-                    No
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <label
-                htmlFor="amount_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Amount
-              </label>
-              <input
-                type="number"
-                id="amount_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="amount"
-                value={amount}
-                onChange={onChange}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-5 gap-4">
               <div className="mb-4">
                 <label
-                  htmlFor="createdAt_field"
+                  htmlFor="date_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Created At
+                  Date
                 </label>
                 <input
                   type="date"
-                  id="createdAt_field"
+                  id="date_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="createdAt"
-                  value={createdAt}
+                  name="date"
+                  value={date}
                   onChange={onChange}
                 />
               </div>
-
               <div className="mb-4">
                 <label
-                  htmlFor="updatedAt_field"
+                  htmlFor="venue_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Updated At
+                  Venue
                 </label>
                 <input
-                  type="date"
-                  id="updatedAt_field"
+                  type="text"
+                  id="venue_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="updatedAt"
-                  value={updatedAt}
+                  name="venue"
+                  value={venue}
                   onChange={onChange}
                 />
               </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="isPaid_field"
+                  className="block text-sm font-medium text-gray-700 "
+                >
+                  Paid
+                </label>
+                <input
+                  type="checkbox"
+                  id="isPaid_field"
+                  className="mt-1 block h-5 w-5 border items-center border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={() => setEvent({ ...event, isPaid: !isPaid })}
+                />
+              </div>
+              {isPaid && (
+                <div className="mb-4">
+                  <label
+                    htmlFor="amount_field"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Amount
+                  </label>
+                  <input
+                    type="number"
+                    id="amount_field"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    name="amount"
+                    value={amount}
+                    onChange={onChange}
+                  />
+                </div>
+              )}
+
+              {isPaid && (
+                <div className="mb-4">
+                  <label
+                    htmlFor="currency_field"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Currency
+                  </label>
+                  <select
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    id="currency_field"
+                    name="currency"
+                    value={currency}
+                    onChange={onChange}
+                  >
+                    <option value="" disabled>
+                      Select Currency
+                    </option>
+                    <option value="USD">USD</option>
+                    <option value="CAD">CAD</option>
+                    <option value="AUD">AUD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GPB">GPB</option>
+                    <option value="TRY">TRY</option>
+                  </select>
+                </div>
+              )}
             </div>
+
             <button
               type="submit"
               className="w-full py-2 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"

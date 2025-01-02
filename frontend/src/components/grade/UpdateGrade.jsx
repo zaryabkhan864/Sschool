@@ -14,7 +14,6 @@ const UpdateGrade = () => {
   const navigate = useNavigate();
   const params = useParams();
   const { refetch } = useGetGradesQuery();
-  console.log(params);
 
   const [grade, setGrade] = useState({
     gradeName: "",
