@@ -9,42 +9,40 @@ import { useGetGradeDetailsQuery, useUpdateGradeMutation } from "../../redux/api
 
 const UpdateGrade = () => {
   const params = useParams();
-<<<<<<< HEAD
   const navigate = useNavigate();
 
   const { data: coursesData } = useGetCoursesQuery();
-  const { data, isLoading: gradeLoading, error: gradeError, refetch } = useGetGradeDetailsQuery(params.id);
+  const { data, isLoading: gradeLoading, error: gradeError } = useGetGradeDetailsQuery(params.id);
   const [updateGrade, { isLoading: updateLoading, error: updateError, isSuccess: updateSuccess }] = useUpdateGradeMutation();
-=======
-  const { refetch } = useGetGradesQuery();
->>>>>>> aysan
 
   const [grade, setGrade] = useState({
     gradeName: "",
     description: "",
     yearFrom: "",
     yearTo: "",
-    courses: []
+    courses: [],
   });
 
   const { gradeName, description, yearFrom, yearTo, courses: selectedCourses } = grade;
 
+  // Map grade details from API to state
   useEffect(() => {
     if (data) {
-      const selectedCourseIds = data.grade.courses.map(course => course.course);
+      const selectedCourseIds = data.grade.courses.map((course) => course._id); // Extract `_id`
       setGrade({
         gradeName: data.grade.gradeName,
         description: data.grade.description,
         yearFrom: data.grade.yearFrom,
         yearTo: data.grade.yearTo,
-        courses: selectedCourseIds
+        courses: selectedCourseIds, // Set course IDs
       });
     }
   }, [data]);
 
+  // Handle success/error responses
   useEffect(() => {
     if (updateError) {
-      toast.error(updateError?.data?.message);
+      toast.error(updateError?.data?.message || "Error updating grade");
     }
     if (updateSuccess) {
       toast.success("Grade updated successfully");
@@ -52,25 +50,31 @@ const UpdateGrade = () => {
     }
   }, [updateError, updateSuccess, navigate]);
 
+  // Handle form input changes
   const onChange = (e) => {
     setGrade({ ...grade, [e.target.name]: e.target.value });
   };
 
+  // Add a new course
   const addCourse = () => {
     setGrade({ ...grade, courses: [...selectedCourses, ""] });
   };
 
+  // Update selected course
   const updateCourse = (index, courseValue) => {
     const updatedCourses = [...selectedCourses];
     updatedCourses[index] = courseValue;
     setGrade({ ...grade, courses: updatedCourses });
   };
 
+  // Remove a course
   const removeCourse = (index) => {
     const updatedCourses = [...selectedCourses];
     updatedCourses.splice(index, 1);
     setGrade({ ...grade, courses: updatedCourses });
   };
+
+  // Handle form submission
   const submitHandler = (e) => {
     e.preventDefault();
     const formattedGrade = {
@@ -78,9 +82,8 @@ const UpdateGrade = () => {
       description,
       yearFrom,
       yearTo,
-      courses: selectedCourses.map(courseId => courseId), // Ensure it sends an array of ObjectIds
+      courses: selectedCourses, // Send array of course IDs
     };
-    console.log("what is formatted data", formattedGrade);
     updateGrade({ id: params.id, body: formattedGrade });
   };
 
@@ -178,9 +181,9 @@ const UpdateGrade = () => {
                     <option value="" disabled>
                       Select a course
                     </option>
-                    {coursesData?.courses?.map((course) => (
-                      <option key={course._id} value={course._id}>
-                        {course.courseName}
+                    {coursesData?.courses?.map((courseOption) => (
+                      <option key={courseOption._id} value={courseOption._id}>
+                        {courseOption.courseName}
                       </option>
                     ))}
                   </select>

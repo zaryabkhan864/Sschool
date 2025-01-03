@@ -115,7 +115,7 @@ const NewCourse = () => {
                   value={code}
                   maxLength={8}
                   minLength={8}
-                  pattern="\d{8}"
+                  // pattern="\d{8}"
                   required
                   onInvalid={(e) =>
                     e.target.setCustomValidity("Code must be exactly 8 digits")
