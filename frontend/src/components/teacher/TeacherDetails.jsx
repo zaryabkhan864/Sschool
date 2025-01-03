@@ -16,7 +16,8 @@ const TeacherDetails = () => {
     nationality: "",
     teacherPhoneNumber: "",
     teacherSecondPhoneNumber: "",
-    assignedCourses:[],
+    assignedCourses: [],
+    user: "",
   });
   useEffect(() => {
     if (data?.teacher) {
@@ -27,7 +28,8 @@ const TeacherDetails = () => {
         nationality: data?.teacher?.nationality,
         teacherPhoneNumber: data?.teacher?.teacherPhoneNumber,
         teacherSecondPhoneNumber: data?.teacher?.teacherSecondPhoneNumber,
-        assignedCourses:data?.teacher?.assignedCourses,
+        assignedCourses: data?.teacher?.assignedCourses,
+        user: data?.teacher?.user,
       });
     }
     if (error) {
@@ -83,15 +85,19 @@ const TeacherDetails = () => {
             </div>
           </div>
           <div className="mb-4">
-              <p className="text-sm font-medium text-gray-700">Courses:</p>
-              <ul>
-                {teacher.assignedCourses?.map((course) => (
-                  <li key={course._id} className="text-lg text-gray-900">
-                    {course.courseName}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <p className="text-sm font-medium text-gray-700">User:</p>
+            <p className="text-lg text-gray-900">{teacher.user}</p>
+          </div>
+          <div className="mb-4">
+            <p className="text-sm font-medium text-gray-700">Courses:</p>
+            <ul>
+              {teacher.assignedCourses?.map((course) => (
+                <li key={course._id} className="text-lg text-gray-900">
+                  {course.courseName}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     </AdminLayout>

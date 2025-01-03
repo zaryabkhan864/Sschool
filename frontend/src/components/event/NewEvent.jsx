@@ -122,7 +122,7 @@ const NewEvent = () => {
                   onChange={onChange}
                 />
               </div>
-              <div className="mb-4">
+              <div className="mb-4 flex justify-evenly items-center">
                 <label
                   htmlFor="isPaid_field"
                   className="block text-sm font-medium text-gray-700 "
