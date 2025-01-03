@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useParams } from "react-router-dom";
 import { useGetTeacherDetailsQuery } from "../../redux/api/teacherApi";
+import { useGetAdminUsersQuery } from "../../redux/api/userApi";
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
@@ -19,6 +20,10 @@ const TeacherDetails = () => {
     assignedCourses: [],
     user: "",
   });
+
+  const { data: usersData, isLoading: userLoading } = useGetAdminUsersQuery();
+  const users = usersData?.users || [];
+
   useEffect(() => {
     if (data?.teacher) {
       setTeacher({
@@ -86,7 +91,17 @@ const TeacherDetails = () => {
           </div>
           <div className="mb-4">
             <p className="text-sm font-medium text-gray-700">User:</p>
-            <p className="text-lg text-gray-900">{teacher.user}</p>
+            <p className="text-lg text-gray-900">
+              {!userLoading &&
+                users?.map(
+                  (u) =>
+                    u._id === teacher.user && (
+                      <p key={u._id} value={u._id}>
+                        {u.name}
+                      </p>
+                    )
+                )}
+            </p>
           </div>
           <div className="mb-4">
             <p className="text-sm font-medium text-gray-700">Courses:</p>

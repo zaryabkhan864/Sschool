@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useParams } from "react-router-dom";
 import { useGetCourseDetailsQuery } from "../../redux/api/courseApi";
+import { useGetGradesQuery } from "../../redux/api/gradesApi";
+import { useGetTeachersQuery } from "../../redux/api/teacherApi";
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
-import { useGetGradeDetailsQuery } from "../../redux/api/gradesApi";
 
 const CourseDetails = () => {
   const params = useParams();
@@ -20,6 +21,12 @@ const CourseDetails = () => {
     teacher: "", // Store teacher ID
   });
 
+  const { data: gradesData, isLoading: gradeLoading } = useGetGradesQuery();
+  const grades = gradesData?.grades || []; // Ensure it's an array
+  const { data: teachersData, isLoading: teacherLoading } =
+    useGetTeachersQuery();
+  const teachers = teachersData?.teachers || []; // Ensure it's an array
+
   useEffect(() => {
     if (data?.course) {
       setCourse({
@@ -32,12 +39,10 @@ const CourseDetails = () => {
       });
     }
 
-
     if (error) {
       toast.error(error?.data?.message);
     }
   }, [data, error]);
-
 
   if (loading) {
     return <Loader />;
@@ -70,11 +75,31 @@ const CourseDetails = () => {
           <div className="grid grid-cols-2 gap-4">
             <div className="mb-4">
               <p className="text-sm font-medium text-gray-700">Grade:</p>
-              <p className="text-lg text-gray-900">{course.grade}</p>
+              <p className="text-lg text-gray-900">
+                {!gradeLoading &&
+                  grades?.map(
+                    (g) =>
+                      g._id === course.grade && (
+                        <p key={g._id} value={g._id}>
+                          {g.gradeName}
+                        </p>
+                      )
+                  )}
+              </p>
             </div>
             <div className="mb-4">
               <p className="text-sm font-medium text-gray-700">Teacher:</p>
-              <p className="text-lg text-gray-900">{course.teacher}</p>
+              <p className="text-lg text-gray-900">
+                {!teacherLoading &&
+                  teachers?.map(
+                    (t) =>
+                      t._id === course.teacher && (
+                        <p key={t._id} value={t._id}>
+                          {t.teacherName}
+                        </p>
+                      )
+                  )}
+              </p>
             </div>
           </div>
         </div>

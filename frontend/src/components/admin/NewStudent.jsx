@@ -78,23 +78,23 @@ const NewStudent = () => {
         <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">New Student</h2>
           <form onSubmit={submitHandler}>
+            <div className="mb-4">
+              <label
+                htmlFor="studentName_field"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Student Name
+              </label>
+              <input
+                type="text"
+                id="studentName_field"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                name="studentName"
+                value={studentName}
+                onChange={onChange}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="mb-4">
-                <label
-                  htmlFor="studentName_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Student Name
-                </label>
-                <input
-                  type="text"
-                  id="studentName_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="studentName"
-                  value={studentName}
-                  onChange={onChange}
-                />
-              </div>
               <div className="mb-4">
                 <label
                   htmlFor="age_field"
@@ -111,9 +111,6 @@ const NewStudent = () => {
                   onChange={onChange}
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">
                   Gender
@@ -155,6 +152,9 @@ const NewStudent = () => {
                   </div>
                 </div>
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label
                   htmlFor="nationality_field"
@@ -177,8 +177,6 @@ const NewStudent = () => {
                   ))}
                 </select>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label
                   htmlFor="passportNumber_field"
@@ -207,6 +205,9 @@ const NewStudent = () => {
                   onChange={onChange}
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
               <div className="mb-4">
                 <label
                   htmlFor="studentPhoneNumber_field"
@@ -235,9 +236,6 @@ const NewStudent = () => {
                   onChange={onChange}
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label
                   htmlFor="parentOnePhoneNumber_field"
@@ -307,7 +305,7 @@ const NewStudent = () => {
                 id="address_field"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 name="address"
-                rows="4"
+                rows="2"
                 value={address}
                 onChange={onChange}
               ></textarea>

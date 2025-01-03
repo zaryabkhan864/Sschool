@@ -13,6 +13,7 @@ import MetaData from "../layout/MetaData";
 const NewTeacher = () => {
   const navigate = useNavigate();
   const { countries } = useCountries();
+  console.log(countries);
   const { refetch } = useGetTeachersQuery();
 
   const [teacher, setTeacher] = useState({
@@ -106,6 +107,28 @@ const NewTeacher = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
+                <label
+                  htmlFor="nationality_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Nationality
+                </label>
+                <select
+                  type="text"
+                  id="nationality_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="nationality"
+                  value={nationality}
+                  onChange={onChange}
+                >
+                  {countries?.map(({ name, dial_code, code, flag }) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">
                   Gender
                 </label>
@@ -145,28 +168,6 @@ const NewTeacher = () => {
                     </label>
                   </div>
                 </div>
-              </div>
-              <div className="mb-4">
-                <label
-                  htmlFor="nationality_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Nationality
-                </label>
-                <select
-                  type="text"
-                  id="nationality_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="nationality"
-                  value={nationality}
-                  onChange={onChange}
-                >
-                  {countries?.map(({ name, dial_code, code, flag }) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
 
