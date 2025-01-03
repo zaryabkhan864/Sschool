@@ -6,13 +6,13 @@ import {
   useCreateTeacherMutation,
   useGetTeachersQuery,
 } from "../../redux/api/teacherApi";
+import { useGetAdminUsersQuery } from "../../redux/api/userApi";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 
 const NewTeacher = () => {
   const navigate = useNavigate();
   const { countries } = useCountries();
-  console.log(countries);
   const { refetch } = useGetTeachersQuery();
 
   const [teacher, setTeacher] = useState({
@@ -22,6 +22,7 @@ const NewTeacher = () => {
     nationality: "",
     teacherPhoneNumber: "",
     teacherSecondPhoneNumber: "",
+    user: "",
   });
 
   const {
@@ -31,10 +32,14 @@ const NewTeacher = () => {
     nationality,
     teacherPhoneNumber,
     teacherSecondPhoneNumber,
+    user,
   } = teacher;
 
   const [createTeacher, { isLoading, error, isSuccess }] =
     useCreateTeacherMutation();
+
+  const { data: usersData, isLoading: userLoading } = useGetAdminUsersQuery();
+  const users = usersData?.users || []; // Ensure it's an array
 
   useEffect(() => {
     if (error) {
@@ -64,23 +69,23 @@ const NewTeacher = () => {
         <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">New Teacher</h2>
           <form onSubmit={submitHandler}>
-            <div className="mb-4">
-              <label
-                htmlFor="teacherName_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Teacher Name
-              </label>
-              <input
-                type="text"
-                id="teacherName_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="teacherName"
-                value={teacherName}
-                onChange={onChange}
-              />
-            </div>
             <div className="grid grid-cols-2 gap-4">
+              <div className="mb-4">
+                <label
+                  htmlFor="teacherName_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Teacher Name
+                </label>
+                <input
+                  type="text"
+                  id="teacherName_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="teacherName"
+                  value={teacherName}
+                  onChange={onChange}
+                />
+              </div>
               <div className="mb-4">
                 <label
                   htmlFor="age_field"
@@ -97,7 +102,9 @@ const NewTeacher = () => {
                   onChange={onChange}
                 />
               </div>
+            </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">
                   Gender
@@ -139,29 +146,30 @@ const NewTeacher = () => {
                   </div>
                 </div>
               </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="nationality_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Nationality
+                </label>
+                <select
+                  type="text"
+                  id="nationality_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="nationality"
+                  value={nationality}
+                  onChange={onChange}
+                >
+                  {countries?.map(({ name, dial_code, code, flag }) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="mb-4">
-              <label
-                htmlFor="nationality_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Nationality
-              </label>
-              <select
-                type="text"
-                id="nationality_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="nationality"
-                value={nationality}
-                onChange={onChange}
-              >
-                {countries?.map(({ name, dial_code, code, flag }) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label
@@ -191,7 +199,6 @@ const NewTeacher = () => {
                   onChange={onChange}
                 />
               </div>
-
               <div className="mb-4">
                 <label
                   htmlFor="teacherSecondPhoneNumber_field"
@@ -220,6 +227,33 @@ const NewTeacher = () => {
                   onChange={onChange}
                 />
               </div>
+            </div>
+
+            {/* User Dropdown */}
+            <div className="mb-4">
+              <label
+                htmlFor="user_field"
+                className="block text-sm font-medium text-gray-700"
+              >
+                User
+              </label>
+              <select
+                id="user_field"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                name="user"
+                value={user}
+                onChange={onChange}
+              >
+                <option value="" disabled>
+                  Select User
+                </option>
+                {!userLoading &&
+                  users?.map((u) => (
+                    <option key={u._id} value={u._id}>
+                      {u.name}
+                    </option>
+                  ))}
+              </select>
             </div>
 
             <button

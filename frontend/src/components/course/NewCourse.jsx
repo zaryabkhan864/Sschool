@@ -144,59 +144,60 @@ const NewCourse = () => {
                 />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Grade Dropdown */}
+              <div className="mb-4">
+                <label
+                  htmlFor="grade_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Grade
+                </label>
+                <select
+                  id="grade_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="grade"
+                  value={grade}
+                  onChange={onChange}
+                >
+                  <option value="" disabled>
+                    Select Grade
+                  </option>
+                  {!gradeLoading &&
+                    grades?.map((g) => (
+                      <option key={g._id} value={g._id}>
+                        {g.gradeName}
+                      </option>
+                    ))}
+                </select>
+              </div>
 
-            {/* Grade Dropdown */}
-            <div className="mb-4">
-              <label
-                htmlFor="grade_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Grade
-              </label>
-              <select
-                id="grade_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="grade"
-                value={grade}
-                onChange={onChange}
-              >
-                <option value="" disabled>
-                  Select Grade
-                </option>
-                {!gradeLoading &&
-                  grades?.map((g) => (
-                    <option key={g._id} value={g._id}>
-                      {g.gradeName}
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            {/* Teacher Dropdown */}
-            <div className="mb-4">
-              <label
-                htmlFor="teacher_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Teacher
-              </label>
-              <select
-                id="teacher_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="teacher"
-                value={teacher}
-                onChange={onChange}
-              >
-                <option value="" disabled>
-                  Select Teacher
-                </option>
-                {!teacherLoading &&
-                  teachers?.map((g) => (
-                    <option key={g._id} value={g._id}>
-                      {g.teacherName}
-                    </option>
-                  ))}
-              </select>
+              {/* Teacher Dropdown */}
+              <div className="mb-4">
+                <label
+                  htmlFor="teacher_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Teacher
+                </label>
+                <select
+                  id="teacher_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="teacher"
+                  value={teacher}
+                  onChange={onChange}
+                >
+                  <option value="" disabled>
+                    Select Teacher
+                  </option>
+                  {!teacherLoading &&
+                    teachers?.map((t) => (
+                      <option key={t._id} value={t._id}>
+                        {t.teacherName}
+                      </option>
+                    ))}
+                </select>
+              </div>
             </div>
 
             <button

@@ -5,15 +5,19 @@ import { useGetCourseDetailsQuery } from "../../redux/api/courseApi";
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
+import { useGetGradeDetailsQuery } from "../../redux/api/gradesApi";
 
 const CourseDetails = () => {
   const params = useParams();
   const { data, loading, error } = useGetCourseDetailsQuery(params?.id);
+
   const [course, setCourse] = useState({
     courseName: "",
     description: "",
     code: "",
     year: "",
+    grade: "", // Store grade ID
+    teacher: "", // Store teacher ID
   });
 
   useEffect(() => {
@@ -23,13 +27,17 @@ const CourseDetails = () => {
         description: data?.course?.description,
         code: data?.course?.code,
         year: data?.course?.year,
+        grade: data?.course?.grade,
+        teacher: data?.course?.teacher,
       });
     }
+
 
     if (error) {
       toast.error(error?.data?.message);
     }
   }, [data, error]);
+
 
   if (loading) {
     return <Loader />;
@@ -57,6 +65,16 @@ const CourseDetails = () => {
             <div className="mb-4">
               <p className="text-sm font-medium text-gray-700">Year:</p>
               <p className="text-lg text-gray-900">{course.year}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="mb-4">
+              <p className="text-sm font-medium text-gray-700">Grade:</p>
+              <p className="text-lg text-gray-900">{course.grade}</p>
+            </div>
+            <div className="mb-4">
+              <p className="text-sm font-medium text-gray-700">Teacher:</p>
+              <p className="text-lg text-gray-900">{course.teacher}</p>
             </div>
           </div>
         </div>

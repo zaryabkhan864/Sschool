@@ -22,6 +22,7 @@ const studentSchema = new mongoose.Schema({
   passportNumber: {
     type: String,
     required: [false, "Please enter the passport number of student"],
+    maxLength: [14, "Passport number cannot exceed 14 digits"],
   },
   siblings: [
     {

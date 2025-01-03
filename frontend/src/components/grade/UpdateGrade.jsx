@@ -2,10 +2,13 @@ import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { useGetCoursesQuery } from "../../redux/api/courseApi";
+import {
+  useGetGradeDetailsQuery,
+  useUpdateGradeMutation,
+} from "../../redux/api/gradesApi";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
-import { useGetCoursesQuery } from "../../redux/api/courseApi";
-import { useGetGradeDetailsQuery, useUpdateGradeMutation } from "../../redux/api/gradesApi";
 
 const UpdateGrade = () => {
   const params = useParams();
@@ -21,20 +24,28 @@ const UpdateGrade = () => {
     description: "",
     yearFrom: "",
     yearTo: "",
-    courses: []
+    courses: [],
   });
 
-  const { gradeName, description, yearFrom, yearTo, courses: selectedCourses } = grade;
+  const {
+    gradeName,
+    description,
+    yearFrom,
+    yearTo,
+    courses: selectedCourses,
+  } = grade;
 
   useEffect(() => {
     if (data) {
-      const selectedCourseIds = data.grade.courses.map(course => course.course);
+      const selectedCourseIds = data.grade.courses.map(
+        (course) => course.course
+      );
       setGrade({
         gradeName: data.grade.gradeName,
         description: data.grade.description,
         yearFrom: data.grade.yearFrom,
         yearTo: data.grade.yearTo,
-        courses: selectedCourseIds
+        courses: selectedCourseIds,
       });
     }
   }, [data]);
@@ -75,7 +86,7 @@ const UpdateGrade = () => {
       description,
       yearFrom,
       yearTo,
-      courses: selectedCourses.map(courseId => courseId), // Ensure it sends an array of ObjectIds
+      courses: selectedCourses.map((courseId) => courseId), // Ensure it sends an array of ObjectIds
     };
     console.log("what is formatted data", formattedGrade);
     updateGrade({ id: params.id, body: formattedGrade });
@@ -201,7 +212,8 @@ const UpdateGrade = () => {
 
             <button
               type="submit"
-              className={`w-full py-2 text-white font-semibold rounded-md ${updateLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"} focus:outline-none focus:ring focus:ring-blue-300`}
+              className={`w-full py-2 text-white font-semibold rounded-md ${updateLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+                } focus:outline-none focus:ring focus:ring-blue-300`}
               disabled={updateLoading}
             >
               {updateLoading ? "Updating..." : "UPDATE"}
