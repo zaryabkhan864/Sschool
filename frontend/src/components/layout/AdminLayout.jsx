@@ -100,12 +100,12 @@ const AdminLayout = ({ children }) => {
 
   return (
     <React.Fragment>
-      <div className="flex flex-col md:flex-row justify-between p-5 relative">
-        <div className="md:w-2/12 self-end sm:self-auto">
+      <div className="flex flex-col md:flex-row justify-between py-5 relative">
+        <div className="md:w-1/6 self-end sm:self-auto">
           <SideMenu menuItems={menuItems} />
         </div>
 
-        <div className="w-full md:w-9/12 bg-gray-50 shadow-md p-4 rounded-md">
+        <div className="w-full md:w-5/6 bg-gray-50 shadow-md p-4 rounded-md">
           <div className="text-center">
             <h2 className="font-bold text-xl md:text-2xl">Admin Dashboard</h2>
           </div>

@@ -97,7 +97,7 @@ const Header = () => {
               <img
                 src="/images/Logo.png"
                 alt="School Logo"
-                className="w-16 md:w-24"
+                className="w-16 md:w-20"
               />
             </Link>
           </div>
@@ -130,7 +130,7 @@ const Header = () => {
           <div className="hidden md:block md:w-1/3">
             <Search />
           </div>
-          <div className="flex align-middle">
+          <div className="flex items-center">
             {/* Timer */}
             <div className="text-xl text-gray-800 mx-4">{`Login Time: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`}</div>
             {/* User Info and Settings */}
@@ -182,6 +182,7 @@ const Header = () => {
               )}
             </div>
           </div>
+
         </>
       ) : (
         !isLoading && (
