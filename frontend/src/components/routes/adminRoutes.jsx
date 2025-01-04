@@ -5,6 +5,7 @@ import ListStudents from "../admin/ListStudents";
 import ListUsers from "../admin/ListUsers";
 import NewStudent from "../admin/NewStudent";
 import StudentReviews from "../admin/StudentReviews";
+import UpdateStudent from "../admin/UpdateStudent";
 import UpdateUser from "../admin/UpdateUser";
 import ProtectedRoute from "../auth/ProtectedRoute";
 import Register from "../auth/Register";
@@ -24,6 +25,7 @@ import ListTeachers from "../teacher/ListTeachers";
 import NewTeacher from "../teacher/NewTeacher";
 import TeacherDetails from "../teacher/TeacherDetails";
 import UpdateTeacher from "../teacher/UpdateTeacher";
+import StudentDetails from "../admin/StudentDetails";
 
 const adminRoutes = () => {
   return (
@@ -156,6 +158,23 @@ const adminRoutes = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin/students/:id"
+        element={
+          <ProtectedRoute admin={true}>
+            <UpdateStudent />
+          </ProtectedRoute>
+        }
+        
+      />
+            <Route
+        path="/admin/student/:id/details"
+        element={
+          <ProtectedRoute admin={true}>
+            <StudentDetails />
+          </ProtectedRoute>
+        }/>
+
       <Route
         path="/admin/event/new"
         element={

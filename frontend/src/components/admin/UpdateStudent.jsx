@@ -1,17 +1,36 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { useCountries } from "react-countries";
-import { useNavigate } from "react-router-dom";
+
 import { useGetGradesQuery } from "../../redux/api/gradesApi";
-import { useCreateStudentMutation } from "../../redux/api/studentsApi";
+import {
+  useGetStudentDetailsQuery,
+  useUpdateStudentMutation,
+} from "../../redux/api/studentsApi";
 import { useGetAdminUsersQuery } from "../../redux/api/userApi";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 
-const NewStudent = () => {
+const UpdateStudent = () => {
+  const params = useParams();
   const navigate = useNavigate();
   const { countries } = useCountries();
+
+  const {
+    data,
+    isLoading: studentLoading,
+    error: studentError,
+  } = useGetStudentDetailsQuery(params.id);
+  const [
+    updateStudent,
+    { isLoading: updateLoading, error: updateError, isSuccess: updateSuccess },
+  ] = useUpdateStudentMutation();
+  const { data: gradesData, isLoading: gradeLoading } = useGetGradesQuery();
+  const grades = gradesData?.grades || []; // Ensure it's an array
+  const { data: usersData, isLoading: userLoading } = useGetAdminUsersQuery();
+  const users = usersData?.users || []; // Ensure it's an array
 
   const [student, setStudent] = useState({
     studentName: "",
@@ -41,40 +60,66 @@ const NewStudent = () => {
     grade,
   } = student;
 
-  const [createStudent, { isLoading, error, isSuccess }] =
-    useCreateStudentMutation();
-
-  const { data: gradesData, isLoading: gradeLoading } = useGetGradesQuery();
-  const grades = gradesData?.grades || []; // Ensure it's an array
-  const { data: usersData, isLoading: userLoading } = useGetAdminUsersQuery();
-  const users = usersData?.users || []; // Ensure it's an array
-
+  // Map student details from API to state
   useEffect(() => {
-    if (error) {
-      toast.error(error?.data?.message);
+    if (data) {
+      setStudent({
+        studentName: data.student.studentName,
+        age: data.student.age,
+        gender: data.student.gender,
+        nationality: data.student.nationality,
+        passportNumber: data.student.passportNumber,
+        studentPhoneNumber: data.student.studentPhoneNumber,
+        parentOnePhoneNumber: data.student.parentOnePhoneNumber,
+        parentTwoPhoneNumber: data.student.parentTwoPhoneNumber,
+        address: data.student.address,
+        user: data.student.user,
+        grade: data.student.grade,
+      });
     }
+  }, [data]);
 
-    if (isSuccess) {
-      toast.success("Student created");
+  // Handle success/error responses
+  useEffect(() => {
+    if (updateError) {
+      toast.error(updateError?.data?.message || "Error updating grade");
+    }
+    if (updateSuccess) {
+      toast.success("Student updated successfully");
       navigate("/admin/students");
     }
-  }, [error, isSuccess, navigate]);
+  }, [updateError, updateSuccess, navigate]);
 
+  // Handle form input changes
   const onChange = (e) => {
     setStudent({ ...student, [e.target.name]: e.target.value });
   };
 
+  // Handle form submission
   const submitHandler = (e) => {
     e.preventDefault();
-    createStudent(student);
+    const formattedStudent = {
+      studentName,
+      age,
+      gender,
+      nationality,
+      passportNumber,
+      studentPhoneNumber,
+      parentOnePhoneNumber,
+      parentTwoPhoneNumber,
+      address,
+      user,
+      grade,
+    };
+    updateStudent({ id: params.id, body: formattedStudent });
   };
 
   return (
     <AdminLayout>
-      <MetaData title={"Create New Student"} />
+      <MetaData title={"Update Student"} />
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">New Student</h2>
+          <h2 className="text-2xl font-semibold mb-6">Update Student</h2>
           <form onSubmit={submitHandler}>
             <div className="mb-4">
               <label
@@ -151,7 +196,6 @@ const NewStudent = () => {
                 </div>
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label
@@ -204,7 +248,6 @@ const NewStudent = () => {
                 />
               </div>
             </div>
-
             <div className="grid grid-cols-3 gap-4">
               <div className="mb-4">
                 <label
@@ -308,7 +351,6 @@ const NewStudent = () => {
                 onChange={onChange}
               ></textarea>
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               {/* Grade Dropdown */}
               <div className="mb-4">
@@ -363,12 +405,15 @@ const NewStudent = () => {
                 </select>
               </div>
             </div>
+
             <button
               type="submit"
-              className="w-full py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isLoading}
+              className={`w-full py-2 text-white font-semibold rounded-md ${
+                updateLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+              } focus:outline-none focus:ring focus:ring-blue-300`}
+              disabled={updateLoading}
             >
-              {isLoading ? "Creating..." : "CREATE"}
+              {updateLoading ? "Updating..." : "UPDATE"}
             </button>
           </form>
         </div>
@@ -377,4 +422,4 @@ const NewStudent = () => {
   );
 };
 
-export default NewStudent;
+export default UpdateStudent;
