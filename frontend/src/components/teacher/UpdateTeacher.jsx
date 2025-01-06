@@ -28,7 +28,9 @@ const UpdateTeacher = () => {
     teacherPhoneNumber: "",
     teacherSecondPhoneNumber: "",
     user: "",
+    avatar: "", // Add avatar field
   });
+  const [avatarPreview, setAvatarPreview] = useState("");
 
   const {
     teacherName,
@@ -57,6 +59,7 @@ const UpdateTeacher = () => {
         nationality: data?.teacher?.nationality,
         teacherPhoneNumber: data?.teacher?.teacherPhoneNumber,
         teacherSecondPhoneNumber: data?.teacher?.teacherSecondPhoneNumber,
+        avatar: data?.teacher?.avatar,
       });
     }
 
@@ -76,7 +79,20 @@ const UpdateTeacher = () => {
   }
 
   const onChange = (e) => {
-    setTeacher({ ...teacher, [e.target.name]: e.target.value });
+    if (e.target.name === "avatar") {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        if (reader.readyState === 2) {
+          setAvatarPreview(reader.result);
+          setTeacher({ ...teacher, avatar: reader.result });
+        }
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setTeacher({ ...teacher, [e.target.name]: e.target.value });
+    }
   };
 
   const submitHandler = (e) => {
@@ -87,8 +103,8 @@ const UpdateTeacher = () => {
   return (
     <AdminLayout>
       <MetaData title={"Update Teacher"} />
-      <div className="flex justify-center items-center py-10">
-        <div className="w-full max-w-2xl bg-white shadow-md rounded-lg p-8">
+      <div className="flex justify-center pt-5 pb-10">
+        <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">Update Teacher</h2>
           <form onSubmit={submitHandler}>
             <div className="grid grid-cols-2 gap-4">
@@ -251,58 +267,56 @@ const UpdateTeacher = () => {
               </div>
             </div>
 
-            {/* Picture Upload Field */}
-            <div className="mb-4">
-              <label
-                htmlFor="picture_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Teacher Picture
-              </label>
-              <input
-                type="file"
-                id="picture_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="picture"
-                onChange={onChange}
-                accept="image/*"
-              />
-              {data?.teacher?.picture && (
-                <img
-                  src={data?.teacher?.picture}
-                  alt="Teacher"
-                  className="mt-4 h-20 w-20 object-cover rounded-md"
-                />
-              )}
-            </div>
-
-
-
             {/* User Dropdown */}
-            <div className="mb-4">
-              <label
-                htmlFor="user_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                User
-              </label>
-              <select
-                id="user_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="user"
-                value={user}
-                onChange={onChange}
-              >
-                <option value="" disabled>
-                  Select User
-                </option>
-                {!userLoading &&
-                  users?.map((u) => (
-                    <option key={u._id} value={u._id}>
-                      {u.name}
-                    </option>
-                  ))}
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="mb-4">
+                <label
+                  htmlFor="user_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  User
+                </label>
+                <select
+                  id="user_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="user"
+                  value={user}
+                  onChange={onChange}
+                >
+                  <option value="" disabled>
+                    Select User
+                  </option>
+                  {!userLoading &&
+                    users?.map((u) => (
+                      <option key={u._id} value={u._id}>
+                        {u.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="avatar_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Avatar
+                </label>
+                <input
+                  type="file"
+                  id="avatar_field"
+                  accept="image/*"
+                  onChange={onChange}
+                  name="avatar"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+                {avatarPreview && (
+                  <img
+                    src={avatarPreview}
+                    alt="Avatar Preview"
+                    className="mt-2 h-20 w-20 rounded-full object-cover"
+                  />
+                )}
+              </div>
             </div>
 
             <button

@@ -44,7 +44,10 @@ const UpdateStudent = () => {
     address: "",
     user: "",
     grade: "",
+    avatar: "", //Add avatar field
   });
+
+  const [avatarPreview, setAvatarPreview] = useState("");
 
   const {
     studentName,
@@ -58,6 +61,7 @@ const UpdateStudent = () => {
     address,
     user,
     grade,
+    avatar,
   } = student;
 
   // Map student details from API to state
@@ -75,6 +79,7 @@ const UpdateStudent = () => {
         address: data.student.address,
         user: data.student.user,
         grade: data.student.grade,
+        avatar: data?.teacher?.avatar,
       });
     }
   }, [data]);
@@ -92,7 +97,20 @@ const UpdateStudent = () => {
 
   // Handle form input changes
   const onChange = (e) => {
-    setStudent({ ...student, [e.target.name]: e.target.value });
+    if (e.target.name === "avatar") {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        if (reader.readyState === 2) {
+          setAvatarPreview(reader.result);
+          setStudent({ ...student, avatar: reader.result });
+        }
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setStudent({ ...student, [e.target.name]: e.target.value });
+    }
   };
 
   // Handle form submission
@@ -110,6 +128,7 @@ const UpdateStudent = () => {
       address,
       user,
       grade,
+      avatar,
     };
     updateStudent({ id: params.id, body: formattedStudent });
   };
@@ -404,6 +423,29 @@ const UpdateStudent = () => {
                     ))}
                 </select>
               </div>
+            </div>
+            <div className="mb-4">
+              <label
+                htmlFor="avatar_field"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Avatar
+              </label>
+              <input
+                type="file"
+                id="avatar_field"
+                accept="image/*"
+                onChange={onChange}
+                name="avatar"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+              />
+              {avatarPreview && (
+                <img
+                  src={avatarPreview}
+                  alt="Avatar Preview"
+                  className="mt-2 h-20 w-20 rounded-full object-cover"
+                />
+              )}
             </div>
 
             <button

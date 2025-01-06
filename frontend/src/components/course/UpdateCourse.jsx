@@ -77,8 +77,8 @@ const UpdateCourse = () => {
   return (
     <AdminLayout>
       <MetaData title={"Update Course"} />
-      <div className="flex justify-center items-center py-10">
-        <div className="w-full max-w-2xl bg-white shadow-md rounded-lg p-8">
+      <div className="flex justify-center items-center pt-5 pb-10">
+        <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">Update Course</h2>
           <form onSubmit={submitHandler}>
             <div className="mb-4">

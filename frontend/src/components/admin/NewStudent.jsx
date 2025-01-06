@@ -25,7 +25,9 @@ const NewStudent = () => {
     address: "",
     user: "",
     grade: "",
+    avatar: "",
   });
+  const [avatarPreview, setAvatarPreview] = useState("");
 
   const {
     studentName,
@@ -39,6 +41,7 @@ const NewStudent = () => {
     address,
     user,
     grade,
+    avatar,
   } = student;
 
   const [createStudent, { isLoading, error, isSuccess }] =
@@ -61,12 +64,30 @@ const NewStudent = () => {
   }, [error, isSuccess, navigate]);
 
   const onChange = (e) => {
-    setStudent({ ...student, [e.target.name]: e.target.value });
+    if (e.target.name === "avatar") {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        if (reader.readyState === 2) {
+          setAvatarPreview(reader.result);
+          setStudent({ ...student, avatar: reader.result });
+        }
+      };
+
+      reader.readAsDataURL(file);
+    } else {
+      setStudent({ ...student, [e.target.name]: e.target.value });
+    }
   };
 
   const submitHandler = (e) => {
     e.preventDefault();
-    createStudent(student);
+    // Payload with avatar and other student details
+    const payload = {
+      ...student,
+    };
+    createStudent(payload);
   };
 
   return (
@@ -363,6 +384,31 @@ const NewStudent = () => {
                 </select>
               </div>
             </div>
+
+            <div className="mb-4">
+              <label
+                htmlFor="avatar_field"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Avatar
+              </label>
+              <input
+                type="file"
+                id="avatar_field"
+                accept="image/*"
+                onChange={onChange}
+                name="avatar"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+              />
+              {avatarPreview && (
+                <img
+                  src={avatarPreview}
+                  alt="Avatar Preview"
+                  className="mt-2 h-20 w-20 rounded-full object-cover"
+                />
+              )}
+            </div>
+
             <button
               type="submit"
               className="w-full py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

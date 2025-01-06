@@ -34,7 +34,7 @@ const NewTeacher = () => {
     nationality,
     teacherPhoneNumber,
     teacherSecondPhoneNumber,
-    user
+    user,
   } = teacher;
 
   const [createTeacher, { isLoading, error, isSuccess }] =
@@ -80,7 +80,7 @@ const NewTeacher = () => {
     const payload = {
       ...teacher,
     };
-    console.log("what is payload",payload)
+    console.log("what is payload", payload);
     createTeacher(payload);
   };
 
@@ -277,7 +277,6 @@ const NewTeacher = () => {
                       </option>
                     ))}
                 </select>
-           
               </div>
               <div className="mb-4">
                 <label
@@ -303,12 +302,12 @@ const NewTeacher = () => {
                 )}
               </div>
             </div>
-         
 
             <button
               type="submit"
-              className={`w-full py-2 text-white font-semibold rounded-md ${isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-                } focus:outline-none focus:ring focus:ring-blue-300`}
+              className={`w-full py-2 text-white font-semibold rounded-md ${
+                isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+              } focus:outline-none focus:ring focus:ring-blue-300`}
               disabled={isLoading}
             >
               {isLoading ? "Creating..." : "CREATE"}
