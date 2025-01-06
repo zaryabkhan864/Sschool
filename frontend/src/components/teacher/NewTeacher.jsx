@@ -13,7 +13,6 @@ import MetaData from "../layout/MetaData";
 const NewTeacher = () => {
   const navigate = useNavigate();
   const { countries } = useCountries();
-  console.log(countries);
   const { refetch } = useGetTeachersQuery();
 
   const [teacher, setTeacher] = useState({
@@ -24,7 +23,9 @@ const NewTeacher = () => {
     teacherPhoneNumber: "",
     teacherSecondPhoneNumber: "",
     user: "",
+    avatar: "", // Add avatar field
   });
+  const [avatarPreview, setAvatarPreview] = useState("");
 
   const {
     teacherName,
@@ -33,7 +34,7 @@ const NewTeacher = () => {
     nationality,
     teacherPhoneNumber,
     teacherSecondPhoneNumber,
-    user,
+    user
   } = teacher;
 
   const [createTeacher, { isLoading, error, isSuccess }] =
@@ -55,12 +56,32 @@ const NewTeacher = () => {
   }, [error, isSuccess, navigate, refetch]);
 
   const onChange = (e) => {
-    setTeacher({ ...teacher, [e.target.name]: e.target.value });
+    if (e.target.name === "avatar") {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        if (reader.readyState === 2) {
+          setAvatarPreview(reader.result);
+          setTeacher({ ...teacher, avatar: reader.result });
+        }
+      };
+
+      reader.readAsDataURL(file);
+    } else {
+      setTeacher({ ...teacher, [e.target.name]: e.target.value });
+    }
   };
 
   const submitHandler = (e) => {
     e.preventDefault();
-    createTeacher(teacher);
+
+    // Payload with avatar and other teacher details
+    const payload = {
+      ...teacher,
+    };
+    console.log("what is payload",payload)
+    createTeacher(payload);
   };
 
   return (
@@ -231,37 +252,63 @@ const NewTeacher = () => {
             </div>
 
             {/* User Dropdown */}
-            <div className="mb-4">
-              <label
-                htmlFor="user_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                User
-              </label>
-              <select
-                id="user_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="user"
-                value={user}
-                onChange={onChange}
-              >
-                <option value="" disabled>
-                  Select User
-                </option>
-                {!userLoading &&
-                  users?.map((u) => (
-                    <option key={u._id} value={u._id}>
-                      {u.name}
-                    </option>
-                  ))}
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="mb-4">
+                <label
+                  htmlFor="user_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  User
+                </label>
+                <select
+                  id="user_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="user"
+                  value={user}
+                  onChange={onChange}
+                >
+                  <option value="" disabled>
+                    Select User
+                  </option>
+                  {!userLoading &&
+                    users?.map((u) => (
+                      <option key={u._id} value={u._id}>
+                        {u.name}
+                      </option>
+                    ))}
+                </select>
+           
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="avatar_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Avatar
+                </label>
+                <input
+                  type="file"
+                  id="avatar_field"
+                  accept="image/*"
+                  onChange={onChange}
+                  name="avatar"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+                {avatarPreview && (
+                  <img
+                    src={avatarPreview}
+                    alt="Avatar Preview"
+                    className="mt-2 h-20 w-20 rounded-full object-cover"
+                  />
+                )}
+              </div>
             </div>
+         
 
             <button
               type="submit"
-              className={`w-full py-2 text-white font-semibold rounded-md ${
-                isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-              } focus:outline-none focus:ring focus:ring-blue-300`}
+              className={`w-full py-2 text-white font-semibold rounded-md ${isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+                } focus:outline-none focus:ring focus:ring-blue-300`}
               disabled={isLoading}
             >
               {isLoading ? "Creating..." : "CREATE"}

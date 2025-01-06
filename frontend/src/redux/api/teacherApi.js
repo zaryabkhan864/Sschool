@@ -20,33 +20,29 @@ export const teacherApi = createApi({
       providesTags: ["Teacher"],
     }),
     createTeacher: builder.mutation({
-      query(body) {
-        return {
-          url: "/admin/teacher",
-          method: "POST",
-          body,
-        };
-      },
+      query: (body) => ({
+        // i wanna console body here to see what is in it
+
+        url: "/admin/teacher",
+        method: "POST",
+        body,
+      }),
       invalidatesTags: ["AdminTeachers"],
     }),
     updateTeacher: builder.mutation({
-      query({ id, body }) {
-        return {
-          url: `admin/teacher/${id}`,
-          method: "PUT",
-          body,
-        };
-      },
+      query: ({ id, body }) => ({
+        url: `/admin/teacher/${id}`,
+        method: "PUT",
+        body,
+      }),
       invalidatesTags: ["Teacher", "AdminTeachers"],
     }),
     deleteTeacher: builder.mutation({
-      query(id) {
-        return {
-          url: `/admin/teacher/${id}`,
-          method: "DELETE",
-        };
-      },
-      invalidateTages: ["AdminTeachers"],
+      query: (id) => ({
+        url: `/admin/teacher/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["AdminTeachers"], // Fixed the typo here (invalidateTags to invalidatesTags)
     }),
   }),
 });
@@ -54,11 +50,7 @@ export const teacherApi = createApi({
 export const {
   useGetTeachersQuery,
   useGetTeacherDetailsQuery,
-
-  useGetAdminTeachersQuery,
   useCreateTeacherMutation,
   useUpdateTeacherMutation,
-
-  useDeleteTeacherImageMutation,
   useDeleteTeacherMutation,
 } = teacherApi;

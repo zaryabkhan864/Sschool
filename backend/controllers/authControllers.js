@@ -9,8 +9,9 @@ import { delete_file, upload_file } from "../utils/cloudinary.js";
 
 // Register user   =>  /api/v1/register
 export const registerUser = catchAsyncErrors(async (req, res, next) => {
-  console.log("what before us req body", req.body);
+
   const { name, email, password, avatar, role } = req.body;
+  console.log("what is in req.body", req.body);
 
   const user = await User.create({
     name,
@@ -19,7 +20,6 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
     avatar,
     role, // Explicitly passing role from req.body
   });
-  console.log("after User created:", user);
   sendToken(user, 201, res);
 });
 
@@ -67,6 +67,7 @@ export const logout = catchAsyncErrors(async (req, res, next) => {
 
 // Upload user avatar   =>  /api/v1/me/upload_avatar
 export const uploadAvatar = catchAsyncErrors(async (req, res, next) => {
+
   const avatarResponse = await upload_file(req.body.avatar, "shopit/avatars");
 
   // Remove previous avatar

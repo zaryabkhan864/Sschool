@@ -7,8 +7,8 @@ import MetaData from "../layout/MetaData";
 import { Pagination, Table } from "flowbite-react";
 import { useSelector } from "react-redux";
 import {
-    useDeleteTeacherMutation,
-    useGetTeachersQuery,
+  useDeleteTeacherMutation,
+  useGetTeachersQuery,
 } from "../../redux/api/teacherApi";
 import AdminLayout from "../layout/AdminLayout";
 

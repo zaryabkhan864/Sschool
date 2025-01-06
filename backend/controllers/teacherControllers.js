@@ -3,17 +3,44 @@ import Course from "../models/course.js";
 import Teacher from "../models/teacher.js";
 import APIFilters from "../utils/apiFilters.js";
 import ErrorHandler from "../utils/errorHandler.js";
-
+import { delete_file, upload_file } from "../utils/cloudinary.js";
 // CRUD operations for courses
 
 // Create new teacher => /api/v1/teachers
 export const newTeacher = catchAsyncErrors(async (req, res, next) => {
-  const teacher = await Teacher.create(req.body);
+
+  let avatar = {};
+
+  if (req?.body?.avatar) {
+    avatar = await upload_file(req.body.avatar, "project/teachers");
+  }
+  const {
+    teacherName,
+    age,
+    gender,
+    nationality,
+    teacherPhoneNumber,
+    teacherSecondPhoneNumber,
+    user,
+  } = req.body;
+
+  const teacher = await Teacher.create({
+    teacherName,
+    age,
+    gender,
+    nationality,
+    teacherPhoneNumber,
+    teacherSecondPhoneNumber,
+    user,
+    avatar,
+  });
 
   res.status(200).json({
+    success: true,
     teacher,
   });
 });
+
 
 // Create get all teacher => /api/v1/teachers
 export const getTeachers = catchAsyncErrors(async (req, res, next) => {

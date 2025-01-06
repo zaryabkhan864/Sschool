@@ -20,18 +20,10 @@ const teacherSchema = new mongoose.Schema(
       type: String,
       required: [true, "Please enter the Nationality of teacher"],
     },
-    images: [
-      {
-        public_id: {
-          type: String,
-          required: false,
-        },
-        url: {
-          type: String,
-          required: false,
-        },
-      },
-    ],
+    avatar: {
+      public_id: String,
+      url: String,
+    },
     teacherPhoneNumber: {
       type: Number,
       required: [true, "Please enter teacher number"],
