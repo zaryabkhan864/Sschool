@@ -1,10 +1,10 @@
 import express from "express";
 import {
-  newStudent,
-  getStudents,
-  updateStudent,
   deleteStudent,
   getStudentDetails,
+  getStudents,
+  newStudent,
+  updateStudent,
 } from "../controllers/studentControllers.js";
 import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 
