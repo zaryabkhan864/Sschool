@@ -22,6 +22,8 @@ const NewTeacher = () => {
     nationality: "",
     teacherPhoneNumber: "",
     teacherSecondPhoneNumber: "",
+    email: "",
+    password: "",
     user: "",
     avatar: "", // Add avatar field
   });
@@ -34,6 +36,8 @@ const NewTeacher = () => {
     nationality,
     teacherPhoneNumber,
     teacherSecondPhoneNumber,
+    email,
+    password,
     user
   } = teacher;
 
@@ -80,7 +84,7 @@ const NewTeacher = () => {
     const payload = {
       ...teacher,
     };
-    console.log("what is payload",payload)
+    console.log("what is payload", payload)
     createTeacher(payload);
   };
 
@@ -250,7 +254,36 @@ const NewTeacher = () => {
                 />
               </div>
             </div>
+            {/* add email and password */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="mb-4">
+                <label htmlFor="email_field" className="block text-sm font-medium text-gray-700">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  id="email_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="email"
+                  value={email}
+                  onChange={onChange}
+                />
+              </div>
 
+              <div className="mb-4">
+                <label htmlFor="password_field" className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  id="password_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="password"
+                  value={password}
+                  onChange={onChange}
+                />
+              </div>
+            </div>
             {/* User Dropdown */}
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
@@ -277,7 +310,7 @@ const NewTeacher = () => {
                       </option>
                     ))}
                 </select>
-           
+
               </div>
               <div className="mb-4">
                 <label
@@ -303,7 +336,7 @@ const NewTeacher = () => {
                 )}
               </div>
             </div>
-         
+
 
             <button
               type="submit"

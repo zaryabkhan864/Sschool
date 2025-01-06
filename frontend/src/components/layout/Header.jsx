@@ -127,9 +127,9 @@ const Header = () => {
           )}
 
           {/* Search Bar */}
-          <div className="hidden md:block md:w-1/3">
+          {/* <div className="hidden md:block md:w-1/3">
             <Search />
-          </div>
+          </div> */}
           <div className="flex items-center">
             {/* Timer */}
             <div className="text-xl text-gray-800 mx-4">{`Login Time: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`}</div>
