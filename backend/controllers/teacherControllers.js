@@ -4,16 +4,20 @@ import Teacher from "../models/teacher.js";
 import APIFilters from "../utils/apiFilters.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import { delete_file, upload_file } from "../utils/cloudinary.js";
+import user from "../models/user.js";
 // CRUD operations for courses
 
 // Create new teacher => /api/v1/teachers
 export const newTeacher = catchAsyncErrors(async (req, res, next) => {
-
   let avatar = {};
+  const role = "teacher";
 
+  // Check if avatar is provided and upload it
   if (req?.body?.avatar) {
     avatar = await upload_file(req.body.avatar, "project/teachers");
   }
+
+  // Extract data from request body
   const {
     teacherName,
     age,
@@ -21,9 +25,25 @@ export const newTeacher = catchAsyncErrors(async (req, res, next) => {
     nationality,
     teacherPhoneNumber,
     teacherSecondPhoneNumber,
-    user,
+    email,
+    password,
   } = req.body;
 
+  // Step 1: Create the user
+  const newUser = await user.create({
+    name: teacherName,
+    email,
+    password,
+    avatar,
+    role,
+  });
+
+  if (!newUser) {
+    return next(new ErrorHandler("User creation failed", 400));
+  }
+console.log("New User", newUser);
+  // Step 2: Use the user ID to create the teacher
+  console.log("New User", newUser._id);
   const teacher = await Teacher.create({
     teacherName,
     age,
@@ -31,14 +51,17 @@ export const newTeacher = catchAsyncErrors(async (req, res, next) => {
     nationality,
     teacherPhoneNumber,
     teacherSecondPhoneNumber,
-    user,
-    avatar,
+    user: newUser._id, // Referencing the user ID here
   });
 
-  res.status(200).json({
-    success: true,
-    teacher,
-  });
+  if (teacher) {
+    res.status(200).json({
+      success: true,
+      teacher,
+    });
+  } else {
+    return next(new ErrorHandler("Teacher not created", 404));
+  }
 });
 
 

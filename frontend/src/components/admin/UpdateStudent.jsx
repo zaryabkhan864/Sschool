@@ -450,9 +450,8 @@ const UpdateStudent = () => {
 
             <button
               type="submit"
-              className={`w-full py-2 text-white font-semibold rounded-md ${
-                updateLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-              } focus:outline-none focus:ring focus:ring-blue-300`}
+              className={`w-full py-2 text-white font-semibold rounded-md ${updateLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+                } focus:outline-none focus:ring focus:ring-blue-300`}
               disabled={updateLoading}
             >
               {updateLoading ? "Updating..." : "UPDATE"}

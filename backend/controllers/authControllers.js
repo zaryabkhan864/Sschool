@@ -11,7 +11,7 @@ import { delete_file, upload_file } from "../utils/cloudinary.js";
 export const registerUser = catchAsyncErrors(async (req, res, next) => {
 
   const { name, email, password, avatar, role } = req.body;
-  console.log("what is in req.body", req.body);
+
 
   const user = await User.create({
     name,
