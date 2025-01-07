@@ -41,9 +41,9 @@ export const newTeacher = catchAsyncErrors(async (req, res, next) => {
   if (!newUser) {
     return next(new ErrorHandler("User creation failed", 400));
   }
-console.log("New User", newUser);
+
   // Step 2: Use the user ID to create the teacher
-  console.log("New User", newUser._id);
+
   const teacher = await Teacher.create({
     teacherName,
     age,
