@@ -35,7 +35,6 @@ const NewCourse = () => {
     useGetTeachersQuery();
   const teachers = teachersData?.teachers || []; // Ensure it's an array
 
-  console.log("What is grade here", grades);
 
   useEffect(() => {
     if (error) {

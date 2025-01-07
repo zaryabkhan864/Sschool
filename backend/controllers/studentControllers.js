@@ -1,16 +1,70 @@
-import catchAsyncErrors from '../middlewares/catchAsyncErrors.js';
-import Student from '../models/Student.js';
-import APIFilters from '../utils/apiFilters.js';
+import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
+import Student from "../models/student.js";
+import user from "../models/user.js";
+import APIFilters from "../utils/apiFilters.js";
+import { upload_file } from "../utils/cloudinary.js";
+import ErrorHandler from "../utils/errorHandler.js";
+// CRUD operations for students
 
 // Create a new student =>  /api/v1/student/create_student
-export const newStudent = catchAsyncErrors(async (req, res) => {
-  req.body.user = req.user._id;
-  console.log(req.body.user)
-  const student = await Student.create(req.body);
+export const newStudent = catchAsyncErrors(async (req, res, next) => {
+  let avatar = {};
+  const role = "student";
 
-  res.status(200).json({
-    student,
+  // Check if avatar is provided and upload it
+  if (req?.body?.avatar) {
+    avatar = await upload_file(req.body.avatar, "project/students");
+  }
+
+  // Extract data from request body
+  const {
+    studentName,
+    age,
+    gender,
+    nationality,
+    passportNumber,
+    studentPhoneNumber,
+    parentOnePhoneNumber,
+    parentTwoPhoneNumber,
+    address,
+    grade,
+    email,
+    password,
+  } = req.body;
+
+  //step1:create the user
+  const newUser = await user.create({
+    name: studentName,
+    email,
+    password,
+    avatar,
+    role,
   });
+  if (!newUser) {
+    return next(new ErrorHandler("User creation failed", 400));
+  }
+  // Step 2: Use the user ID to create the student
+  const student = await Student.create({
+    studentName,
+    age,
+    gender,
+    nationality,
+    passportNumber,
+    studentPhoneNumber,
+    parentOnePhoneNumber,
+    parentTwoPhoneNumber,
+    address,
+    grade,
+    user: newUser._id, // Referencing the user ID here
+  });
+  if (student) {
+    res.status(200).json({
+      success: true,
+      student,
+    });
+  } else {
+    return next(new ErrorHandler("Student Not created", 404));
+  }
 });
 
 // Get all students =>  /api/v1/students
@@ -30,7 +84,7 @@ export const getStudents = catchAsyncErrors(async (req, res, next) => {
     filteredStudentsCount,
     students,
   });
-})
+});
 
 // update student =>  /api/v1/student/:id
 export const updateStudent = catchAsyncErrors(async (req, res) => {
@@ -63,7 +117,6 @@ export const updateStudent = catchAsyncErrors(async (req, res) => {
   res.status(200).json({
     updatedStudent,
   });
-
 });
 
 // Delete student =>  /api/v1/student/:id
@@ -81,12 +134,10 @@ export const deleteStudent = catchAsyncErrors(async (req, res) => {
 });
 
 // Get student details =>  /api/v1/student/:id
-export const getStudentDetails = catchAsyncErrors(async (req, res) => {
-  const student = await Student.findById(req.params.id);
+export const getStudentDetails = catchAsyncErrors(async (req, res, next) => {
+  const student = await Student.findById(req?.params?.id).populate("user");
   if (!student) {
-    return res.status(404).json({
-      message: "Student not found",
-    });
+    return next(new ErrorHandler("Student not found", 404));
   }
   res.status(200).json({
     student,

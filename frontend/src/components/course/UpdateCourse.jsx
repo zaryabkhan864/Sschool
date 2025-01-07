@@ -16,7 +16,6 @@ const UpdateCourse = () => {
   const navigate = useNavigate();
   const params = useParams();
   const { refetch } = useGetCoursesQuery();
-  console.log(params);
 
   const [course, setCourse] = useState({
     courseName: "",

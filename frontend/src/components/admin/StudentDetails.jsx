@@ -3,7 +3,6 @@ import { toast } from "react-hot-toast";
 import { useParams } from "react-router-dom";
 import { useGetGradesQuery } from "../../redux/api/gradesApi";
 import { useGetStudentDetailsQuery } from "../../redux/api/studentsApi";
-import { useGetAdminUsersQuery } from "../../redux/api/userApi";
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
@@ -22,14 +21,13 @@ const StudentDetails = () => {
     parentOnePhoneNumber: "",
     parentTwoPhoneNumber: "",
     address: "",
-    user: "",
     grade: "",
+    avatar: "",
   });
+  const [avatarPreview, setAvatarPreview] = useState("");
 
   const { data: gradesData, isLoading: gradeLoading } = useGetGradesQuery();
   const grades = gradesData?.grades || []; // Ensure it's an array
-  const { data: usersData, isLoading: userLoading } = useGetAdminUsersQuery();
-  const users = usersData?.users || []; // Ensure it's an array
 
   useEffect(() => {
     if (data?.student) {
@@ -43,9 +41,10 @@ const StudentDetails = () => {
         parentOnePhoneNumber: data.student.parentOnePhoneNumber,
         parentTwoPhoneNumber: data.student.parentTwoPhoneNumber,
         address: data.student.address,
-        user: data.student.user,
         grade: data.student.grade,
+        avatar: data?.student?.user?.avatar?.url,
       });
+      setAvatarPreview(data?.student?.user?.avatar?.url);
     }
 
     if (error) {
@@ -59,14 +58,26 @@ const StudentDetails = () => {
 
   return (
     <AdminLayout>
-      <MetaData title={"Course Details"} />
-      <div className="flex justify-center items-center py-10">
-        <div className="w-full max-w-2xl bg-white shadow-md rounded-lg p-8">
-          <h2 className="text-2xl font-semibold mb-6">Course Details</h2>
-          <div className="mb-4">
-            <p className="text-sm font-medium text-gray-700">Course Name:</p>
-            <p className="text-lg text-gray-900">{student.studentName}</p>
+      <MetaData title={"Student Details"} />
+      <div className="flex justify-center items-center pt-5 pb-10">
+        <div className="w-full max-w-7xl">
+          <h2 className="text-2xl font-semibold mb-6">Student Details</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="mb-4">
+              <p className="text-sm font-medium text-gray-700">Course Name:</p>
+              <p className="text-lg text-gray-900">{student.studentName}</p>
+            </div>
+            <div className="mb-4">
+              {avatarPreview && (
+                <img
+                  src={avatarPreview}
+                  alt="StudentAvatar"
+                  className="mt-2 h-20 w-20 rounded-full object-cover"
+                />
+              )}
+            </div>
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="mb-4">
               <p className="text-sm font-medium text-gray-700">Age:</p>
@@ -126,20 +137,6 @@ const StudentDetails = () => {
                         g._id === student.grade && (
                           <p key={g._id} value={g._id}>
                             {g.gradeName}
-                          </p>
-                        )
-                    )}
-                </p>
-              </div>
-              <div className="mb-4">
-                <p className="text-sm font-medium text-gray-700">Teacher:</p>
-                <p className="text-lg text-gray-900">
-                  {!userLoading &&
-                    users?.map(
-                      (u) =>
-                        u._id === student.user && (
-                          <p key={u._id} value={u._id}>
-                            {u.name}
                           </p>
                         )
                     )}
