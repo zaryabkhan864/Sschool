@@ -1,8 +1,8 @@
-import Grade from "../models/grade.js";
-import Course from "../models/course.js";
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
-import ErrorHandler from "../utils/errorHandler.js";
+import Course from "../models/course.js";
+import Grade from "../models/grade.js";
 import APIFilters from "../utils/apiFilters.js";
+import ErrorHandler from "../utils/errorHandler.js";
 
 //CRUD operations for grades
 
@@ -34,7 +34,6 @@ export const getGrades = catchAsyncErrors(async (req, res, next) => {
 // Update grade => /api/v1/grades/:id
 export const updateGrade = catchAsyncErrors(async (req, res, next) => {
   let grade = await Grade.findById(req?.params?.id);
-  console.log("what is grade", req.body)
 
   //check if there is any grade with req id
   if (!grade) {
@@ -108,9 +107,7 @@ export const addCourseInGrade = catchAsyncErrors(async (req, res, next) => {
 
 //remove course from grade
 export const deleteCourseInGrade = catchAsyncErrors(async (req, res, next) => {
-  console.log("i am hit")
   const { gradeId, courseId } = req.body;
-  console.log(gradeId, courseId);
   const grade = await Grade.findById(gradeId);
   if (!grade) {
     return next(new ErrorHandler("Grade not found", 404));

@@ -30,18 +30,10 @@ const studentSchema = new mongoose.Schema({
       ref: "Student", // Referencing other students
     },
   ],
-  images: [
-    {
-      public_id: {
-        type: String,
-        required: false,
-      },
-      url: {
-        type: String,
-        required: false,
-      },
-    },
-  ],
+  avatar: {
+    public_id: String,
+    url: String,
+  },
   studentPhoneNumber: {
     type: Number,
     required: [true, "Please enter the student number"],
@@ -63,7 +55,7 @@ const studentSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    required: true,
+    required: false,
   },
   grade: {
     type: mongoose.Schema.Types.ObjectId,

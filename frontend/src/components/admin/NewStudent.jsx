@@ -4,14 +4,17 @@ import { toast } from "react-hot-toast";
 import { useCountries } from "react-countries";
 import { useNavigate } from "react-router-dom";
 import { useGetGradesQuery } from "../../redux/api/gradesApi";
-import { useCreateStudentMutation } from "../../redux/api/studentsApi";
-import { useGetAdminUsersQuery } from "../../redux/api/userApi";
+import {
+  useCreateStudentMutation,
+  useGetStudentsQuery,
+} from "../../redux/api/studentsApi";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 
 const NewStudent = () => {
   const navigate = useNavigate();
   const { countries } = useCountries();
+  const { refetch } = useGetStudentsQuery();
 
   const [student, setStudent] = useState({
     studentName: "",
@@ -23,8 +26,9 @@ const NewStudent = () => {
     parentOnePhoneNumber: "",
     parentTwoPhoneNumber: "",
     address: "",
-    user: "",
     grade: "",
+    email: "",
+    password: "",
     avatar: "",
   });
   const [avatarPreview, setAvatarPreview] = useState("");
@@ -39,9 +43,9 @@ const NewStudent = () => {
     parentOnePhoneNumber,
     parentTwoPhoneNumber,
     address,
-    user,
     grade,
-    avatar,
+    email,
+    password,
   } = student;
 
   const [createStudent, { isLoading, error, isSuccess }] =
@@ -49,8 +53,6 @@ const NewStudent = () => {
 
   const { data: gradesData, isLoading: gradeLoading } = useGetGradesQuery();
   const grades = gradesData?.grades || []; // Ensure it's an array
-  const { data: usersData, isLoading: userLoading } = useGetAdminUsersQuery();
-  const users = usersData?.users || []; // Ensure it's an array
 
   useEffect(() => {
     if (error) {
@@ -61,7 +63,7 @@ const NewStudent = () => {
       toast.success("Student created");
       navigate("/admin/students");
     }
-  }, [error, isSuccess, navigate]);
+  }, [error, isSuccess, navigate, refetch]);
 
   const onChange = (e) => {
     if (e.target.name === "avatar") {
@@ -97,21 +99,51 @@ const NewStudent = () => {
         <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">New Student</h2>
           <form onSubmit={submitHandler}>
-            <div className="mb-4">
-              <label
-                htmlFor="studentName_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Student Name
-              </label>
-              <input
-                type="text"
-                id="studentName_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="studentName"
-                value={studentName}
-                onChange={onChange}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="mb-4">
+                <label
+                  htmlFor="studentName_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Student Name
+                </label>
+                <input
+                  type="text"
+                  id="studentName_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="studentName"
+                  value={studentName}
+                  onChange={onChange}
+                />
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="passportNumber_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Passport No
+                </label>
+                <input
+                  type="text"
+                  id="passportNumber_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="passportNumber"
+                  value={passportNumber}
+                  maxLength={14}
+                  minLength={8}
+                  pattern="[a-zA-z0-9]{8,14}"
+                  required
+                  onInvalid={(e) =>
+                    e.target.setCustomValidity(
+                      "Passport number must be 8 to 14 characters"
+                    )
+                  }
+                  onInput={(e) => {
+                    e.target.setCustomValidity("");
+                  }}
+                  onChange={onChange}
+                />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
@@ -196,33 +228,31 @@ const NewStudent = () => {
                   ))}
                 </select>
               </div>
+              {/* Grade Dropdown */}
               <div className="mb-4">
                 <label
-                  htmlFor="passportNumber_field"
+                  htmlFor="grade_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Passport No
+                  Grade
                 </label>
-                <input
-                  type="text"
-                  id="passportNumber_field"
+                <select
+                  id="grade_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="passportNumber"
-                  value={passportNumber}
-                  maxLength={14}
-                  minLength={8}
-                  pattern="[a-zA-z0-9]{8,14}"
-                  required
-                  onInvalid={(e) =>
-                    e.target.setCustomValidity(
-                      "Passport number must be 8 to 14 characters"
-                    )
-                  }
-                  onInput={(e) => {
-                    e.target.setCustomValidity("");
-                  }}
+                  name="grade"
+                  value={grade}
                   onChange={onChange}
-                />
+                >
+                  <option value="" disabled>
+                    Select Grade
+                  </option>
+                  {!gradeLoading &&
+                    grades?.map((g) => (
+                      <option key={g._id} value={g._id}>
+                        {g.gradeName}
+                      </option>
+                    ))}
+                </select>
               </div>
             </div>
 
@@ -329,62 +359,41 @@ const NewStudent = () => {
                 onChange={onChange}
               ></textarea>
             </div>
-
+            {/* add email and password */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Grade Dropdown */}
               <div className="mb-4">
                 <label
-                  htmlFor="grade_field"
+                  htmlFor="email_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Grade
+                  Email
                 </label>
-                <select
-                  id="grade_field"
+                <input
+                  type="email"
+                  id="email_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="grade"
-                  value={grade}
+                  name="email"
+                  value={email}
                   onChange={onChange}
-                >
-                  <option value="" disabled>
-                    Select Grade
-                  </option>
-                  {!gradeLoading &&
-                    grades?.map((g) => (
-                      <option key={g._id} value={g._id}>
-                        {g.gradeName}
-                      </option>
-                    ))}
-                </select>
+                />
               </div>
-              {/* User Dropdown */}
               <div className="mb-4">
                 <label
-                  htmlFor="user_field"
+                  htmlFor="password_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  User
+                  Password
                 </label>
-                <select
-                  id="user_field"
+                <input
+                  type="password"
+                  id="password_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="user"
-                  value={user}
+                  name="password"
+                  value={password}
                   onChange={onChange}
-                >
-                  <option value="" disabled>
-                    Select User
-                  </option>
-                  {!userLoading &&
-                    users?.map((u) => (
-                      <option key={u._id} value={u._id}>
-                        {u.name}
-                      </option>
-                    ))}
-                </select>
+                />
               </div>
             </div>
-
             <div className="mb-4">
               <label
                 htmlFor="avatar_field"

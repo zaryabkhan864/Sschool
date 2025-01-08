@@ -7,9 +7,9 @@ import { useCountries } from "react-countries";
 import { useGetGradesQuery } from "../../redux/api/gradesApi";
 import {
   useGetStudentDetailsQuery,
+  useGetStudentsQuery,
   useUpdateStudentMutation,
 } from "../../redux/api/studentsApi";
-import { useGetAdminUsersQuery } from "../../redux/api/userApi";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 
@@ -17,6 +17,7 @@ const UpdateStudent = () => {
   const params = useParams();
   const navigate = useNavigate();
   const { countries } = useCountries();
+  const { refetch } = useGetStudentsQuery();
 
   const {
     data,
@@ -29,8 +30,6 @@ const UpdateStudent = () => {
   ] = useUpdateStudentMutation();
   const { data: gradesData, isLoading: gradeLoading } = useGetGradesQuery();
   const grades = gradesData?.grades || []; // Ensure it's an array
-  const { data: usersData, isLoading: userLoading } = useGetAdminUsersQuery();
-  const users = usersData?.users || []; // Ensure it's an array
 
   const [student, setStudent] = useState({
     studentName: "",
@@ -42,7 +41,6 @@ const UpdateStudent = () => {
     parentOnePhoneNumber: "",
     parentTwoPhoneNumber: "",
     address: "",
-    user: "",
     grade: "",
     avatar: "", //Add avatar field
   });
@@ -59,28 +57,26 @@ const UpdateStudent = () => {
     parentOnePhoneNumber,
     parentTwoPhoneNumber,
     address,
-    user,
     grade,
-    avatar,
   } = student;
 
   // Map student details from API to state
   useEffect(() => {
-    if (data) {
+    if (data?.student) {
       setStudent({
-        studentName: data.student.studentName,
-        age: data.student.age,
-        gender: data.student.gender,
-        nationality: data.student.nationality,
-        passportNumber: data.student.passportNumber,
-        studentPhoneNumber: data.student.studentPhoneNumber,
-        parentOnePhoneNumber: data.student.parentOnePhoneNumber,
-        parentTwoPhoneNumber: data.student.parentTwoPhoneNumber,
-        address: data.student.address,
-        user: data.student.user,
-        grade: data.student.grade,
-        avatar: data?.teacher?.avatar,
+        studentName: data?.student?.studentName,
+        age: data?.student?.age,
+        gender: data?.student?.gender,
+        nationality: data?.student?.nationality,
+        passportNumber: data?.student?.passportNumber,
+        studentPhoneNumber: data?.student?.studentPhoneNumber,
+        parentOnePhoneNumber: data?.student?.parentOnePhoneNumber,
+        parentTwoPhoneNumber: data?.student?.parentTwoPhoneNumber,
+        address: data?.student?.address,
+        grade: data?.student?.grade,
+        avatar: data?.student?.user?.avatar?.url,
       });
+      setAvatarPreview(data?.student?.user?.avatar?.url);
     }
   }, [data]);
 
@@ -93,7 +89,7 @@ const UpdateStudent = () => {
       toast.success("Student updated successfully");
       navigate("/admin/students");
     }
-  }, [updateError, updateSuccess, navigate]);
+  }, [updateError, updateSuccess, navigate, refetch]);
 
   // Handle form input changes
   const onChange = (e) => {
@@ -126,9 +122,8 @@ const UpdateStudent = () => {
       parentOnePhoneNumber,
       parentTwoPhoneNumber,
       address,
-      user,
       grade,
-      avatar,
+      avatarPreview,
     };
     updateStudent({ id: params.id, body: formattedStudent });
   };
@@ -140,21 +135,51 @@ const UpdateStudent = () => {
         <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">Update Student</h2>
           <form onSubmit={submitHandler}>
-            <div className="mb-4">
-              <label
-                htmlFor="studentName_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Student Name
-              </label>
-              <input
-                type="text"
-                id="studentName_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="studentName"
-                value={studentName}
-                onChange={onChange}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="mb-4">
+                <label
+                  htmlFor="studentName_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Student Name
+                </label>
+                <input
+                  type="text"
+                  id="studentName_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="studentName"
+                  value={studentName}
+                  onChange={onChange}
+                />
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="passportNumber_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Passport No
+                </label>
+                <input
+                  type="text"
+                  id="passportNumber_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="passportNumber"
+                  value={passportNumber}
+                  maxLength={14}
+                  minLength={8}
+                  pattern="[a-zA-z0-9]{8,14}"
+                  required
+                  onInvalid={(e) =>
+                    e.target.setCustomValidity(
+                      "Passport number must be 8 to 14 characters"
+                    )
+                  }
+                  onInput={(e) => {
+                    e.target.setCustomValidity("");
+                  }}
+                  onChange={onChange}
+                />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
@@ -238,33 +263,31 @@ const UpdateStudent = () => {
                   ))}
                 </select>
               </div>
+              {/* Grade Dropdown */}
               <div className="mb-4">
                 <label
-                  htmlFor="passportNumber_field"
+                  htmlFor="grade_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Passport No
+                  Grade
                 </label>
-                <input
-                  type="text"
-                  id="passportNumber_field"
+                <select
+                  id="grade_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="passportNumber"
-                  value={passportNumber}
-                  maxLength={14}
-                  minLength={8}
-                  pattern="[a-zA-z0-9]{8,14}"
-                  required
-                  onInvalid={(e) =>
-                    e.target.setCustomValidity(
-                      "Passport number must be 8 to 14 characters"
-                    )
-                  }
-                  onInput={(e) => {
-                    e.target.setCustomValidity("");
-                  }}
+                  name="grade"
+                  value={grade}
                   onChange={onChange}
-                />
+                >
+                  <option value="" disabled>
+                    Select Grade
+                  </option>
+                  {!gradeLoading &&
+                    grades?.map((g) => (
+                      <option key={g._id} value={g._id}>
+                        {g.gradeName}
+                      </option>
+                    ))}
+                </select>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
@@ -370,60 +393,7 @@ const UpdateStudent = () => {
                 onChange={onChange}
               ></textarea>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              {/* Grade Dropdown */}
-              <div className="mb-4">
-                <label
-                  htmlFor="grade_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Grade
-                </label>
-                <select
-                  id="grade_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="grade"
-                  value={grade}
-                  onChange={onChange}
-                >
-                  <option value="" disabled>
-                    Select Grade
-                  </option>
-                  {!gradeLoading &&
-                    grades?.map((g) => (
-                      <option key={g._id} value={g._id}>
-                        {g.gradeName}
-                      </option>
-                    ))}
-                </select>
-              </div>
-              {/* User Dropdown */}
-              <div className="mb-4">
-                <label
-                  htmlFor="user_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  User
-                </label>
-                <select
-                  id="user_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="user"
-                  value={user}
-                  onChange={onChange}
-                >
-                  <option value="" disabled>
-                    Select User
-                  </option>
-                  {!userLoading &&
-                    users?.map((u) => (
-                      <option key={u._id} value={u._id}>
-                        {u.name}
-                      </option>
-                    ))}
-                </select>
-              </div>
-            </div>
+
             <div className="mb-4">
               <label
                 htmlFor="avatar_field"
@@ -450,8 +420,9 @@ const UpdateStudent = () => {
 
             <button
               type="submit"
-              className={`w-full py-2 text-white font-semibold rounded-md ${updateLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-                } focus:outline-none focus:ring focus:ring-blue-300`}
+              className={`w-full py-2 text-white font-semibold rounded-md ${
+                updateLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+              } focus:outline-none focus:ring focus:ring-blue-300`}
               disabled={updateLoading}
             >
               {updateLoading ? "Updating..." : "UPDATE"}

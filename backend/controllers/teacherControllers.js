@@ -1,10 +1,10 @@
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import Course from "../models/course.js";
 import Teacher from "../models/teacher.js";
-import APIFilters from "../utils/apiFilters.js";
-import ErrorHandler from "../utils/errorHandler.js";
-import { delete_file, upload_file } from "../utils/cloudinary.js";
 import user from "../models/user.js";
+import APIFilters from "../utils/apiFilters.js";
+import { upload_file } from "../utils/cloudinary.js";
+import ErrorHandler from "../utils/errorHandler.js";
 // CRUD operations for courses
 
 // Create new teacher => /api/v1/teachers
@@ -63,7 +63,6 @@ export const newTeacher = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Teacher not created", 404));
   }
 });
-
 
 // Create get all teacher => /api/v1/teachers
 export const getTeachers = catchAsyncErrors(async (req, res, next) => {
@@ -128,7 +127,9 @@ export const deleteTeacher = catchAsyncErrors(async (req, res, next) => {
 
 // Get single teacher details => /api/v1/teachers/:id
 export const getTeacherDetails = catchAsyncErrors(async (req, res, next) => {
-  const teacher = await Teacher.findById(req?.params?.id).populate("assignedCourses");
+  const teacher = await Teacher.findById(req?.params?.id)
+    .populate("assignedCourses")
+    .populate("user");
 
   if (!teacher) {
     return next(new ErrorHandler("Teacher not found", 404));

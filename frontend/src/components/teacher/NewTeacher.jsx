@@ -6,7 +6,6 @@ import {
   useCreateTeacherMutation,
   useGetTeachersQuery,
 } from "../../redux/api/teacherApi";
-import { useGetAdminUsersQuery } from "../../redux/api/userApi";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 
@@ -24,7 +23,6 @@ const NewTeacher = () => {
     teacherSecondPhoneNumber: "",
     email: "",
     password: "",
-    user: "",
     avatar: "", // Add avatar field
   });
   const [avatarPreview, setAvatarPreview] = useState("");
@@ -36,16 +34,12 @@ const NewTeacher = () => {
     nationality,
     teacherPhoneNumber,
     teacherSecondPhoneNumber,
-    user,
     email,
-    password
+    password,
   } = teacher;
 
   const [createTeacher, { isLoading, error, isSuccess }] =
     useCreateTeacherMutation();
-
-  const { data: usersData, isLoading: userLoading } = useGetAdminUsersQuery();
-  const users = usersData?.users || []; // Ensure it's an array
 
   useEffect(() => {
     if (error) {
@@ -84,7 +78,6 @@ const NewTeacher = () => {
     const payload = {
       ...teacher,
     };
-
 
     createTeacher(payload);
   };
@@ -258,7 +251,10 @@ const NewTeacher = () => {
             {/* add email and password */}
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
-                <label htmlFor="email_field" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="email_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Email
                 </label>
                 <input
@@ -270,9 +266,11 @@ const NewTeacher = () => {
                   onChange={onChange}
                 />
               </div>
-
               <div className="mb-4">
-                <label htmlFor="password_field" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="password_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Password
                 </label>
                 <input
@@ -285,59 +283,29 @@ const NewTeacher = () => {
                 />
               </div>
             </div>
-            {/* User Dropdown */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="mb-4">
-                <label
-                  htmlFor="user_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  User
-                </label>
-                <select
-                  id="user_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="user"
-                  value={user}
-                  onChange={onChange}
-                >
-                  <option value="" disabled>
-                    Select User
-                  </option>
-                  {!userLoading &&
-                    users?.map((u) => (
-                      <option key={u._id} value={u._id}>
-                        {u.name}
-                      </option>
-                    ))}
-                </select>
-
-              </div>
-              <div className="mb-4">
-                <label
-                  htmlFor="avatar_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Avatar
-                </label>
-                <input
-                  type="file"
-                  id="avatar_field"
-                  accept="image/*"
-                  onChange={onChange}
-                  name="avatar"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+            <div className="mb-4">
+              <label
+                htmlFor="avatar_field"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Avatar
+              </label>
+              <input
+                type="file"
+                id="avatar_field"
+                accept="image/*"
+                onChange={onChange}
+                name="avatar"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+              />
+              {avatarPreview && (
+                <img
+                  src={avatarPreview}
+                  alt="Avatar Preview"
+                  className="mt-2 h-20 w-20 rounded-full object-cover"
                 />
-                {avatarPreview && (
-                  <img
-                    src={avatarPreview}
-                    alt="Avatar Preview"
-                    className="mt-2 h-20 w-20 rounded-full object-cover"
-                  />
-                )}
-              </div>
+              )}
             </div>
-
 
             <button
               type="submit"

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useParams } from "react-router-dom";
 import { useGetTeacherDetailsQuery } from "../../redux/api/teacherApi";
-import { useGetAdminUsersQuery } from "../../redux/api/userApi";
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
@@ -10,6 +9,7 @@ import MetaData from "../layout/MetaData";
 const TeacherDetails = () => {
   const params = useParams();
   const { data, loading, error } = useGetTeacherDetailsQuery(params?.id);
+  
   const [teacher, setTeacher] = useState({
     teacherName: "",
     age: "",
@@ -17,12 +17,10 @@ const TeacherDetails = () => {
     nationality: "",
     teacherPhoneNumber: "",
     teacherSecondPhoneNumber: "",
+    avatar: "",
     assignedCourses: [],
-    user: "",
   });
-
-  const { data: usersData, isLoading: userLoading } = useGetAdminUsersQuery();
-  const users = usersData?.users || [];
+  const [avatarPreview, setAvatarPreview] = useState("");
 
   useEffect(() => {
     if (data?.teacher) {
@@ -33,9 +31,10 @@ const TeacherDetails = () => {
         nationality: data?.teacher?.nationality,
         teacherPhoneNumber: data?.teacher?.teacherPhoneNumber,
         teacherSecondPhoneNumber: data?.teacher?.teacherSecondPhoneNumber,
+        avatar: data?.teacher?.user?.avatar?.url,
         assignedCourses: data?.teacher?.assignedCourses,
-        user: data?.teacher?.user,
       });
+      setAvatarPreview(data?.teacher?.user?.avatar?.url);
     }
     if (error) {
       toast.error(error?.data?.message);
@@ -49,12 +48,23 @@ const TeacherDetails = () => {
   return (
     <AdminLayout>
       <MetaData title={"Teacher Details"} />
-      <div className="flex justify-center items-center py-10">
-        <div className="w-full max-w-2xl bg-white shadow-md rounded-lg p-8">
+      <div className="flex justify-center items-center pt-5 pb-10">
+        <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">Teacher Details</h2>
-          <div className="mb-4">
-            <p className="text-sm font-medium text-gray-700">Teacher Name:</p>
-            <p className="text-lg text-gray-900">{teacher.teacherName}</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="mb-4">
+              <p className="text-sm font-medium text-gray-700">Teacher Name:</p>
+              <p className="text-lg text-gray-900">{teacher.teacherName}</p>
+            </div>
+            <div className="mb-4">
+              {avatarPreview && (
+                <img
+                  src={avatarPreview}
+                  alt="TeacherAvatar"
+                  className="mt-2 h-20 w-20 rounded-full object-cover"
+                />
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -88,20 +98,6 @@ const TeacherDetails = () => {
                 {teacher.teacherSecondPhoneNumber}
               </p>
             </div>
-          </div>
-          <div className="mb-4">
-            <p className="text-sm font-medium text-gray-700">User:</p>
-            <p className="text-lg text-gray-900">
-              {!userLoading &&
-                users?.map(
-                  (u) =>
-                    u._id === teacher.user && (
-                      <p key={u._id} value={u._id}>
-                        {u.name}
-                      </p>
-                    )
-                )}
-            </p>
           </div>
           <div className="mb-4">
             <p className="text-sm font-medium text-gray-700">Courses:</p>
