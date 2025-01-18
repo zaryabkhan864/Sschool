@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { useLoginMutation } from "../../redux/api/authApi";
 import toast from "react-hot-toast";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { useLoginMutation } from "../../redux/api/authApi";
 import MetaData from "../layout/MetaData";
 
 const Login = () => {
@@ -12,16 +12,24 @@ const Login = () => {
   const navigate = useNavigate();
 
   const [login, { isLoading, error, data }] = useLoginMutation();
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const {
+    isAuthenticated,
+    user,
+    isLoading: userLoading,
+  } = useSelector((state) => state.auth);
+  console.log("userrole", user?.role);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user?.role === "admin") {
       navigate("/admin/dashboard");
+    }
+    if (isAuthenticated && user?.role === "teacher") {
+      navigate("/teacher/dashboard");
     }
     if (error) {
       toast.error(error?.data?.message);
     }
-  }, [error, isAuthenticated]);
+  }, [error, isAuthenticated, user]);
 
   const submitHandler = (e) => {
     e.preventDefault();

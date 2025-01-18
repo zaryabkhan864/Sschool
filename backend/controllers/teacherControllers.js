@@ -186,3 +186,44 @@ export const deleteCourseInTeacher = catchAsyncErrors(
     res.status(200).json({ message: "Course removed from teacher" });
   }
 );
+
+export const getGradesByRole = async (req, res) => {
+  try {
+    const { id, role } = req.body;
+
+    if (!id || !role) {
+      return res
+        .status(400)
+        .json({ success: false, message: "ID and role are required" });
+    }
+
+    if (role === "admin") {
+      // If the role is admin, fetch all grades
+      const grades = await Grade.find();
+      return res.status(200).json({ success: true, grades });
+    } else if (role === "teacher") {
+      // If the role is teacher, fetch grades associated with the teacher's assigned courses
+      const teacher = await Teacher.findById(id).populate("assignedCourses");
+
+      if (!teacher) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Teacher not found" });
+      }
+
+      const courseIds = teacher.assignedCourses.map((course) => course._id);
+      const grades = await Grade.find({ courses: { $in: courseIds } });
+
+      return res.status(200).json({ success: true, grades });
+    } else {
+      return res
+        .status(403)
+        .json({ success: false, message: "Unauthorized role" });
+    }
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ success: false, message: "Server Error", error: error.message });
+  }
+};
