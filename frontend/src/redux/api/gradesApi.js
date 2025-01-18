@@ -48,17 +48,21 @@ export const gradeApi = createApi({
       },
       invalidatesTags: ["AdminGrades"],
     }),
+    getGradeByUserIdAndRole: builder.query({
+      query: ({ userId, userRole }) => ({
+        url: `/grades/user/${userId}`,
+        params: { role: userRole },
+      }),
+      providesTags: ["Grades By User ID"],
+    }),
   }),
 });
 
 export const {
   useGetGradesQuery,
   useGetGradeDetailsQuery,
-
-  useGetAdminGradesQuery,
   useCreateGradeMutation,
   useUpdateGradeMutation,
-
-  useDeleteGradeImageMutation,
   useDeleteGradeMutation,
+  useGetGradeByUserIdAndRoleQuery,
 } = gradeApi;

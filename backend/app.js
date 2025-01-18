@@ -50,7 +50,7 @@ import gradeRoutes from "./routes/grade.js";
 import studentRoutes from "./routes/students.js";
 import teacherRoutes from "./routes/teachers.js";
 import eventRoutes from "./routes/event.js";
-
+import quizRoutes from "./routes/quiz.js";
 
 import { fileURLToPath } from "url";
 
@@ -60,6 +60,7 @@ app.use("/api/v1", teacherRoutes);
 app.use("/api/v1", gradeRoutes);
 app.use("/api/v1", authRoutes);
 app.use("/api/v1", eventRoutes);
+app.use("/api/v1", quizRoutes);
 
 if (process.env.NODE_ENV === "PRODUCTION") {
   app.use(express.static(path.join(__dirname, "../frontend/build")));

@@ -143,3 +143,18 @@ export const getStudentDetails = catchAsyncErrors(async (req, res, next) => {
     student,
   });
 });
+
+// Get all students by grade =>  /api/v1/student/grade/:gradeId
+export const getStudentsByGrade = catchAsyncErrors(async (req, res, next) => {
+  console.log("yes i am hit ")
+  // const students = await Student.find({ grade: req.params.id }).populate(
+  //   "user"
+  // );
+  // if (!students) {
+  //   return next(new ErrorHandler("Students not found", 404));
+  // }
+  // res.status(200).json({
+  //   students,
+  // });
+
+});

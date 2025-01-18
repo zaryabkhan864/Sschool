@@ -10,6 +10,7 @@ import {
   getGradeDetails,
   addCourseInGrade,
   deleteCourseInGrade,
+  getGradesByUserIdAndRole,
 } from "../controllers/gradeControllers.js";
 
 router.route("/admin/grades").post(isAuthenticatedUser, newGrade);
@@ -29,5 +30,7 @@ router
 router
   .route("/admin/grade/remove/:id")
   .patch(isAuthenticatedUser, authorizeRoles("admin"), deleteCourseInGrade);
+
+router.route("/grades/user/:id").get(getGradesByUserIdAndRole);
 
 export default router;

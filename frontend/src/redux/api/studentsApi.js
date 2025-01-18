@@ -69,6 +69,16 @@ export const studentApi = createApi({
       },
       invalidatesTags: ["AdminStudents"],
     }),
+    addQuizMarks: builder.mutation({
+      query(body) {
+        return {
+          url: "/students/quiz/marks",
+          method: "POST",
+          body,
+        };
+      }
+    }),
+
   }),
 });
 
@@ -82,4 +92,5 @@ export const {
   useUploadStudentImagesMutation,
   useDeleteStudentImageMutation,
   useDeleteStudentMutation,
+  useAddQuizMarksMutation
 } = studentApi;
