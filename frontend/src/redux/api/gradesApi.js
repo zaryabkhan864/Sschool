@@ -48,10 +48,11 @@ export const gradeApi = createApi({
       },
       invalidatesTags: ["AdminGrades"],
     }),
-    getGradeByUserIdAndRole: builder.query({
-      query: ({ userId, userRole }) => ({
-        url: `/grades/user/${userId}`,
-        params: { role: userRole },
+    getGradeByUserIdAndRole: builder.mutation({
+      query: (body) => ({
+        url: `/teacher/grades-by-role`,
+        method: "POST",
+        body,
       }),
       providesTags: ["Grades By User ID"],
     }),
@@ -64,5 +65,5 @@ export const {
   useCreateGradeMutation,
   useUpdateGradeMutation,
   useDeleteGradeMutation,
-  useGetGradeByUserIdAndRoleQuery,
+  useGetGradeByUserIdAndRoleMutation,
 } = gradeApi;

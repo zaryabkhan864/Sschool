@@ -1,10 +1,12 @@
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import Course from "../models/course.js";
 import Teacher from "../models/teacher.js";
+import Grade from "../models/grade.js";
 import user from "../models/user.js";
 import APIFilters from "../utils/apiFilters.js";
 import { upload_file } from "../utils/cloudinary.js";
 import ErrorHandler from "../utils/errorHandler.js";
+import grade from "../models/grade.js";
 // CRUD operations for courses
 
 // Create new teacher => /api/v1/teachers
@@ -189,21 +191,31 @@ export const deleteCourseInTeacher = catchAsyncErrors(
 
 export const getGradesByRole = async (req, res) => {
   try {
-    const { id, role } = req.body;
+    const { userId, userRole } = req.body;
+    console.log(userId, userRole);
 
-    if (!id || !role) {
+    if (!userId || !userRole) {
+
       return res
         .status(400)
         .json({ success: false, message: "ID and role are required" });
     }
 
-    if (role === "admin") {
+    if (userRole === "admin") {
       // If the role is admin, fetch all grades
+      console.log("hit....")
       const grades = await Grade.find();
-      return res.status(200).json({ success: true, grades });
-    } else if (role === "teacher") {
+      return res.status(200).json(
+        {
+          success: true,
+          grades
+        }
+      );
+    } else if (userRole === "teacher") {
       // If the role is teacher, fetch grades associated with the teacher's assigned courses
-      const teacher = await Teacher.findById(id).populate("assignedCourses");
+      console.log("Yes i am hit teacher")
+      const teacher = await Teacher.findById(userId).populate("assignedCourses");
+      console.log("***********", teacher)
 
       if (!teacher) {
         return res
@@ -214,13 +226,16 @@ export const getGradesByRole = async (req, res) => {
       const courseIds = teacher.assignedCourses.map((course) => course._id);
       const grades = await Grade.find({ courses: { $in: courseIds } });
 
+      console.log("Final answer ****", grades)
+
       return res.status(200).json({ success: true, grades });
     } else {
       return res
         .status(403)
         .json({ success: false, message: "Unauthorized role" });
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error(error);
     res
       .status(500)

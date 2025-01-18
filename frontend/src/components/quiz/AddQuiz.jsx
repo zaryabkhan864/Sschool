@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '../layout/AdminLayout';
 import MetaData from '../layout/MetaData';
-import { useGetGradeByUserIdAndRoleQuery, useGetGradeByUserIdQuery, useGetGradesQuery } from '../../redux/api/gradesApi';
+import { useGetGradeByUserIdAndRoleMutation, useGetGradeByUserIdAndRoleQuery, useGetGradesQuery } from '../../redux/api/gradesApi';
 import { useGetCoursesQuery } from '../../redux/api/courseApi';
 import { useAddQuizMarksMutation } from '../../redux/api/studentsApi';
 import { useSelector } from 'react-redux';
@@ -10,21 +10,6 @@ import { useParams } from 'react-router-dom';
 const AddQuiz = () => {
     const params = useParams();
     const [userDetails, setUserDetails] = useState('');
-
-    const { isAuthenticated, user, loading: userLoading } = useSelector((state) => state.auth);
-    const { data } = useGetGradeByUserIdAndRoleQuery({
-        userId: user._id,
-        userRole: user.role,
-    });
-
-    // get user id and user role in useState
-
-    // first step to get user id and user role and send in body to backend
-    setUserDetails({
-        userId: user._id,
-        userRole: user.role,
-    });
-
     const [formValues, setFormValues] = useState({
         grade: '',
         course: '',
@@ -32,12 +17,33 @@ const AddQuiz = () => {
         quarter: '',
         quizNumber: '',
     });
-    const [marksData, setMarksData] = useState({});
+
+    const { isAuthenticated, user, loading: userLoading } = useSelector((state) => state.auth);
+
+    const [sendUserRoleAndID, { isLoading: userRoleLoading, error, isSuccess }] =
+        useGetGradeByUserIdAndRoleMutation();
 
     const { data: GradeData } = useGetGradesQuery();
-    const { data: CourseData } = useGetCoursesQuery();
 
+    const { data: CourseData } = useGetCoursesQuery();
     const [addQuizMarks, { isLoading }] = useAddQuizMarksMutation();
+
+    // Set user details when user data is available
+    useEffect(() => {
+        if (user) {
+            setUserDetails({
+                userId: user._id,
+                userRole: user.role,
+            });
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (userDetails.userId && userDetails.userRole) {
+            sendUserRoleAndID(userDetails);
+        }
+    }, [userDetails, sendUserRoleAndID]);
+
 
     const handleDropdownChange = (event) => {
         const { name, value } = event.target;
@@ -70,7 +76,7 @@ const AddQuiz = () => {
                     onChange={handleDropdownChange}
                 >
                     <option value="">Select Grade</option>
-                    {GradeData?.grades?.map((grade) => (
+                    {GradeData && GradeData?.grades?.map((grade) => (
                         <option key={grade._id} value={grade._id}>
                             {grade.gradeName}
                         </option>

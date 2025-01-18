@@ -10,7 +10,13 @@ const AdminLayout = ({ children }) => {
       name: "Dashboard",
       url: "/admin/dashboard",
       icon: "fas fa-tachometer-alt",
-      roles: ["admin", "teacher"], // Accessible by admin and teacher
+      roles: ["admin"], // Accessible by admin and teacher
+    },
+    {
+      name: "Dashboard",
+      url: "/teacher/dashboard",
+      icon: "fas fa-tachometer-alt",
+      roles: ["teacher"], // Accessible by admin and teacher
     },
     {
       name: "New Grade",
