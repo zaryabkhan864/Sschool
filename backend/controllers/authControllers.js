@@ -1,17 +1,15 @@
+import crypto from "crypto";
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import User from "../models/user.js";
+import { delete_file, upload_file } from "../utils/cloudinary.js";
 import { getResetPasswordTemplate } from "../utils/emailTemplates.js";
 import ErrorHandler from "../utils/errorHandler.js";
-import sendToken from "../utils/sendToken.js";
 import sendEmail from "../utils/sendEmail.js";
-import crypto from "crypto";
-import { delete_file, upload_file } from "../utils/cloudinary.js";
+import sendToken from "../utils/sendToken.js";
 
 // Register user   =>  /api/v1/register
 export const registerUser = catchAsyncErrors(async (req, res, next) => {
-
   const { name, email, password, avatar, role } = req.body;
-
 
   const user = await User.create({
     name,
@@ -56,7 +54,10 @@ export const logout = catchAsyncErrors(async (req, res, next) => {
   });
 
   // Disable caching
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate"
+  );
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
 
@@ -67,7 +68,6 @@ export const logout = catchAsyncErrors(async (req, res, next) => {
 
 // Upload user avatar   =>  /api/v1/me/upload_avatar
 export const uploadAvatar = catchAsyncErrors(async (req, res, next) => {
-
   const avatarResponse = await upload_file(req.body.avatar, "shopit/avatars");
 
   // Remove previous avatar

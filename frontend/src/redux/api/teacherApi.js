@@ -44,6 +44,10 @@ export const teacherApi = createApi({
       }),
       invalidatesTags: ["AdminTeachers"], // Fixed the typo here (invalidateTags to invalidatesTags)
     }),
+    getGradeByTeacher: builder.query({
+      query: (id) => `/teacher/${id}`,
+      providesTags: ["Teacher"],
+    }),
   }),
 });
 
@@ -53,4 +57,5 @@ export const {
   useCreateTeacherMutation,
   useUpdateTeacherMutation,
   useDeleteTeacherMutation,
+  useGetGradeByTeacherQuery,
 } = teacherApi;

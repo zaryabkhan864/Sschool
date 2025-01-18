@@ -1,14 +1,15 @@
 import express from "express";
 import {
-  newTeacher,
-  getTeachers,
-  updateTeacher,
-  deleteTeacher,
-  getTeacherDetails,
   addCourseInTeacher,
   deleteCourseInTeacher,
+  deleteTeacher,
+  getGradesByRole,
+  getTeacherDetails,
+  getTeachers,
+  newTeacher,
+  updateTeacher,
 } from "../controllers/teacherControllers.js";
-import { isAuthenticatedUser, authorizeRoles } from "../middlewares/auth.js";
+import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 
 const router = express.Router();
 router
@@ -17,14 +18,13 @@ router
 
 router.route("/teachers").get(getTeachers);
 
-
-
 router
   .route("/admin/teacher/:id")
   .put(isAuthenticatedUser, authorizeRoles("admin"), updateTeacher)
   .delete(isAuthenticatedUser, authorizeRoles("admin"), deleteTeacher);
 
 router.route("/teacher/:id").get(getTeacherDetails);
+
 router
   .route("/admin/teacher/add/:id")
   .patch(isAuthenticatedUser, authorizeRoles("admin"), addCourseInTeacher);
@@ -32,5 +32,9 @@ router
 router
   .route("/admin/teacher/remove/:id")
   .patch(isAuthenticatedUser, authorizeRoles("admin"), deleteCourseInTeacher);
+
+router
+  .route("/teacher/grades-by-role")
+  .post(getGradesByRole);
 
 export default router;

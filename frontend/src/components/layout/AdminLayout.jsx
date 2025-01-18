@@ -97,7 +97,6 @@ const AdminLayout = ({ children }) => {
       icon: "fas fa-user-friends",
       roles: ["admin"], // Only accessible by admin
     },
-
   ];
 
   // Filter menu items based on user role
@@ -114,7 +113,11 @@ const AdminLayout = ({ children }) => {
 
         <div className="w-full md:w-5/6 bg-gray-50 shadow-md p-4 rounded-md">
           <div className="text-center">
-            <h2 className="font-bold text-xl md:text-2xl">Admin Dashboard</h2>
+            <h2 className="font-bold text-xl md:text-2xl">
+              {user?.role === "teacher"
+                ? "Teacher Dashboard"
+                : "Admin Dashboard"}
+            </h2>
           </div>
           {children}
         </div>
