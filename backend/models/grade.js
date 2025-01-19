@@ -20,7 +20,9 @@ const gradeSchema = new mongoose.Schema(
       type: Number,
       required: [true, "Please enter the year to of the grade"],
     },
-    courses: [{ type: mongoose.Schema.Types.ObjectId, ref: "Course" }], // Courses offered in this grade
+    courses: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: false },
+    ], // Courses offered in this grade
   },
   { timestamps: false }
 );

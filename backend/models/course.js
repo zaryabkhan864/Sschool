@@ -22,15 +22,11 @@ const courseSchema = new mongoose.Schema(
       type: Number,
       required: [true, "Please enter the year of course offer"],
     },
-    grade: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Grade",
-      required: false,
-    }, // Associated grade
     teacher: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Teacher",
       required: false,
+      default:null,
     }, //Assigned teacher
   },
   { timestamps: false }

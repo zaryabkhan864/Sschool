@@ -9,7 +9,7 @@ import MetaData from "../layout/MetaData";
 const TeacherDetails = () => {
   const params = useParams();
   const { data, loading, error } = useGetTeacherDetailsQuery(params?.id);
-  
+
   const [teacher, setTeacher] = useState({
     teacherName: "",
     age: "",
@@ -18,7 +18,6 @@ const TeacherDetails = () => {
     teacherPhoneNumber: "",
     teacherSecondPhoneNumber: "",
     avatar: "",
-    assignedCourses: [],
   });
   const [avatarPreview, setAvatarPreview] = useState("");
 
@@ -98,16 +97,6 @@ const TeacherDetails = () => {
                 {teacher.teacherSecondPhoneNumber}
               </p>
             </div>
-          </div>
-          <div className="mb-4">
-            <p className="text-sm font-medium text-gray-700">Courses:</p>
-            <ul>
-              {teacher.assignedCourses?.map((course) => (
-                <li key={course._id} className="text-lg text-gray-900">
-                  {course.courseName}
-                </li>
-              ))}
-            </ul>
           </div>
         </div>
       </div>

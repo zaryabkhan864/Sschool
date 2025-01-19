@@ -1,6 +1,6 @@
+import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import Course from "../models/course.js";
 import ErrorHandler from "../utils/errorHandler.js";
-import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 
 import APIFilters from "../utils/apiFilters.js";
 
@@ -8,7 +8,15 @@ import APIFilters from "../utils/apiFilters.js";
 
 // Create new course => /api/v1/courses
 export const newCourse = catchAsyncErrors(async (req, res, next) => {
-  const course = await Course.create(req.body);
+  const { courseName, description, code, year, teacher } = req.body;
+  const teacherId = teacher === "" ? null : teacher;
+  const course = await Course.create({
+    courseName,
+    description,
+    code,
+    year,
+    teacher: teacherId,
+  });
 
   res.status(200).json({
     course,
@@ -42,10 +50,16 @@ export const updateCourse = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Course not found", 404));
   }
 
-  course = await Course.findByIdAndUpdate(req?.params?.id, req.body, {
-    new: true,
+  const { courseName, description, code, year, teacher } = req.body;
 
-  });
+  const teacherId = teacher === "" ? null : teacher;
+  course = await Course.findByIdAndUpdate(
+    req?.params?.id,
+    { courseName, description, code, year, teacher: teacherId },
+    {
+      new: true,
+    }
+  );
 
   res.status(200).json({
     course,
@@ -78,5 +92,3 @@ export const getCourseDetails = catchAsyncErrors(async (req, res) => {
     course,
   });
 });
-
-

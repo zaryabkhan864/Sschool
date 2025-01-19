@@ -39,12 +39,6 @@ const teacherSchema = new mongoose.Schema(
     //     type: String,
     //   },
     // ], // List of subjects they can teach
-    assignedCourses: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Course",
-      },
-    ],
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
