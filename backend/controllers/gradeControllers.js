@@ -57,17 +57,18 @@ export const deleteGrade = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Grade not found", 404));
   }
   //check if there are any courses associated with this grade
-  if (grade.courses.length > 0) {
-    return next(
-      new ErrorHandler("Can not delete Grade ,Delete courses inside grade", 400)
-    );
-  } else {
+  // if (grade.courses.length > 0) {
+  //   return next(
+  //     new ErrorHandler("Can not delete Grade ,Delete courses inside grade", 400)
+  //   );
+  // } else {
+
     await grade.deleteOne();
 
     res.status(200).json({
       message: "Grade deleted successfully",
     });
-  }
+  // }
 
   //if no courses are associated, delete the grade
 });

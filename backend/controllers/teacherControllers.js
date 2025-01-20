@@ -104,20 +104,20 @@ export const deleteTeacher = catchAsyncErrors(async (req, res, next) => {
   if (!teacher) {
     return next(new ErrorHandler("teacher not found", 404));
   }
-  if (Course.teacher == req?.params?.id) {
-    return next(
-      new ErrorHandler(
-        "teacher is assigned to a course, first removed this teacher from course",
-        404
-      )
-    );
-  }
+  // if (Course.teacher == req?.params?.id) {
+  //   return next(
+  //     new ErrorHandler(
+  //       "teacher is assigned to a course, first removed this teacher from course",
+  //       404
+  //     )
+  //   );
+  // }
   //check if there are any courses associated with this teacher
-  if (teacher.assignedCourses.length > 0) {
-    return next(
-      new ErrorHandler("Can not delete Teacher ,Delete teacher courses", 404)
-    );
-  }
+  // if (teacher.assignedCourses.length > 0) {
+  //   return next(
+  //     new ErrorHandler("Can not delete Teacher ,Delete teacher courses", 404)
+  //   );
+  // }
   //if no courses are associated, delete the teacher
   await teacher.deleteOne();
   res.status(200).json({
