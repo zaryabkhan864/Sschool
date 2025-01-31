@@ -3,7 +3,7 @@ import {
   deleteStudent,
   getStudentDetails,
   getStudents,
-  getStudentsByGrade,
+  getStudentsQuizRecord,
   newStudent,
   updateStudent,
 } from "../controllers/studentControllers.js";
@@ -23,5 +23,5 @@ router
   .route("/admin/student/:id")
   .delete(isAuthenticatedUser, authorizeRoles("admin"), deleteStudent);
 router.route("/student/:id").get(getStudentDetails);
-router.route("/students/grades").get(getStudentsByGrade);
+router.route("/students/quiz-record").post(getStudentsQuizRecord);
 export default router;

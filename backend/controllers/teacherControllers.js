@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import Course from "../models/course.js";
 import Teacher from "../models/teacher.js";
@@ -33,6 +34,7 @@ export const newTeacher = catchAsyncErrors(async (req, res, next) => {
 
   // Step 1: Create the user
   const newUser = await user.create({
+    _id: new mongoose.Types.ObjectId(), // Generate a new ObjectId manually
     name: teacherName,
     email,
     password,
@@ -44,16 +46,17 @@ export const newTeacher = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("User creation failed", 400));
   }
 
-  // Step 2: Use the user ID to create the teacher
-
+  // Step 2: Use the same user ID to create the teacher
   const teacher = await Teacher.create({
+    _id: newUser._id, // Use the same ID as the User
     teacherName,
     age,
     gender,
     nationality,
     teacherPhoneNumber,
     teacherSecondPhoneNumber,
-    user: newUser._id, // Referencing the user ID here
+    avatar, // Optionally use the avatar if needed in Teacher model
+    user: newUser._id, // Reference the same user ID
   });
 
   if (teacher) {
@@ -65,7 +68,6 @@ export const newTeacher = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Teacher not created", 404));
   }
 });
-
 // Create get all teacher => /api/v1/teachers
 export const getTeachers = catchAsyncErrors(async (req, res, next) => {
   const resPerPage = 8;
@@ -189,56 +191,36 @@ export const deleteCourseInTeacher = catchAsyncErrors(
   }
 );
 
-export const getGradesByRole = async (req, res) => {
-  try {
-    const { userId, userRole } = req.body;
-    console.log(userId, userRole);
+export const getCoursesByRole = catchAsyncErrors(async (req, res, next) => {
+  const { userId, userRole } = req.body;
 
-    if (!userId || !userRole) {
+  if (!userId || !userRole) {
+    return next(new ErrorHandler("User ID and role are required", 400));
+  }
 
-      return res
-        .status(400)
-        .json({ success: false, message: "ID and role are required" });
+  let courses, grades;
+
+  if (userRole === "admin") {
+    // Fetch all courses and grades for admin
+    courses = await Course.find().populate("teacher");
+    grades = await Grade.find().populate("courses");
+  } else if (userRole === "teacher") {
+    const teacher = await Teacher.findOne({ user: userId });
+
+    if (!teacher) {
+      return next(new ErrorHandler("Teacher not found", 404));
     }
 
-    if (userRole === "admin") {
-      // If the role is admin, fetch all grades
-      console.log("hit....")
-      const grades = await Grade.find();
-      return res.status(200).json(
-        {
-          success: true,
-          grades
-        }
-      );
-    } else if (userRole === "teacher") {
-      // If the role is teacher, fetch grades associated with the teacher's assigned courses
-      console.log("Yes i am hit teacher")
-      const teacher = await Teacher.findById(userId).populate("assignedCourses");
-      console.log("***********", teacher)
-
-      if (!teacher) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Teacher not found" });
-      }
-
-      const courseIds = teacher.assignedCourses.map((course) => course._id);
-      const grades = await Grade.find({ courses: { $in: courseIds } });
-
-      console.log("Final answer ****", grades)
-
-      return res.status(200).json({ success: true, grades });
-    } else {
-      return res
-        .status(403)
-        .json({ success: false, message: "Unauthorized role" });
-    }
+    // Fetch courses and grades associated with the teacher
+    courses = await Course.find({ teacher: teacher._id }).populate("teacher");
+    grades = await Grade.find({ courses: { $in: courses.map(c => c._id) } }).populate("courses");
+  } else {
+    return next(new ErrorHandler("Access denied for the provided role", 403));
   }
-  catch (error) {
-    console.error(error);
-    res
-      .status(500)
-      .json({ success: false, message: "Server Error", error: error.message });
-  }
-};
+
+  res.status(200).json({
+    success: true,
+    courses,
+    grades,
+  });
+});

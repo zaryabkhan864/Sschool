@@ -69,15 +69,19 @@ export const studentApi = createApi({
       },
       invalidatesTags: ["AdminStudents"],
     }),
-    addQuizMarks: builder.mutation({
+
+
+    getStudentsQuizDetailsByQuizData: builder.mutation({
       query(body) {
         return {
-          url: "/students/quiz/marks",
+          url: "/students/quiz-record",
           method: "POST",
           body,
         };
-      }
+      },
+      invalidatesTags: ["Student Record By Quiz Form Record"],
     }),
+
 
   }),
 });
@@ -92,5 +96,7 @@ export const {
   useUploadStudentImagesMutation,
   useDeleteStudentImageMutation,
   useDeleteStudentMutation,
-  useAddQuizMarksMutation
+
+
+  useGetStudentsQuizDetailsByQuizDataMutation
 } = studentApi;

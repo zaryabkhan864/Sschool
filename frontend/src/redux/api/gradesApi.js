@@ -50,12 +50,13 @@ export const gradeApi = createApi({
     }),
     getGradeByUserIdAndRole: builder.mutation({
       query: (body) => ({
-        url: `/teacher/grades-by-role`,
+        url: `/teacher/grade-by-role`,
         method: "POST",
         body,
       }),
       providesTags: ["Grades By User ID"],
     }),
+
   }),
 });
 

@@ -5,6 +5,7 @@ import {
   getCourseDetails,
   updateCourse,
   deleteCourse,
+  getCoursesByGradeAndTeacherID,
 } from "../controllers/courseContollers.js";
 import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 
@@ -21,5 +22,7 @@ router
   .delete(isAuthenticatedUser, authorizeRoles("admin"), deleteCourse);
 
 router.route("/courses/:id").get(getCourseDetails);
+// /courses/grade / teacher
+router.route("/courses/grade/teacher").post(getCoursesByGradeAndTeacherID);
 
 export default router;

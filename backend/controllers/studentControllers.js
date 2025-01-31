@@ -1,5 +1,6 @@
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import Student from "../models/student.js";
+import Quiz from "../models/quiz.js";
 import user from "../models/user.js";
 import APIFilters from "../utils/apiFilters.js";
 import { upload_file } from "../utils/cloudinary.js";
@@ -145,16 +146,95 @@ export const getStudentDetails = catchAsyncErrors(async (req, res, next) => {
 });
 
 // Get all students by grade =>  /api/v1/student/grade/:gradeId
-export const getStudentsByGrade = catchAsyncErrors(async (req, res, next) => {
-  console.log("yes i am hit ")
-  // const students = await Student.find({ grade: req.params.id }).populate(
-  //   "user"
-  // );
-  // if (!students) {
-  //   return next(new ErrorHandler("Students not found", 404));
-  // }
-  // res.status(200).json({
-  //   students,
-  // });
+export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => {
+  const { grade, course, semester, quarter, quizNumber, user, marks } = req.body;
 
+  console.log("Received data: ", req.body);
+
+  // Step 1: Check if a quiz exists with the given details
+  let existingQuiz = await Quiz.findOne({
+    grade,
+    course,
+    semester,
+    quarter,
+    quizNumber,
+    user,
+  }).populate({
+    path: "marks.student",
+    select: "name", // Populate student names
+  });
+
+  console.log("Existing quiz: ", existingQuiz);
+
+  if (existingQuiz) {
+    // Step 2: If quiz exists, update it with new marks (if provided)
+    if (marks) {
+      existingQuiz.marks = marks;
+      await existingQuiz.save();
+    }
+
+    // Step 3: Return the updated quiz data with student names
+    const quizWithStudentNames = {
+      ...existingQuiz.toObject(),
+      marks: existingQuiz.marks.map((mark) => ({
+        ...mark.toObject(),
+        studentName: mark.student?.name || "Unknown", // Add student name to each mark
+      })),
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: "Quiz data updated and retrieved successfully.",
+      quiz: quizWithStudentNames,
+    });
+  }
+
+  // Step 4: If no quiz exists, fetch students by grade
+  const students = await Student.find({ grade }).populate("user", "name"); // Fetch students with their names
+  console.log("Students: ", students);
+
+  if (!students || students.length === 0) {
+    return next(new ErrorHandler("Students not found", 404));
+  }
+
+  // Step 5: Create a new quiz with initial marks for each student
+  const initialMarks = students.map((student) => ({
+    student: student._id,
+    question1: 0,
+    question2: 0,
+    question3: 0,
+    question4: 0,
+    question5: 0,
+  }));
+
+  const newQuiz = await Quiz.create({
+    semester,
+    quarter,
+    quizNumber,
+    course,
+    grade,
+    user,
+    marks: initialMarks, // Initialize marks with student data
+  });
+
+  console.log("New quiz: ", newQuiz);
+
+  // Step 6: Return the new quiz data along with student names
+  const newQuizWithStudentNames = {
+    ...newQuiz.toObject(),
+    marks: newQuiz.marks.map((mark) => {
+      const student = students.find((s) => s._id.toString() === mark.student.toString());
+      return {
+        ...mark.toObject(),
+        studentName: student?.user?.name || "Unknown", // Add student name to each mark
+      };
+    }),
+  };
+
+  return res.status(201).json({
+    success: true,
+    message: "No quiz found. New quiz record created.",
+    quiz: newQuizWithStudentNames,
+  });
 });
+

@@ -1,7 +1,7 @@
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import Course from "../models/course.js";
 import ErrorHandler from "../utils/errorHandler.js";
-
+import Grade from "../models/grade.js";
 import APIFilters from "../utils/apiFilters.js";
 
 //CRUD operations for courses
@@ -90,5 +90,38 @@ export const getCourseDetails = catchAsyncErrors(async (req, res) => {
 
   res.status(200).json({
     course,
+  });
+});
+
+// Get all courses for a grade of teacher => /api/v1/courses/grade/teacher/:id
+export const getCoursesByGradeAndTeacherID = catchAsyncErrors(async (req, res) => {
+  const { gradeId, teacherId } = req.body; // Ensure gradeId and teacherId are passed in the body
+ 
+  // Step 1: Find the grade
+  const grade = await Grade.findById(gradeId).populate("courses"); // Populate courses array from Grade
+
+  if (!grade) {
+    return res.status(404).json({
+      success: false,
+      message: "Grade not found",
+    });
+  }
+
+  // Step 2: Filter courses by teacherId
+  const courses = grade.courses.filter((course) => {
+    return course.teacher && course.teacher.toString() === teacherId;
+  });
+
+  if (courses.length === 0) {
+    return res.status(404).json({
+      success: false,
+      message: "No courses found for the given grade and teacher",
+    });
+  }
+
+  // Step 3: Send response
+  res.status(200).json({
+    success: true,
+    courses,
   });
 });

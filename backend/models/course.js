@@ -26,7 +26,7 @@ const courseSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Teacher",
       required: false,
-      default:null,
+      default: null,
     }, //Assigned teacher
   },
   { timestamps: false }

@@ -27,7 +27,7 @@ const quizSchema = new mongoose.Schema(
       ref: "Grade",
       required: [true, "Please specify the associated grade"],
     },
-    teacher: {
+    user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Teacher",
       required: [true, "Please specify the teacher responsible for this quiz"],

@@ -61,13 +61,8 @@ const studentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Grade",
     required: false,
-  }, // Current grade
-  enrolledCourses: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Course",
-    },
-  ], //courses the student is enrolled in
+  }, 
+
 });
 
 export default mongoose.model("Student", studentSchema);

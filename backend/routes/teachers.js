@@ -3,7 +3,7 @@ import {
   addCourseInTeacher,
   deleteCourseInTeacher,
   deleteTeacher,
-  getGradesByRole,
+  getCoursesByRole,
   getTeacherDetails,
   getTeachers,
   newTeacher,
@@ -34,7 +34,7 @@ router
   .patch(isAuthenticatedUser, authorizeRoles("admin"), deleteCourseInTeacher);
 
 router
-  .route("/teacher/grades-by-role")
-  .post(getGradesByRole);
+  .route("/teacher/grade-by-role")
+  .post(getCoursesByRole);
 
 export default router;

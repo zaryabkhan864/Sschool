@@ -48,17 +48,26 @@ export const courseApi = createApi({
       },
       invalidatesTags: ["AdminCourses"],
     }),
+    getCourseByGradeAndTeacherID: builder.mutation({
+      query: (body) => ({
+        url: `/courses/grade/teacher`,
+        method: "POST",
+        body,
+      }),
+      providesTags: ["Courses By Grade And Teacher ID"],
+    }),
   }),
 });
 
 export const {
   useGetCoursesQuery,
   useGetCourseDetailsQuery,
-
+  useGetCourseByGradeAndTeacherIDMutation,
   useGetAdminCoursesQuery,
   useCreateCourseMutation,
   useUpdateCourseMutation,
 
   useDeleteCourseImageMutation,
   useDeleteCourseMutation,
+
 } = courseApi;
