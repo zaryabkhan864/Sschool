@@ -161,7 +161,7 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
     user,
   }).populate({
     path: "marks.student",
-    select: "name", // Populate student names
+    select: "studentName", // Populate student names
   });
 
   console.log("Existing quiz: ", existingQuiz);
@@ -172,14 +172,14 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
       existingQuiz.marks = marks;
       await existingQuiz.save();
     }
-
     // Step 3: Return the updated quiz data with student names
     const quizWithStudentNames = {
       ...existingQuiz.toObject(),
       marks: existingQuiz.marks.map((mark) => ({
         ...mark.toObject(),
-        studentName: mark.student?.name || "Unknown", // Add student name to each mark
-      })),
+        studentName: mark.student?.studentName || "Unknown", // Add student name to each mark
+        student: mark.student?._id 
+           })),
     };
 
     return res.status(200).json({
@@ -190,7 +190,7 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
   }
 
   // Step 4: If no quiz exists, fetch students by grade
-  const students = await Student.find({ grade }).populate("user", "name"); // Fetch students with their names
+  const students = await Student.find({ grade })/* .populate("user", "name") */; // Fetch students with their names
   console.log("Students: ", students);
 
   if (!students || students.length === 0) {
@@ -226,7 +226,7 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
       const student = students.find((s) => s._id.toString() === mark.student.toString());
       return {
         ...mark.toObject(),
-        studentName: student?.user?.name || "Unknown", // Add student name to each mark
+        studentName: student?.studentName || "Unknown", // Add student name to each mark
       };
     }),
   };

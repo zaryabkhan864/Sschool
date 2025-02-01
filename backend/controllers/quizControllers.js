@@ -14,3 +14,22 @@ export const newQuiz = catchAsyncErrors(async (req, res) => {
         quiz,
     });
 });
+
+export const updateQuiz = catchAsyncErrors(async (req, res) => {
+    let quiz = await Quiz.findById(req.params.id);
+
+    if (!quiz) {
+        return next(new ErrorHandler("Quiz not found", 404));
+    }
+
+    quiz = await Quiz.findByIdAndUpdate(req.params.id, req.body, {
+        new: true,
+        runValidators: true,
+    });
+
+    res.status(200).json({
+        success: true,
+        Quiz,
+        message: "Quiz marks updated successfully",
+    });
+});

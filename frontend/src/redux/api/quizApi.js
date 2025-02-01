@@ -15,10 +15,20 @@ export const quizApi = createApi({
         };
       }
     }),
+    updateQuizMarks: builder.mutation({
+      query({ id, body }) {
+        return {
+          url: `/students/quiz/${id}`,
+          method: "PUT",
+          body,
+        };
+      },
+    }),
 
   }),
 });
 
 export const {
   useAddQuizMarksMutation,
+  useUpdateQuizMarksMutation
 } = quizApi;

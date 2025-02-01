@@ -5,8 +5,7 @@ import { useGetGradeByUserIdAndRoleMutation } from '../../redux/api/gradesApi';
 import { useGetCourseByGradeAndTeacherIDMutation } from '../../redux/api/courseApi';
 import { useGetStudentsQuizDetailsByQuizDataMutation } from '../../redux/api/studentsApi';
 import { useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom';
-import { useAddQuizMarksMutation } from '../../redux/api/quizApi';
+import { /* useAddQuizMarksMutation, */ useUpdateQuizMarksMutation } from '../../redux/api/quizApi';
 import toast from 'react-hot-toast';
 
 const AddQuiz = () => {
@@ -43,7 +42,8 @@ const AddQuiz = () => {
 
     const [sendUserRoleAndID] = useGetGradeByUserIdAndRoleMutation();
     const [sendGradeAndTeacherID] = useGetCourseByGradeAndTeacherIDMutation();
-    const [addQuizMarks] = useAddQuizMarksMutation();
+    // const [addQuizMarks] = useAddQuizMarksMutation();
+    const [updateQuizMarks, { isLoading: updateQuizMarksLoading }] = useUpdateQuizMarksMutation();
 
     // 2 get grades based on user role and id and get user grade 
     useEffect(() => {
@@ -90,7 +90,7 @@ const AddQuiz = () => {
                 // Initialize marks state with student IDs
                 const initialMarks = {};
                 response.quiz.marks.forEach(mark => {
-                    initialMarks[mark.studentId] = mark.mark;
+                    initialMarks[mark.student] = mark;
                 });
                 setMarks(initialMarks);
             } catch (err) {
@@ -115,24 +115,20 @@ const AddQuiz = () => {
         }));
     };
 
-    const handleMarkChange = (studentId, value) => {
+    const handleMarkChange = (studentId, markIndex, value) => {
         setMarks(prevMarks => ({
             ...prevMarks,
-            [studentId]: value
+            [studentId]: {...prevMarks[studentId], [`question${markIndex}`]: value}
         }));
     };
 
     const handleSubmitMarks = async () => {
         try {
-            const marksArray = Object.keys(marks).map(studentId => ({
-                studentId,
-                mark: marks[studentId]
-            }));
             const payload = {
                 quizId: quizDetails._id,
-                marks: marksArray
+                marks: Object.values(marks)
             };
-            await addQuizMarks(payload).unwrap();
+            await updateQuizMarks({ id: quizDetails._id, body: payload })
             toast.success('Marks submitted successfully!');
         } catch (err) {
             console.error('Error submitting marks:', err);
@@ -224,16 +220,16 @@ const AddQuiz = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {quizDetails.marks.map((mark, index) => (
-                                <tr key={index}>
-                                    <td className="py-2 px-4 border-b">{mark.studentName}</td>
+                        {Object.entries(marks).map(([key, value]) => (
+                                <tr key={key}>
+                                    <td className="py-2 px-4 border-b">{value.studentName}</td>
                                     {[1, 2, 3, 4, 5].map((markIndex) => (
                                         <td className="py-2 px-4 border-b" key={markIndex}>
                                             <input
                                                 type="number"
                                                 className="w-full p-1 border border-gray-300 rounded"
-                                                value={marks[mark.studentId] || ''}
-                                                onChange={(e) => handleMarkChange(mark.studentId, e.target.value)}
+                                                value={value[`question${markIndex}`]}
+                                                onChange={(e) => handleMarkChange(key, markIndex, e.target.value)}
                                             />
                                         </td>
                                     ))}
@@ -246,8 +242,9 @@ const AddQuiz = () => {
                         <button
                             className="mt-4 bg-blue-500 text-white py-2 px-4 rounded"
                             onClick={handleSubmitMarks}
+                            disabled={updateQuizMarksLoading}
                         >
-                            Submit Marks
+                            {updateQuizMarksLoading ? 'Submitting...' : 'Submit Marks'}
                         </button>
                     )}
                 </div>
