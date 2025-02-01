@@ -35,7 +35,10 @@ app.use(
 app.use(cookieParser());
 // Cache Control Middleware
 app.use((req, res, next) => {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate"
+  );
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
   next();
@@ -45,12 +48,13 @@ app.use((req, res, next) => {
 
 import authRoutes from "./routes/auth.js";
 
+import counselingRoutes from "./routes/counseling.js";
 import courseRoutes from "./routes/course.js";
+import eventRoutes from "./routes/event.js";
 import gradeRoutes from "./routes/grade.js";
+import quizRoutes from "./routes/quiz.js";
 import studentRoutes from "./routes/students.js";
 import teacherRoutes from "./routes/teachers.js";
-import eventRoutes from "./routes/event.js";
-import quizRoutes from "./routes/quiz.js";
 
 import { fileURLToPath } from "url";
 
@@ -61,6 +65,7 @@ app.use("/api/v1", gradeRoutes);
 app.use("/api/v1", authRoutes);
 app.use("/api/v1", eventRoutes);
 app.use("/api/v1", quizRoutes);
+app.use("/api/v1", counselingRoutes);
 
 if (process.env.NODE_ENV === "PRODUCTION") {
   app.use(express.static(path.join(__dirname, "../frontend/build")));
