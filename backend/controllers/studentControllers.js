@@ -147,7 +147,7 @@ export const getStudentDetails = catchAsyncErrors(async (req, res, next) => {
 
 // Get all students by grade =>  /api/v1/student/grade/:gradeId
 export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => {
-  const { grade, course, semester, quarter, quizNumber, user, marks } = req.body;
+  const { grade, course, semester, quarter, quizNumber, user } = req.body;
 
   console.log("Received data: ", req.body);
 
@@ -167,12 +167,6 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
   console.log("Existing quiz: ", existingQuiz);
 
   if (existingQuiz) {
-    // Step 2: If quiz exists, update it with new marks (if provided)
-    if (marks) {
-      existingQuiz.marks = marks;
-      await existingQuiz.save();
-    }
-    // Step 3: Return the updated quiz data with student names
     const quizWithStudentNames = {
       ...existingQuiz.toObject(),
       marks: existingQuiz.marks.map((mark) => ({
@@ -184,14 +178,13 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
 
     return res.status(200).json({
       success: true,
-      message: "Quiz data updated and retrieved successfully.",
+      message: "Quiz data retrieved successfully.",
       quiz: quizWithStudentNames,
     });
   }
 
   // Step 4: If no quiz exists, fetch students by grade
-  const students = await Student.find({ grade })/* .populate("user", "name") */; // Fetch students with their names
-  console.log("Students: ", students);
+  const students = await Student.find({ grade })
 
   if (!students || students.length === 0) {
     return next(new ErrorHandler("Students not found", 404));
@@ -217,9 +210,7 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
     marks: initialMarks, // Initialize marks with student data
   });
 
-  console.log("New quiz: ", newQuiz);
-
-  // Step 6: Return the new quiz data along with student names
+  // Return the new quiz data along with student names
   const newQuizWithStudentNames = {
     ...newQuiz.toObject(),
     marks: newQuiz.marks.map((mark) => {
