@@ -138,7 +138,7 @@ const AddExam = () => {
     return (
         <AdminLayout>
             <MetaData title={'Add Exam Number'} />
-            <div className="flex flex-wrap gap-x-2 gap-y-4 justify-center">
+            <div className="flex flex-wrap gap-x-2 gap-y-4 justify-center mt-6">
                 <select
                     className="w-1/5 border border-gray-300 p-2 rounded"
                     name="grade"
@@ -195,7 +195,7 @@ const AddExam = () => {
             {!examDetails && examMarksLoading && (<Loader/>)}
 
             {examDetails && !examMarksLoading && (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto mt-8">
                     <table className="min-w-full bg-white border border-gray-300">
                         <thead>
                             <tr>

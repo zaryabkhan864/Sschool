@@ -27,7 +27,7 @@ const AddQuiz = () => {
         user: '', // Add user field here
     });
 
-    const { isAuthenticated, user } = useSelector((state) => state.auth);
+    const { user } = useSelector((state) => state.auth);
 
     // 1 get user details and set user field in formValues
     useEffect(() => {
@@ -142,7 +142,7 @@ const AddQuiz = () => {
     return (
         <AdminLayout>
             <MetaData title={'Add Quiz Number'} />
-            <div className="flex flex-wrap gap-x-2 gap-y-4 justify-center">
+            <div className="flex flex-wrap gap-x-2 gap-y-4 justify-center mt-6">
                 <select
                     className="w-1/5 border border-gray-300 p-2 rounded"
                     name="grade"
@@ -213,7 +213,7 @@ const AddQuiz = () => {
 
 
             {quizDetails && !isLoading && (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto mt-8">
                     <table className="min-w-full bg-white border border-gray-300">
                         <thead>
                             <tr>
