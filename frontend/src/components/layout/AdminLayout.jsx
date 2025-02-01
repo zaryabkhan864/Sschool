@@ -72,6 +72,12 @@ const AdminLayout = ({ children }) => {
       icon: "fas fa-plus-circle",
       roles: ["admin", "teacher"], // Accessible by admin and teacher
     },
+    {
+      name: "New Exam",
+      url: "/admin/exam",
+      icon: "fas fa-plus-circle",
+      roles: ["admin", "teacher"], // Accessible by admin and teacher
+    },
 
     {
       name: "New Event",

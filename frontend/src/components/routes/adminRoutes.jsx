@@ -27,6 +27,7 @@ import TeacherDetails from "../teacher/TeacherDetails";
 import UpdateTeacher from "../teacher/UpdateTeacher";
 import StudentDetails from "../admin/StudentDetails";
 import AddQuiz from "../quiz/AddQuiz";
+import AddExam from "../exam/AddExam";
 
 const adminRoutes = () => {
   return (
@@ -181,6 +182,14 @@ const adminRoutes = () => {
         element={
           <ProtectedRoute admin={true}>
             <AddQuiz />
+          </ProtectedRoute>
+        } />
+        {/* add quiz routes */}
+      <Route
+        path="/admin/exam"
+        element={
+          <ProtectedRoute admin={true}>
+            <AddExam />
           </ProtectedRoute>
         } />
       <Route
