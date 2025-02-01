@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import toast from 'react-hot-toast';
+
 import AdminLayout from '../layout/AdminLayout';
 import MetaData from '../layout/MetaData';
 import Loader from '../layout/Loader';
-import { useGetGradeByUserIdAndRoleMutation } from '../../redux/api/gradesApi';
-import { useGetCourseByGradeAndTeacherIDMutation } from '../../redux/api/courseApi';
+
 import { useGetExamMarksMutation, useUpdateExamMarksMutation } from '../../redux/api/examApi.js';
-import { useSelector } from 'react-redux';
-import toast from 'react-hot-toast';
+import { useGetCourseByGradeAndTeacherIDMutation } from '../../redux/api/courseApi';
+import { useGetGradeByUserIdAndRoleMutation } from '../../redux/api/gradesApi';
 
 const AddExam = () => {
     const [userDetails, setUserDetails] = useState('');

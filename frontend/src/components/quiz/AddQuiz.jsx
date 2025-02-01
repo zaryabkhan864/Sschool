@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import toast from 'react-hot-toast';
+
 import AdminLayout from '../layout/AdminLayout';
 import MetaData from '../layout/MetaData';
-import { useGetGradeByUserIdAndRoleMutation } from '../../redux/api/gradesApi';
-import { useGetCourseByGradeAndTeacherIDMutation } from '../../redux/api/courseApi';
+import Loader from '../layout/Loader';
+
 import { useGetStudentsQuizDetailsByQuizDataMutation } from '../../redux/api/studentsApi';
-import { useSelector } from 'react-redux';
-import { /* useAddQuizMarksMutation, */ useUpdateQuizMarksMutation } from '../../redux/api/quizApi';
-import toast from 'react-hot-toast';
+import { useGetCourseByGradeAndTeacherIDMutation } from '../../redux/api/courseApi';
+import { useGetGradeByUserIdAndRoleMutation } from '../../redux/api/gradesApi';
+import { useUpdateQuizMarksMutation } from '../../redux/api/quizApi';
 
 const AddQuiz = () => {
     const [userDetails, setUserDetails] = useState('');
@@ -206,8 +209,11 @@ const AddQuiz = () => {
                 </select>
             </div>
 
-            {quizDetails && (
-                <div className="mt-8">
+            {!quizDetails && isLoading && (<Loader/>)}
+
+
+            {quizDetails && !isLoading && (
+                <div className="overflow-x-auto">
                     <table className="min-w-full bg-white border border-gray-300">
                         <thead>
                             <tr>
