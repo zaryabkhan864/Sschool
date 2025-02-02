@@ -15,6 +15,16 @@ export const studentApi = createApi({
         },
       }),
     }),
+    getStudentsWithGrades: builder.query({
+      query: (params) => ({
+        url: "/students/grades",
+        params: {
+          page: params?.page,
+          keyword: params?.keyword,
+          category: params?.category,
+        },
+      }),
+    }),
     getStudentDetails: builder.query({
       query: (id) => `/student/${id}`,
       providesTags: ["Student"],
@@ -88,6 +98,7 @@ export const studentApi = createApi({
 
 export const {
   useGetStudentsQuery,
+  useGetStudentsWithGradesQuery,
   useGetStudentDetailsQuery,
 
   useGetAdminStudentsQuery,

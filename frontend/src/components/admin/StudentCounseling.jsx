@@ -5,7 +5,7 @@ import {
   useCreateCounselingMutation,
   useGetCounselingsQuery,
 } from "../../redux/api/counselingApi";
-import { useGetStudentsQuery } from "../../redux/api/studentsApi";
+import { useGetStudentsWithGradesQuery } from "../../redux/api/studentsApi";
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
@@ -14,7 +14,7 @@ const StudentCounseling = () => {
 
   // 1 get add student data...
   const { data: studentsData, isLoading: studentLoading } =
-    useGetStudentsQuery();
+    useGetStudentsWithGradesQuery();
   // 2 get student details from coming data
   const students = studentsData?.students || []; // Ensure it's an array
 
@@ -76,7 +76,7 @@ const StudentCounseling = () => {
                 {!studentLoading &&
                   students?.map((s) => (
                     <option key={s._id} value={s._id}>
-                      {s.studentName}-{s.grade}
+                      {s.studentName} - {s?.grade?.gradeName}
                     </option>
                   ))}
               </select>

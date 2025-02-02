@@ -33,6 +33,13 @@ class APIFilters {
     return this;
   }
 
+  populate(field) {
+    if (field) {
+      this.query = this.query.populate(field);
+    }
+    return this;
+  }
+
   pagination(resPerPage) {
     const currentPage = Number(this.queryStr.page) || 1;
     const skip = resPerPage * (currentPage - 1);

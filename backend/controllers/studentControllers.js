@@ -229,3 +229,23 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
   });
 });
 
+
+/* get all students with grades */
+export const getStudentsWithGrades = catchAsyncErrors(async (req, res) => {
+  let filteredStudentsCount  = 0
+  const apiFilters = new APIFilters(Student, req.query).search().filters().populate('grade');
+
+  const students = await apiFilters.query;
+  if(req.query.page){
+    filteredStudentsCount = students.length;
+    apiFilters.pagination(req.query.resPerPage);
+    students = await apiFilters.query.clone();
+  }
+  
+  res.status(200).json({
+    success: true,
+    filteredStudentsCount,
+    students,
+  });
+});
+

@@ -6,6 +6,7 @@ import {
   getStudentsQuizRecord,
   newStudent,
   updateStudent,
+  getStudentsWithGrades
 } from "../controllers/studentControllers.js";
 import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 
@@ -16,6 +17,7 @@ router
   .post(isAuthenticatedUser, authorizeRoles("admin"), newStudent);
 
 router.route("/students").get(getStudents);
+router.route("/students/grades").get(getStudentsWithGrades);
 router
   .route("/admin/student/:id")
   .put(isAuthenticatedUser, authorizeRoles("admin"), updateStudent);
