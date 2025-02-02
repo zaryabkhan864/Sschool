@@ -1,11 +1,11 @@
 import React from "react";
 import { Route } from "react-router-dom";
 import Dashboard from "../admin/Dashboard";
-import ListStudents from "../admin/ListStudents";
+import ListStudents from "../student/ListStudents";
 import ListUsers from "../admin/ListUsers";
-import NewStudent from "../admin/NewStudent";
+import NewStudent from "../student/NewStudent";
 import StudentReviews from "../admin/StudentReviews";
-import UpdateStudent from "../admin/UpdateStudent";
+import UpdateStudent from "../student/UpdateStudent";
 import UpdateUser from "../admin/UpdateUser";
 import ProtectedRoute from "../auth/ProtectedRoute";
 import Register from "../auth/Register";
@@ -25,10 +25,10 @@ import ListTeachers from "../teacher/ListTeachers";
 import NewTeacher from "../teacher/NewTeacher";
 import TeacherDetails from "../teacher/TeacherDetails";
 import UpdateTeacher from "../teacher/UpdateTeacher";
-import StudentDetails from "../admin/StudentDetails";
+import StudentDetails from "../student/StudentDetails";
 import AddQuiz from "../quiz/AddQuiz";
 import AddExam from "../exam/AddExam";
-import StudentCounseling from "../admin/StudentCounseling";
+import StudentCounseling from "../counseling/StudentCounseling";
 
 const adminRoutes = () => {
   return (
@@ -178,7 +178,7 @@ const adminRoutes = () => {
           </ProtectedRoute>
         } />
 
-<Route
+      <Route
         path="/admin/counseling/new"
         element={
           <ProtectedRoute admin={true}>
@@ -194,7 +194,7 @@ const adminRoutes = () => {
             <AddQuiz />
           </ProtectedRoute>
         } />
-        {/* add quiz routes */}
+      {/* add quiz routes */}
       <Route
         path="/admin/exam"
         element={

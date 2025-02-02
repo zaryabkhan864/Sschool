@@ -67,7 +67,7 @@ const AdminLayout = ({ children }) => {
       roles: ["admin"], // Only accessible by admin
     },
     {
-      name: "New Students Counseling",
+      name: "Student Counseling",
       url: "/admin/counseling/new",
       icon: "fas fa-users",
       roles: ["admin"], // Only accessible by admin
