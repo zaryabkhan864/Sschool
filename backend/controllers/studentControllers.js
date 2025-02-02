@@ -5,6 +5,7 @@ import user from "../models/user.js";
 import APIFilters from "../utils/apiFilters.js";
 import { upload_file } from "../utils/cloudinary.js";
 import ErrorHandler from "../utils/errorHandler.js";
+import _ from "lodash";
 // CRUD operations for students
 
 // Create a new student =>  /api/v1/student/create_student
@@ -232,20 +233,14 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
 
 /* get all students with grades */
 export const getStudentsWithGrades = catchAsyncErrors(async (req, res) => {
-  let filteredStudentsCount  = 0
-  const apiFilters = new APIFilters(Student, req.query).search().filters().populate('grade');
-
+  const apiFilters = new APIFilters(Student, req.query).search().filters().populate('grade', 'gradeName');
   const students = await apiFilters.query;
-  if(req.query.page){
-    filteredStudentsCount = students.length;
-    apiFilters.pagination(req.query.resPerPage);
-    students = await apiFilters.query.clone();
-  }
+
+  const sortedStudents = _.sortBy(students,[(item) => item.grade?.gradeName?.toLowerCase()],'studentName')
   
   res.status(200).json({
     success: true,
-    filteredStudentsCount,
-    students,
+    students: sortedStudents,
   });
 });
 
