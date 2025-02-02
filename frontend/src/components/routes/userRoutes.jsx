@@ -8,6 +8,7 @@ import UploadAvatar from "../user/UploadAvatar";
 import UpdatePassword from "../user/UpdatePassword";
 import ForgotPassword from "../auth/ForgotPassword";
 import ResetPassword from "../auth/ResetPassword";
+import PostingWall from "../posting/PostingWall";
 const userRoutes = () => {
   return (
     <>
@@ -18,6 +19,8 @@ const userRoutes = () => {
       <Route path="/me/update_profile" element={<ProtectedRoute><UpdateProfile /></ProtectedRoute>} />
       <Route path="/me/upload_avatar" element={<ProtectedRoute><UploadAvatar /></ProtectedRoute>} />
       <Route path="/me/update_password" element={<ProtectedRoute><UpdatePassword /></ProtectedRoute>} />
+      {/* posting wall */}
+      <Route path="/posting_wall" element={<ProtectedRoute><PostingWall /></ProtectedRoute>} />
     </>
   );
 };
