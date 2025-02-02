@@ -3,6 +3,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import userReducer from "./features/userSlice";
 
 import { authApi } from "./api/authApi";
+import { counselingApi } from "./api/counselingApi";
 import { courseApi } from "./api/courseApi";
 import { gradeApi } from "./api/gradesApi";
 import { studentApi } from "./api/studentsApi";
@@ -24,6 +25,7 @@ export const store = configureStore({
     [eventApi.reducerPath]: eventApi.reducer,
     [authApi.reducerPath]: authApi.reducer,
     [userApi.reducerPath]: userApi.reducer,
+    [counselingApi.reducerPath]: counselingApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat([
@@ -36,5 +38,6 @@ export const store = configureStore({
       eventApi.middleware,
       authApi.middleware,
       userApi.middleware,
+      counselingApi.middleware,
     ]),
 });

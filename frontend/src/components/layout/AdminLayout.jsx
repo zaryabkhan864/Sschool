@@ -67,6 +67,12 @@ const AdminLayout = ({ children }) => {
       roles: ["admin"], // Only accessible by admin
     },
     {
+      name: "New Students Counseling",
+      url: "/admin/counseling/new",
+      icon: "fas fa-users",
+      roles: ["admin"], // Only accessible by admin
+    },
+    {
       name: "New Quiz",
       url: "/admin/quiz/new",
       icon: "fas fa-plus-circle",
