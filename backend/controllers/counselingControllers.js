@@ -1,12 +1,12 @@
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import Counseling from "../models/counseling.js";
+import APIFilters from "../utils/apiFilters.js";
+import ErrorHandler from "../utils/errorHandler.js";
 //CRUD operations for courses
 
 // Create new counseling => /api/v1/counselings
 export const newCounseling = catchAsyncErrors(async (req, res, next) => {
-  console.log("Yes i am hit");
   const { student, complain, comment } = req.body;
-  console.log("Yes i am hit", student, complain, comment);
   // const studentId = student === "" ? null : student;
   const counseling = await Counseling.create({
     student,
@@ -32,7 +32,58 @@ export const getCounselings = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({
     success: true,
     resPerPage,
-    filteredCoursesCount,
+    filteredCounselingsCount,
     counselings,
+  });
+});
+
+// Update counseling => /api/v1/counselings/:id
+export const updateCounseling = catchAsyncErrors(async (req, res, next) => {
+  let counseling = await Counseling.findById(req?.params?.id);
+
+  if (!counseling) {
+    return next(new ErrorHandler("counseling not found", 404));
+  }
+
+  const { student, complain, comment } = req.body;
+
+  const studentId = student === "" ? null : student;
+  counseling = await Counseling.findByIdAndUpdate(
+    req?.params?.id,
+    { student: studentId, complain, comment },
+    {
+      new: true,
+    }
+  );
+
+  res.status(200).json({
+    counseling,
+  });
+});
+
+// Delete counseling => /api/v1/counselings/:id
+export const deleteCounseling = catchAsyncErrors(async (req, res, next) => {
+  const counseling = await Counseling.findById(req?.params?.id);
+  if (!counseling) {
+    return next(new ErrorHandler("Counseling not found", 404));
+  }
+  await Counseling.findOneAndDelete({ _id: req?.params?.id });
+  res.status(200).json({
+    message: "Counseling deleted successfully",
+  });
+});
+
+// extra controller for counseling
+
+// Get single counseling details => /api/v1/counselings/:id
+export const getCounselingDetails = catchAsyncErrors(async (req, res) => {
+  const counseling = await Counseling.findById(req?.params?.id);
+
+  if (!counseling) {
+    return next(new ErrorHandler("Counseling not found", 404));
+  }
+
+  res.status(200).json({
+    counseling,
   });
 });

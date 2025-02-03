@@ -15,6 +15,10 @@ export const counselingApi = createApi({
         },
       }),
     }),
+    getCounselingDetails: builder.query({
+      query: (id) => `/counselings/${id}`,
+      providesTags: ["Counseling"],
+    }),
     createCounseling: builder.mutation({
       query(body) {
         return {
@@ -25,8 +29,32 @@ export const counselingApi = createApi({
       },
       invalidatesTags: ["AdminCounselings"],
     }),
+    updateCounseling: builder.mutation({
+      query({ id, body }) {
+        return {
+          url: `/admin/counselings/${id}`,
+          method: "PUT",
+          body,
+        };
+      },
+      invalidatesTags: ["Counseling", "AdminCounselings"],
+    }),
+    deleteCounseling: builder.mutation({
+      query(id) {
+        return {
+          url: `/admin/counselings/${id}`,
+          method: "DELETE",
+        };
+      },
+      invalidatesTags: ["AdminCounselings"],
+    }),
   }),
 });
 
-export const { useGetCounselingsQuery, useCreateCounselingMutation } =
-  counselingApi;
+export const {
+  useGetCounselingsQuery,
+  useGetCounselingDetailsQuery,
+  useCreateCounselingMutation,
+  useUpdateCounselingMutation,
+  useDeleteCounselingMutation,
+} = counselingApi;

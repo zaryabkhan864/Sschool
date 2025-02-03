@@ -1,46 +1,58 @@
-import { useEffect, useState } from "react";
-
-import toast from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
+import { useNavigate, useParams } from "react-router-dom";
 import {
-  useCreateCounselingMutation,
+  useGetCounselingDetailsQuery,
   useGetCounselingsQuery,
+  useUpdateCounselingMutation,
 } from "../../redux/api/counselingApi";
-import { useGetStudentsWithGradesQuery } from "../../redux/api/studentsApi";
+import { useGetStudentsQuery } from "../../redux/api/studentsApi";
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
-const StudentCounseling = () => {
+const UpdateStudentCounseling = () => {
   const navigate = useNavigate();
+  const params = useParams();
   const { refetch } = useGetCounselingsQuery();
 
-  // 1 get add student data...
-  const { data: studentsData, isLoading: studentLoading } =
-    useGetStudentsWithGradesQuery();
-  // 2 get student details from coming data
-  const students = studentsData?.students || []; // Ensure it's an array
-
   const [counseling, setCounseling] = useState({
-    student: "", //store student ID
+    student: "", // Store student ID
     complain: "",
-    comment: "",
+    Comment: "",
   });
+
   const { student, complain, comment } = counseling;
 
-  const [createCounseling, { isLoading, error, isSuccess }] =
-    useCreateCounselingMutation();
+  const [updateCounseling, { isLoading, error, isSuccess }] =
+    useUpdateCounselingMutation();
+  const { data, loading } = useGetCounselingDetailsQuery(params?.id);
+  const { data: studentsData, isLoading: studentLoading } =
+    useGetStudentsQuery();
+  const students = studentsData?.students || []; // Ensure it's an array
 
   useEffect(() => {
+    if (data?.counseling) {
+      setCounseling({
+        student: data?.counseling?.student,
+        complain: data?.counseling?.complain,
+        comment: data?.counseling?.comment,
+      });
+    }
+
     if (error) {
       toast.error(error?.data?.message);
     }
 
     if (isSuccess) {
-      toast.success("Counseling created");
+      toast.success("Counseling updated");
       navigate("/admin/counselings");
       refetch();
     }
-  }, [error, isSuccess, navigate, refetch]);
+  }, [data, error, isSuccess, navigate, refetch]);
+
+  if ((!data && isLoading) || loading) {
+    return <Loader />;
+  }
 
   const onChange = (e) => {
     setCounseling({ ...counseling, [e.target.name]: e.target.value });
@@ -48,23 +60,22 @@ const StudentCounseling = () => {
 
   const submitHandler = (e) => {
     e.preventDefault();
-    createCounseling(counseling);
+    updateCounseling({ id: params?.id, body: counseling });
   };
 
-  if (isLoading) return <Loader />;
   return (
     <AdminLayout>
-      <MetaData title={"Students Counseling"} />
+      <MetaData title={"Update Counseling"} />
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">Student Counseling</h2>
+          <h2 className="text-2xl font-semibold mb-6">Update Counseling</h2>
           <form onSubmit={submitHandler}>
             <div className="mb-4">
               <label
                 htmlFor="student_field"
                 className="block text-sm font-medium text-gray-700"
               >
-                Student{" "}
+                Student
               </label>
               <select
                 id="student_field"
@@ -132,4 +143,4 @@ const StudentCounseling = () => {
   );
 };
 
-export default StudentCounseling;
+export default UpdateStudentCounseling;
