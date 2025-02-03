@@ -13,17 +13,24 @@ function App() {
   const teacherRoutes = useTeacherRoutes();
 
   return (
-    <Router>
-      <Toaster position="top-center" />
-      <Header />
-      <Routes>
-        {userRoutes}
-        {adminRoutes}
-        {teacherRoutes}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <Footer />
-    </Router>
+    <div className="h-screen flex flex-col">
+      <Router>
+        <Toaster position="top-center" />
+        <Header />
+        
+        {/* Routes will take full height except Header & Footer */}
+        <div className="flex-1 overflow-auto">
+          <Routes>
+            {userRoutes}
+            {adminRoutes}
+            {teacherRoutes}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
+
+        <Footer />
+      </Router>
+    </div>
   );
 }
 
