@@ -39,6 +39,17 @@ class APIFilters {
     }
     return this;
   }
+  nestedPopulate(feild, field2) {
+    if (field) {
+      this.query = this.query.populate({
+        path: feild,
+        populate: {
+          path: field2,
+        },
+      });
+    }
+    return this;
+  }
 
   pagination(resPerPage) {
     const currentPage = Number(this.queryStr.page) || 1;
