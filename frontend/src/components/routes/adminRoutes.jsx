@@ -1,14 +1,15 @@
 import React from "react";
 import { Route } from "react-router-dom";
 import Dashboard from "../admin/Dashboard";
-import ListStudents from "../student/ListStudents";
 import ListUsers from "../admin/ListUsers";
-import NewStudent from "../student/NewStudent";
 import StudentReviews from "../admin/StudentReviews";
-import UpdateStudent from "../student/UpdateStudent";
 import UpdateUser from "../admin/UpdateUser";
 import ProtectedRoute from "../auth/ProtectedRoute";
 import Register from "../auth/Register";
+import ListStudentCounseling from "../counseling/ListStudentCounseling";
+import StudentCounseling from "../counseling/StudentCounseling";
+import StudentCounselingDetails from "../counseling/StudentCounselingDetails";
+import UpdateStudentCounseling from "../counseling/UpdateStudentCounseling";
 import CourseDetails from "../course/CourseDetails";
 import ListCourses from "../course/ListCourses";
 import NewCourse from "../course/NewCourse";
@@ -17,18 +18,20 @@ import EventDetails from "../event/EventDetails";
 import ListEvents from "../event/ListEvents";
 import NewEvent from "../event/NewEvent";
 import UpdateEvent from "../event/UpdateEvent";
+import AddExam from "../exam/AddExam";
 import GradeDetails from "../grade/GradeDetails";
 import ListGrades from "../grade/ListGrades";
 import NewGrade from "../grade/NewGrade";
 import UpdateGrade from "../grade/UpdateGrade";
+import AddQuiz from "../quiz/AddQuiz";
+import ListStudents from "../student/ListStudents";
+import NewStudent from "../student/NewStudent";
+import StudentDetails from "../student/StudentDetails";
+import UpdateStudent from "../student/UpdateStudent";
 import ListTeachers from "../teacher/ListTeachers";
 import NewTeacher from "../teacher/NewTeacher";
 import TeacherDetails from "../teacher/TeacherDetails";
 import UpdateTeacher from "../teacher/UpdateTeacher";
-import StudentDetails from "../student/StudentDetails";
-import AddQuiz from "../quiz/AddQuiz";
-import AddExam from "../exam/AddExam";
-import StudentCounseling from "../counseling/StudentCounseling";
 
 const adminRoutes = () => {
   return (
@@ -168,7 +171,6 @@ const adminRoutes = () => {
             <UpdateStudent />
           </ProtectedRoute>
         }
-
       />
       <Route
         path="/admin/student/:id/details"
@@ -176,13 +178,38 @@ const adminRoutes = () => {
           <ProtectedRoute admin={true}>
             <StudentDetails />
           </ProtectedRoute>
-        } />
+        }
+      />
 
       <Route
         path="/admin/counseling/new"
         element={
           <ProtectedRoute admin={true}>
             <StudentCounseling />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/counselings"
+        element={
+          <ProtectedRoute admin={true}>
+            <ListStudentCounseling />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/counselings/:id"
+        element={
+          <ProtectedRoute admin={true}>
+            <UpdateStudentCounseling />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/counseling/:id/details"
+        element={
+          <ProtectedRoute admin={true}>
+            <StudentCounselingDetails />
           </ProtectedRoute>
         }
       />
@@ -193,7 +220,8 @@ const adminRoutes = () => {
           <ProtectedRoute admin={true}>
             <AddQuiz />
           </ProtectedRoute>
-        } />
+        }
+      />
       {/* add quiz routes */}
       <Route
         path="/admin/exam"
@@ -201,7 +229,8 @@ const adminRoutes = () => {
           <ProtectedRoute admin={true}>
             <AddExam />
           </ProtectedRoute>
-        } />
+        }
+      />
       <Route
         path="/admin/event/new"
         element={
