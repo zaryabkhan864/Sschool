@@ -19,6 +19,12 @@ const AdminLayout = ({ children }) => {
       roles: ["teacher"], // Accessible by admin and teacher
     },
     {
+      name: "Wall",
+      url: "/posting_wall",
+      icon: "fas fa-bell",
+      roles: ["admin", "teacher"], // Accessible by admin and teacher
+    },
+    {
       name: "New Grade",
       url: "/admin/grade/new",
       icon: "fas fa-plus-circle",
