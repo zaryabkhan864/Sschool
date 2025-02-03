@@ -11,13 +11,13 @@ import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 const router = express.Router();
 
 router
-  .route("/annoucement")
+  .route("/announcement")
   .post(isAuthenticatedUser, authorizeRoles("admin","teacher"), createAnnouncement);
 
-router.route("/annoucement").get(getAnnouncements);
+router.route("/announcement").get(getAnnouncements);
 
-router.route("/annoucement/:id").put(updateAnnouncement);
+router.route("/announcement/:id").put(updateAnnouncement);
 
-router.route("/annoucements/:id").delete(deleteAnnouncement);
+router.route("/announcements/:id").delete(deleteAnnouncement);
 
 export default router;

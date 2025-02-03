@@ -1,7 +1,13 @@
-import { useState } from "react";
 import { Card, Button, Modal, Dropdown } from "flowbite-react";
-import ReactQuill from "react-quill";
+import { useSelector } from 'react-redux';
 import "react-quill/dist/quill.snow.css";
+import { toast } from "react-hot-toast";
+import ReactQuill from "react-quill";
+import { useState, useRef } from "react";
+
+
+import { useCreateAnnouncementMutation } from "../../redux/api/postingApi";
+
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 
@@ -31,6 +37,12 @@ const staticPosts = [
 ];
 
 const PostingWall = () => {
+    const fileInputRef = useRef(null);
+
+    const [ createAnnouncement, { isLoading, error, isSuccess }] = useCreateAnnouncementMutation();
+
+    const { user } = useSelector((state) => state.auth);
+
     const [posts, setPosts] = useState(staticPosts);
     const [newPost, setNewPost] = useState("");
     const [files, setFiles] = useState([]);
@@ -41,23 +53,30 @@ const PostingWall = () => {
     const [comments, setComments] = useState({});
 
     const handleFileChange = (e) => {
-        setFiles([...files, ...Array.from(e.target.files)]);
+        console.log(e.target.files,"aaaa")
+        setFiles([...files, e.target.files]);
     };
 
-    const handlePostSubmit = (e) => {
+    const handlePostSubmit = async (e) => {
         e.preventDefault();
         if (!newPost.trim()) return;
+
         const newPostData = {
-            id: Date.now(),
-            user: { name: "Admin", profilePic: "https://via.placeholder.com/50" },
-            content: newPost,
-            files: files.map(file => URL.createObjectURL(file)),
-            date: new Date().toLocaleString(),
-            comments: []
+            userId: user?._id,
+            message: newPost,
+            files: files,
         };
-        setPosts([newPostData, ...posts]);
-        setNewPost("");
-        setFiles([]);
+        const data = await createAnnouncement(newPostData)
+        if (data){
+            // setPosts([data.announcement, ...posts]);
+            setNewPost("");
+            setFiles([]);
+            fileInputRef.current.value = "";
+            toast.success("Announcement posted successfully.");
+        }
+        else{
+            toast.error('Announcement failed to post.');
+        }
     };
 
     const handleEditPost = (id) => {
@@ -99,8 +118,10 @@ const PostingWall = () => {
                     <Card className="mb-6 p-4 bg-gray-100">
                         <form onSubmit={handlePostSubmit}>
                             <ReactQuill theme="snow" value={newPost} onChange={setNewPost} placeholder="Write a new post..." className="mb-3" />
-                            <input type="file" multiple onChange={handleFileChange} className="mb-3" />
-                            <Button type="submit" className="mt-3 bg-blue-600 text-white">Post</Button>
+                            <input ref={fileInputRef} type="file" multiple onChange={handleFileChange} className="mb-3" />
+                            <Button type="submit"   disabled={isLoading} className="mt-3 bg-blue-600 text-white">   
+                                {isLoading ? "Posting..." : "Post"}
+                            </Button>
                         </form>
                     </Card>
                     {posts.map((post) => (
