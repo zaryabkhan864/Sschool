@@ -5,14 +5,15 @@ import userReducer from "./features/userSlice";
 import { authApi } from "./api/authApi";
 import { counselingApi } from "./api/counselingApi";
 import { courseApi } from "./api/courseApi";
-import { gradeApi } from "./api/gradesApi";
-import { studentApi } from "./api/studentsApi";
-import { userApi } from "./api/userApi";
-import { teacherApi } from "./api/teacherApi";
 import { eventApi } from "./api/eventApi";
-import { quizApi } from "./api/quizApi";
 import { examApi } from "./api/examApi";
+import { gradeApi } from "./api/gradesApi";
 import { postingApi } from "./api/postingApi";
+import { quizApi } from "./api/quizApi";
+import { studentApi } from "./api/studentsApi";
+import { teacherApi } from "./api/teacherApi";
+import { teacherLeaveApi } from "./api/teacherLeaveApi";
+import { userApi } from "./api/userApi";
 
 export const store = configureStore({
   reducer: {
@@ -28,6 +29,7 @@ export const store = configureStore({
     [userApi.reducerPath]: userApi.reducer,
     [counselingApi.reducerPath]: counselingApi.reducer,
     [postingApi.reducerPath]: postingApi.reducer,
+    [teacherLeaveApi.reducerPath]: teacherLeaveApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat([
@@ -42,5 +44,6 @@ export const store = configureStore({
       userApi.middleware,
       counselingApi.middleware,
       postingApi.middleware,
+      teacherLeaveApi.middleware,
     ]),
 });

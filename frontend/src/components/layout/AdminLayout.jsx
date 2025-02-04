@@ -61,6 +61,12 @@ const AdminLayout = ({ children }) => {
       roles: ["admin", "teacher"],
     },
     {
+      name: "New Teacher Leave",
+      url: "/admin/teacherleave/new",
+      icon: "fas fa-chalkboard-teacher",
+      roles: ["teacher"],
+    },
+    {
       name: "New Student",
       url: "/admin/student/new",
       icon: "fas fa-user-plus",
