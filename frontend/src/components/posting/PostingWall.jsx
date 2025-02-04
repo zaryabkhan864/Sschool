@@ -3,7 +3,9 @@ import { useSelector } from 'react-redux';
 import "react-quill/dist/quill.snow.css";
 import { toast } from "react-hot-toast";
 import ReactQuill from "react-quill";
-import { useState, useRef } from "react";
+import { useState } from "react";
+
+import FileUpload from "../UploadFile";
 
 
 import { useCreateAnnouncementMutation } from "../../redux/api/postingApi";
@@ -37,7 +39,6 @@ const staticPosts = [
 ];
 
 const PostingWall = () => {
-    const fileInputRef = useRef(null);
 
     const [ createAnnouncement, { isLoading, error, isSuccess }] = useCreateAnnouncementMutation();
 
@@ -52,10 +53,7 @@ const PostingWall = () => {
     const [postToDelete, setPostToDelete] = useState(null);
     const [comments, setComments] = useState({});
 
-    const handleFileChange = (e) => {
-        console.log(e.target.files,"aaaa")
-        setFiles([...files, e.target.files]);
-    };
+    console.log(files)
 
     const handlePostSubmit = async (e) => {
         e.preventDefault();
@@ -71,7 +69,6 @@ const PostingWall = () => {
             // setPosts([data.announcement, ...posts]);
             setNewPost("");
             setFiles([]);
-            fileInputRef.current.value = "";
             toast.success("Announcement posted successfully.");
         }
         else{
@@ -118,7 +115,8 @@ const PostingWall = () => {
                     <Card className="mb-6 p-4 bg-gray-100">
                         <form onSubmit={handlePostSubmit}>
                             <ReactQuill theme="snow" value={newPost} onChange={setNewPost} placeholder="Write a new post..." className="mb-3" />
-                            <input ref={fileInputRef} type="file" multiple onChange={handleFileChange} className="mb-3" />
+                            {/* <input ref={fileInputRef} type="file" multiple onChange={handleFileChange} className="mb-3" /> */}
+                            <FileUpload  isSubmitted={isSuccess} setFiles={setFiles} loading={isLoading}/>
                             <Button type="submit"   disabled={isLoading} className="mt-3 bg-blue-600 text-white">   
                                 {isLoading ? "Posting..." : "Post"}
                             </Button>
