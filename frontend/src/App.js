@@ -17,9 +17,9 @@ function App() {
       <Router>
         <Toaster position="top-center" />
         <Header />
-        
+
         {/* Routes will take full height except Header & Footer */}
-        <div className="flex-1 overflow-auto">
+        <div className=" ">
           <Routes>
             {userRoutes}
             {adminRoutes}

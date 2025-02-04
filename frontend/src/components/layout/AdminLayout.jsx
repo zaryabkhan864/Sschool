@@ -51,13 +51,13 @@ const AdminLayout = ({ children }) => {
     {
       name: "New Teacher",
       url: "/admin/teacher/new",
-      icon: "fas fa-plus",
+      icon: "fas fa-chalkboard-teacher",
       roles: ["admin"],
     },
     {
       name: "Teachers",
       url: "/admin/teachers",
-      icon: "fab fa-product-hunt",
+      icon: "fas fa-chalkboard-teacher",
       roles: ["admin", "teacher"],
     },
     {
@@ -75,13 +75,13 @@ const AdminLayout = ({ children }) => {
     {
       name: "Student Counseling",
       url: "/admin/counseling/new",
-      icon: "fas fa-users",
+      icon: "fas fa-comments",
       roles: ["admin"], // Only accessible by admin
     },
     {
       name: "Counselings",
       url: "/admin/counselings",
-      icon: "fas fa-users",
+      icon: "fas fa-comments",
       roles: ["admin"], // Only accessible by admin
     },
     {
@@ -96,7 +96,6 @@ const AdminLayout = ({ children }) => {
       icon: "fas fa-plus-circle",
       roles: ["admin", "teacher"], // Accessible by admin and teacher
     },
-
     {
       name: "New Event",
       url: "/admin/event/new",
@@ -106,7 +105,7 @@ const AdminLayout = ({ children }) => {
     {
       name: "Events",
       url: "/admin/events",
-      icon: "fas fa-book",
+      icon: "fas fa-calendar-alt",
       roles: ["admin"], // Accessible by admin
     },
     {
@@ -136,17 +135,17 @@ const AdminLayout = ({ children }) => {
 
   return (
     <React.Fragment>
-      <div className="flex flex-col md:flex-row justify-between py-5 relative">
-        <div className="md:w-1/6 self-end sm:self-auto">
+      <div className="flex flex-col md:flex-row min-h-screen">
+        {/* SideMenu */}
+        <div className="md:w-1/6 self-end sm:self-auto bg-white shadow-md fixed md:relative h-full z-50">
           <SideMenu menuItems={menuItems} />
         </div>
 
-        <div className="w-full md:w-5/6 bg-gray-50 shadow-md p-4 rounded-md">
+        {/* Main Content */}
+        <div className="flex-grow md:w-5/6 bg-gray-50 shadow-md p-4 rounded-md overflow-auto">
           <div className="text-center">
             <h2 className="font-bold text-xl md:text-2xl">
-              {user?.role === "teacher"
-                ? "Teacher Dashboard"
-                : "Admin Dashboard"}
+              {user?.role === "teacher" ? "Teacher Dashboard" : "Admin Dashboard"}
             </h2>
           </div>
           {children}
