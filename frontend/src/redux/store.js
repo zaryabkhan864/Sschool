@@ -13,6 +13,7 @@ import { eventApi } from "./api/eventApi";
 import { quizApi } from "./api/quizApi";
 import { examApi } from "./api/examApi";
 import { postingApi } from "./api/postingApi";
+import { commentApi } from "./api/commentApi";
 
 export const store = configureStore({
   reducer: {
@@ -28,6 +29,7 @@ export const store = configureStore({
     [userApi.reducerPath]: userApi.reducer,
     [counselingApi.reducerPath]: counselingApi.reducer,
     [postingApi.reducerPath]: postingApi.reducer,
+    [commentApi.reducerPath]: commentApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat([
@@ -42,5 +44,6 @@ export const store = configureStore({
       userApi.middleware,
       counselingApi.middleware,
       postingApi.middleware,
+      commentApi.middleware,
     ]),
 });

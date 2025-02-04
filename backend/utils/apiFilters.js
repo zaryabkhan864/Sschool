@@ -43,6 +43,7 @@ class APIFilters {
     if (field) {
       this.query = this.query.populate({
         path: field,
+        options: { sort: { createdAt: -1 } },
         populate: {
           path: field2,
         },

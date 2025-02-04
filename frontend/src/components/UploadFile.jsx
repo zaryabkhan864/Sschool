@@ -1,9 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-const FileUpload = ({setFiles, loading, isSubmitted}) => {
+const FileUpload = ({files, setFiles, loading, isSubmitted}) => {
   const [previews, setPreviews] = useState([]);
+  // const [key, setKey] = useState( 1);
   const fileInputRef = useRef(null);
 
+  // useEffect(() => {
+  //    setPreviews(files)
+  //    setKey(key+1)
+  //    console.log(previews)
+  // }, [files, key, previews]);
 
   useEffect(() => {
     if (fileInputRef?.current) {
@@ -12,7 +18,7 @@ const FileUpload = ({setFiles, loading, isSubmitted}) => {
     }
   }, [isSubmitted]);
 
-  const handleFileChange = (event) => {
+  const handleFileChange = useCallback((event) => {
     const selectedFiles = Array.from(event.target.files);    
     // Generate previews
     const newPreviews = [];
@@ -22,9 +28,7 @@ const FileUpload = ({setFiles, loading, isSubmitted}) => {
         setFiles(prevFiles => [...prevFiles, reader.result]);
         newPreviews.push({
           name: file.name,
-          type: file.type,
-          size: file.size,
-          data: reader.result
+          url: reader.result
         });
         if (newPreviews.length === selectedFiles.length) {
           setPreviews([...previews, ...newPreviews]);
@@ -32,7 +36,7 @@ const FileUpload = ({setFiles, loading, isSubmitted}) => {
       };
       reader.readAsDataURL(file);
     });
-  };
+  },[previews, setFiles]);
 
 const handleRemoveFile = useCallback((indexToRemove) => {
   setPreviews(prevPreviews => prevPreviews.filter((_, index) => index !== indexToRemove));
@@ -67,7 +71,7 @@ const truncateFileName = (fileName, maxLength) => {
       {/* Display selected files with previews */}
       {!!previews?.length &&(<div>
         <ul className='mt-6 list-none p-0 flex flex-wrap gap-5'>
-          {previews.map((file, index) => (
+          {previews?.map((file, index) => (
             <li key={index}>
               <div className="relative text-center">
                 <button
@@ -77,9 +81,9 @@ const truncateFileName = (fileName, maxLength) => {
                 >
                   ×
                 </button>
-                {file.type.startsWith('image/') ? (
+                {!file.type || file?.type?.startsWith('image/')   ? (
                   <img 
-                    src={file.data} 
+                    src={file.url} 
                     alt={file.name} 
                     className='w-[100px] h-[100px] object-cover border'
                   />
@@ -88,7 +92,8 @@ const truncateFileName = (fileName, maxLength) => {
                     {file.type || 'No preview available'}
                   </div>
                 )}
-                <div className="truncate">{truncateFileName(file.name, 10)}</div>
+                {file.name &&(
+                  <div className="truncate">{truncateFileName(file.name, 10)}</div>)}
               </div>
             </li>
           ))}

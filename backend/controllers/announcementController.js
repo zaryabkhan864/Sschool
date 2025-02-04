@@ -1,5 +1,6 @@
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import Announcement from "../models/announcement.js";
+import Comment from "../models/comment.js"
 import { upload_file, delete_file } from "../utils/cloudinary.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import APIFilters from "../utils/apiFilters.js";
@@ -77,7 +78,7 @@ export const deleteAnnouncement = catchAsyncErrors(async (req, res, next) => {
   if(result){
     // delete all provided attachments
     if (announcement.attachments && announcement.attachments.length > 0) {
-      for (const attachment of attachments) {
+      for (const attachment of announcement.attachments) {
         const isFileDeleted = await delete_file(attachment?.public_id);
         if(!isFileDeleted){
           return next(new ErrorHandler("Error deleting attchment file", 400));

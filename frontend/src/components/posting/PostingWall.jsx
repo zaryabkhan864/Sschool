@@ -3,41 +3,19 @@ import { useSelector } from 'react-redux';
 import "react-quill/dist/quill.snow.css";
 import { toast } from "react-hot-toast";
 import ReactQuill from "react-quill";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import dayjs from "dayjs";
 import relativeTime from 'dayjs/plugin/relativeTime'
 import FileUpload from "../UploadFile";
+import Comment from './Comment';
+import ConfirmationModal from './ConfirmationModal';
+import EditPostModal from './EditPostModal';
 
-
-import { useCreateAnnouncementMutation, useGetAnnouncementsQuery } from "../../redux/api/postingApi";
+import { useCreateAnnouncementMutation, useGetAnnouncementsQuery, useDeleteAnnouncementMutation, useUpdateAnnouncementMutation } from "../../redux/api/postingApi";
+import { useCreateCommentMutation, useDeleteCommentMutation, useUpdateCommentMutation } from "../../redux/api/commentApi";
 
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
-
-const staticPosts = [
-    {
-        id: 1,
-        user: {
-            name: "John Doe",
-            profilePic: "https://via.placeholder.com/50"
-        },
-        content: "This is the first post. Welcome to the announcement wall!",
-        files: [],
-        date: "2023-10-01 10:00 AM",
-        comments: []
-    },
-    {
-        id: 2,
-        user: {
-            name: "Jane Smith",
-            profilePic: "https://via.placeholder.com/50"
-        },
-        content: "Reminder: Submit your assignments by Friday.",
-        files: ["https://via.placeholder.com/300"],
-        date: "2023-10-02 11:30 AM",
-        comments: []
-    }
-];
 
 const PostingWall = () => {
     dayjs.extend(relativeTime)
@@ -47,18 +25,29 @@ const PostingWall = () => {
     
     const [hasMore, setHasMore] = useState(true);
     const [announcements, setAnnouncements] = useState([]);
+    const [selectedPost, setSelectedPost] = useState(null);
 
-    const [ createAnnouncement, { isLoading: isCreating, error: createError, isSuccess }] = useCreateAnnouncementMutation();
+    const [ createAnnouncement, { isLoading: isCreating, isSuccess }] = useCreateAnnouncementMutation();
+    const [ deleteAnnouncement, { isLoading: isDeletingPost }] = useDeleteAnnouncementMutation();
+    const [ updateAnnouncement, { isLoading: isEditingPost, isSuccess: isPostEdited }] = useUpdateAnnouncementMutation();
+    
+    const [ createComment, { isLoading: isAddingComment, }] = useCreateCommentMutation();
+    const [ deleteComment, { isLoading: isDeletingComment, isSuccess:deletingCommentSuccess }] = useDeleteCommentMutation();
+    const [ updateComment, { isLoading:isUpdatingComment, isSuccess:isCommentUpdated }] = useUpdateCommentMutation();
+
 
     const { user } = useSelector((state) => state.auth);
 
-    const [newPost, setNewPost] = useState("");
     const [files, setFiles] = useState([]);
-    const [editPostId, setEditPostId] = useState(null);
-    const [editPostContent, setEditPostContent] = useState("");
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [postToDelete, setPostToDelete] = useState(null);
+    const [newPost, setNewPost] = useState("");
+    const [updatedPost, setUpdatedPost] = useState(null);
+
     const [comments, setComments] = useState({});
+    const [expandedPosts, setExpandedPosts] = useState(new Set())
+    ;
+    const [showEditPostModal, setShowEditPostModal] = useState(false);
+    const [showDeletePostModal, setShowDeletePostModal] = useState(false);
+
 
     useEffect(() => {
         if (data?.announcements) {
@@ -99,35 +88,91 @@ const PostingWall = () => {
         }
     };
 
-    const handleEditPost = (id) => {
-        const post = announcements.find((post) => post.id === id);
-        setEditPostId(id);
-        setEditPostContent(post.content);
+    const updatePost = async () => {
+        if (!selectedPost?.message.trim()) return;
+        const result = await updateAnnouncement(selectedPost);
+        if (result.data) {
+            setPage(1);
+            refetch();
+            setFiles([]);
+            toast.success("Announcement updated successfully.");
+        } else {
+            toast.error('Announcement failed to update.');
+        }
     };
-
-    const saveEditedPost = () => {
-        setAnnouncements(announcements.map(post => post.id === editPostId ? { ...post, content: editPostContent } : post));
-        setEditPostId(null);
-    };
-
-    const confirmDeletePost = (id) => {
-        setPostToDelete(id);
-        setShowDeleteModal(true);
-    };
-
-    const deletePost = () => {
-        setAnnouncements(announcements.filter(post => post.id !== postToDelete));
-        setShowDeleteModal(false);
-        setPostToDelete(null);
-    };
-
-    const addComment = (postId, comment) => {
+    
+    const handleCommentSubmit = async (postId, comment) => {
         if (!comment.trim()) return;
-        setAnnouncements(announcements.map(post =>
-            post.id === postId ? { ...post, comments: [...post.comments, comment] } : post
-        ));
-        setComments({ ...comments, [postId]: "" });
+
+        const newPostData = {
+            userId: user?._id,
+            message: comment,
+            announcementId: postId
+        };
+        const result = await createComment(newPostData);
+        if (result.data) {
+            refetch();
+            setComments({ ...comments, [postId]: '' });
+            toast.success("Comment added successfully.");
+        } else {
+            toast.error('Comment failed to post.');
+        }
     };
+
+    const confirmDeleteComment = useCallback(async (commentId) => {
+        const result = await deleteComment(commentId);
+        if (result?.data) {
+            refetch();
+            toast.success("Comment deleted successfully.");
+        } else {
+            toast.error('Comment failed to delete.');
+        }
+    }, [deleteComment, refetch]);
+
+    const handleUpdateComment = useCallback(async (commentId, newMessage) => {
+        const result = await updateComment({id:commentId, body:{message:newMessage}});
+        if (result?.data) {
+            refetch();
+            toast.success("Comment updated successfully.");
+        } else {
+            toast.error('Comment failed to update.');
+        }
+    }, [refetch, updateComment]);
+
+    const confirmDeletePost = useCallback(async (postId) => {
+        const result = await deleteAnnouncement(postId);
+        if (result?.data) {
+            setPage(1)
+            refetch()
+            toast.success("Post deleted successfully.");
+            setShowDeletePostModal(false)
+        } else {
+            toast.error('Post failed to delete.');
+        }
+    }, [deleteAnnouncement, refetch]);
+
+    const toggleComments = (postId) => {
+        setExpandedPosts(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(postId)) {
+                newSet.delete(postId);
+            } else {
+                newSet.add(postId);
+            }
+            return newSet;
+        });
+    };
+
+    // const handleEditPost = (content) => {
+    //     setEditPostContent(content);
+    //     setShowEditPostModal(true);
+    // };
+
+    // const saveEditedPost = async () => {
+    //     // Logic to save the edited post
+    //     // Call your API or update state here
+    //     setShowEditPostModal(false);
+    // };
 
     return (
         <AdminLayout>
@@ -138,7 +183,6 @@ const PostingWall = () => {
                     <Card className="mb-6 p-4 bg-gray-100">
                         <form onSubmit={handlePostSubmit}>
                             <ReactQuill theme="snow" value={newPost} onChange={setNewPost} placeholder="Write a new post..." className="mb-3" />
-                            {/* <input ref={fileInputRef} type="file" multiple onChange={handleFileChange} className="mb-3" /> */}
                             <FileUpload  isSubmitted={isSuccess} setFiles={setFiles} loading={isCreating}/>
                             <Button type="submit"   disabled={isCreating} className="mt-3 bg-blue-600 text-white">   
                                 {isCreating ? "Posting..." : "Post"}
@@ -148,6 +192,7 @@ const PostingWall = () => {
                     {announcements.map((post) => (
                         <Card key={post._id} className="mb-4 p-4 shadow-lg relative">
                             {/* Dropdown Button for Edit and Delete */}
+                            {String(post?.userId._id) === String(user._id) && (
                             <div className="absolute top-4 right-4">
                                 <Dropdown
                                     label={<i className="fa fa-ellipsis-v text-gray-600 hover:text-gray-900 cursor-pointer"></i>}
@@ -155,10 +200,18 @@ const PostingWall = () => {
                                     arrowIcon={false}
                                     placement="left-start"
                                 >
-                                    <Dropdown.Item onClick={() => handleEditPost(post.id)}>Edit</Dropdown.Item>
-                                    <Dropdown.Item onClick={() => confirmDeletePost(post.id)}>Delete</Dropdown.Item>
+                                    <Dropdown.Item onClick={() => {
+                                            setUpdatedPost(post)
+                                            setShowEditPostModal(true)}}>
+                                        Edit
+                                    </Dropdown.Item>
+                                    <Dropdown.Item onClick={() => {
+                                                    setSelectedPost(post) 
+                                                    setShowDeletePostModal(true)}}>
+                                        Delete
+                                    </Dropdown.Item>
                                 </Dropdown>
-                            </div>
+                            </div>)}
 
                             {/* Post Content */}
                             <div className="flex items-center space-x-3">
@@ -178,10 +231,8 @@ const PostingWall = () => {
                                     alt={file.public_id} 
                                     className='w-[100px] h-[100px] object-cover border'
                                     />
-                                
                                 </div>
                                 </li>
-                                // <img key={index} src={file?.url} alt="attachment" className="mt-2 w-full max-h-60 object-cover rounded-md" />
                             ))}
                             </ul>
 
@@ -194,24 +245,50 @@ const PostingWall = () => {
                                     onChange={(e) => setComments({ ...comments, [post.id]: e.target.value })}
                                     className="w-full p-2 border rounded"
                                 />
-                                <Button className="mt-2 bg-blue-500 text-white" onClick={() => addComment(post.id, comments[post.id] || "")}>
-                                    Comment
+                                <Button disabled={!comments[post.id] ||isAddingComment} className="mt-2 bg-blue-500 text-white" onClick={() => handleCommentSubmit(post._id, comments[post.id] || "")}>
+                                    Add Comment
                                 </Button>
                             </div>
-                            <div className="mt-3">
-                                {post.comments.map((comment, idx) => (
-                                    <p key={idx} className="text-gray-700 border-t pt-2 mt-2">{comment}</p>
+                            <div className="mt-3 space-y-3">
+                                {post.comments.slice(
+                                    expandedPosts.has(post._id) ? 0 : 0 , expandedPosts.has(post._id)?post.comments.length : 2
+                                ).map((comment, idx) => (
+                                    <Comment
+                                        key={idx}
+                                        comment={comment}
+                                        currentUserId={user?._id}
+                                        postId={post._id}
+                                        onDelete={confirmDeleteComment}
+                                        onUpdateComment={handleUpdateComment}
+                                        isCommentDeleted = {deletingCommentSuccess}
+                                        isDeletingComment = {isDeletingComment}
+                                        isCommentUpdated={isCommentUpdated}
+                                        isUpdatingComment={isUpdatingComment}
+                                    />
                                 ))}
+                                {post.comments.length > 2 && (
+                                    <Button
+                                        onClick={() => toggleComments(post._id)}
+                                        size="xs"
+                                        color="light"
+                                        className="text-sm text-gray-600"
+                                    >
+                                        {expandedPosts.has(post._id) 
+                                            ? "Show Less" 
+                                            : `Show ${post.comments.length - 2} More Comments`}
+                                    </Button>
+                                )}
                             </div>
                         </Card>
                     ))}
 
                     {hasMore && (
-                        <div className="text-center mt-4">
+                        <div className="flex justify-center mt-4">
                             <Button
                                 onClick={loadMore}
                                 disabled={isLoading}
-                                className="bg-blue-600 text-white"
+                                size="xs"
+                                className="bg-blue-600 text-white font-medium px-6 py-2"
                             >
                                 {isLoading ? "Loading..." : "Load More"}
                             </Button>
@@ -219,6 +296,36 @@ const PostingWall = () => {
                     )}
                 </div>
             </div>
+
+            <EditPostModal 
+                show={showEditPostModal} 
+                onClose={() =>{
+                    if(!isEditingPost) {
+                        setShowEditPostModal(false)
+                        setSelectedPost(null)
+                    }}
+                }
+                onSave={updatePost}
+                selectedPost={selectedPost}
+                setSelectedPost={setSelectedPost}
+                loading={isEditingPost} 
+                setFiles={setFiles}
+                files={files}
+                
+            />
+
+            <ConfirmationModal 
+                show={showDeletePostModal} 
+                onConfirm={()=> confirmDeletePost(selectedPost._id)} 
+                loading={isDeletingPost}
+                onClose={ () => {
+                            if(!isDeletingPost) {
+                                setShowDeletePostModal(false)
+                                setSelectedPost(null)
+                            }}
+                        } 
+                message="Are you sure you want to delete this post? This action cannot be undone." 
+            />
         </AdminLayout>
     );
 };
