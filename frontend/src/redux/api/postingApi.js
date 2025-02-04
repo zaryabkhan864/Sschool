@@ -14,6 +14,14 @@ export const postingApi = createApi({
       },
       invalidatesTags: ["Announcement"],
     }),
+    getAnnouncements: builder.query({
+      query: (params) => ({
+        url: "/announcement",
+        params: {
+          page: params?.page,
+        },
+      }),
+    }),
     updateAnnouncement: builder.mutation({
       query({ id, body }) {
         return {
@@ -40,4 +48,5 @@ export const {
   useCreateAnnouncementMutation,
   useUpdateAnnouncementMutation,
   useDeleteAnnouncementMutation,
+  useGetAnnouncementsQuery
 } = postingApi;

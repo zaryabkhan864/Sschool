@@ -3,12 +3,13 @@ import { useSelector } from 'react-redux';
 import "react-quill/dist/quill.snow.css";
 import { toast } from "react-hot-toast";
 import ReactQuill from "react-quill";
-import { useState } from "react";
-
+import { useState, useEffect } from "react";
+import dayjs from "dayjs";
+import relativeTime from 'dayjs/plugin/relativeTime'
 import FileUpload from "../UploadFile";
 
 
-import { useCreateAnnouncementMutation } from "../../redux/api/postingApi";
+import { useCreateAnnouncementMutation, useGetAnnouncementsQuery } from "../../redux/api/postingApi";
 
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
@@ -39,12 +40,18 @@ const staticPosts = [
 ];
 
 const PostingWall = () => {
+    dayjs.extend(relativeTime)
 
-    const [ createAnnouncement, { isLoading, error, isSuccess }] = useCreateAnnouncementMutation();
+    const [page, setPage] = useState(1);
+    const { data, isLoading, refetch } = useGetAnnouncementsQuery({ page, limit: 10 });
+    
+    const [hasMore, setHasMore] = useState(true);
+    const [announcements, setAnnouncements] = useState([]);
+
+    const [ createAnnouncement, { isLoading: isCreating, error: createError, isSuccess }] = useCreateAnnouncementMutation();
 
     const { user } = useSelector((state) => state.auth);
 
-    const [posts, setPosts] = useState(staticPosts);
     const [newPost, setNewPost] = useState("");
     const [files, setFiles] = useState([]);
     const [editPostId, setEditPostId] = useState(null);
@@ -53,7 +60,23 @@ const PostingWall = () => {
     const [postToDelete, setPostToDelete] = useState(null);
     const [comments, setComments] = useState({});
 
-    console.log(files)
+    useEffect(() => {
+        if (data?.announcements) {
+            if (page === 1) {
+                setAnnouncements(data.announcements);
+            } else {
+                setAnnouncements(prev => [...prev, ...data.announcements]);
+            }
+            setHasMore(data.announcements.length === 8);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [data]);
+
+    const loadMore = () => {
+        if (!isLoading && hasMore) {
+            setPage(prev => prev + 1);
+        }
+    };
 
     const handlePostSubmit = async (e) => {
         e.preventDefault();
@@ -62,28 +85,28 @@ const PostingWall = () => {
         const newPostData = {
             userId: user?._id,
             message: newPost,
-            files: files,
+            attachments: files,
         };
-        const data = await createAnnouncement(newPostData)
-        if (data){
-            // setPosts([data.announcement, ...posts]);
+        const result = await createAnnouncement(newPostData);
+        if (result.data) {
+            setPage(1);
+            refetch();
             setNewPost("");
             setFiles([]);
             toast.success("Announcement posted successfully.");
-        }
-        else{
+        } else {
             toast.error('Announcement failed to post.');
         }
     };
 
     const handleEditPost = (id) => {
-        const post = posts.find((post) => post.id === id);
+        const post = announcements.find((post) => post.id === id);
         setEditPostId(id);
         setEditPostContent(post.content);
     };
 
     const saveEditedPost = () => {
-        setPosts(posts.map(post => post.id === editPostId ? { ...post, content: editPostContent } : post));
+        setAnnouncements(announcements.map(post => post.id === editPostId ? { ...post, content: editPostContent } : post));
         setEditPostId(null);
     };
 
@@ -93,14 +116,14 @@ const PostingWall = () => {
     };
 
     const deletePost = () => {
-        setPosts(posts.filter(post => post.id !== postToDelete));
+        setAnnouncements(announcements.filter(post => post.id !== postToDelete));
         setShowDeleteModal(false);
         setPostToDelete(null);
     };
 
     const addComment = (postId, comment) => {
         if (!comment.trim()) return;
-        setPosts(posts.map(post =>
+        setAnnouncements(announcements.map(post =>
             post.id === postId ? { ...post, comments: [...post.comments, comment] } : post
         ));
         setComments({ ...comments, [postId]: "" });
@@ -116,14 +139,14 @@ const PostingWall = () => {
                         <form onSubmit={handlePostSubmit}>
                             <ReactQuill theme="snow" value={newPost} onChange={setNewPost} placeholder="Write a new post..." className="mb-3" />
                             {/* <input ref={fileInputRef} type="file" multiple onChange={handleFileChange} className="mb-3" /> */}
-                            <FileUpload  isSubmitted={isSuccess} setFiles={setFiles} loading={isLoading}/>
-                            <Button type="submit"   disabled={isLoading} className="mt-3 bg-blue-600 text-white">   
-                                {isLoading ? "Posting..." : "Post"}
+                            <FileUpload  isSubmitted={isSuccess} setFiles={setFiles} loading={isCreating}/>
+                            <Button type="submit"   disabled={isCreating} className="mt-3 bg-blue-600 text-white">   
+                                {isCreating ? "Posting..." : "Post"}
                             </Button>
                         </form>
                     </Card>
-                    {posts.map((post) => (
-                        <Card key={post.id} className="mb-4 p-4 shadow-lg relative">
+                    {announcements.map((post) => (
+                        <Card key={post._id} className="mb-4 p-4 shadow-lg relative">
                             {/* Dropdown Button for Edit and Delete */}
                             <div className="absolute top-4 right-4">
                                 <Dropdown
@@ -139,16 +162,28 @@ const PostingWall = () => {
 
                             {/* Post Content */}
                             <div className="flex items-center space-x-3">
-                                <img src={post.user.profilePic} alt="Profile" className="w-10 h-10 rounded-full" />
+                                <img src={post?.userId?.avatar?.url} alt="Profile" className="w-10 h-10 rounded-full" />
                                 <div>
-                                    <h4 className="font-semibold">{post.user.name}</h4>
-                                    <span className="text-sm text-gray-600">{post.date}</span>
+                                    <h4 className="font-semibold">{post.userId.name}</h4>
+                                    <span className="text-sm text-gray-600">{dayjs(post.createdAt).fromNow()}</span>
                                 </div>
                             </div>
-                            <div className="mt-3" dangerouslySetInnerHTML={{ __html: post.content }} />
-                            {post.files.length > 0 && post.files.map((file, index) => (
-                                <img key={index} src={file} alt="attachment" className="mt-2 w-full max-h-60 object-cover rounded-md" />
+                            <div className="mt-3" dangerouslySetInnerHTML={{ __html: post.message }} />
+                            <ul className='mt-6 list-none p-0 flex flex-wrap gap-5'>
+                            {post.attachments.length > 0 && post.attachments.map((file, index) =>(
+                                <li key={index}>
+                                <div className="relative text-center">
+                                    <img 
+                                    src={file.url} 
+                                    alt={file.public_id} 
+                                    className='w-[100px] h-[100px] object-cover border'
+                                    />
+                                
+                                </div>
+                                </li>
+                                // <img key={index} src={file?.url} alt="attachment" className="mt-2 w-full max-h-60 object-cover rounded-md" />
                             ))}
+                            </ul>
 
                             {/* Comment Section */}
                             <div className="mt-3">
@@ -170,6 +205,18 @@ const PostingWall = () => {
                             </div>
                         </Card>
                     ))}
+
+                    {hasMore && (
+                        <div className="text-center mt-4">
+                            <Button
+                                onClick={loadMore}
+                                disabled={isLoading}
+                                className="bg-blue-600 text-white"
+                            >
+                                {isLoading ? "Loading..." : "Load More"}
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </div>
         </AdminLayout>
