@@ -1,26 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useUploadFileMutation, useDeleteFileMutation } from '../redux/api/fileApi';
 import toast from 'react-hot-toast';
-import { isUndefined } from 'lodash';
 
-const FileUpload = ({files, setIsUploadingFile, setFiles, loading, isSubmitted}) => {
+const FileUpload = ({setIsUploadingFile, setFiles, loading, isSubmitted}) => {
   
-  const [key, setKey] = useState( 1);
-  const [previews, setPreviews] = useState(isUndefined(files)?[]:files);
+  const [previews, setPreviews] = useState([]);
 
   const [ uploadFile, { isLoading }] = useUploadFileMutation();
   const [ deleteFile, { isLoading: isDeleting }] = useDeleteFileMutation();
 
 
   const fileInputRef = useRef(null);
-
-   useEffect(() => {
-    if(files){ 
-      setPreviews(files)
-      setKey(key+1)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     if (fileInputRef?.current && isSubmitted) {
@@ -104,8 +94,8 @@ const truncateFileName = (fileName, maxLength) => {
       </label>
 
       {/* Display selected files with previews */}
-      {!!previews?.length &&(<div  key={key}>
-        <ul key={key} className='mt-6 list-none p-0 flex flex-wrap gap-5'>
+      {!!previews?.length &&(<div>
+        <ul className='mt-6 list-none p-0 flex flex-wrap gap-5'>
           {previews?.map((file, index) => (
             <li key={index}>
               <div className="relative text-center">

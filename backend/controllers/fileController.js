@@ -14,7 +14,12 @@ export const uploadFile = catchAsyncErrors(async (req, res, next) => {
   if (files && files.length > 0) {
     for (const attachment of files) {
         const uploadedFile = await upload_file(attachment, "announcements/attachments");
-        uploadedAttachments.push(uploadedFile);
+        if(uploadedFile?.url){
+          uploadedAttachments.push(uploadedFile);
+        }
+        else{
+          return next(new ErrorHandler("Error uploading file.", 400));
+        }
     }
   }
 

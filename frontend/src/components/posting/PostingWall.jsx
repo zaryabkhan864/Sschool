@@ -174,7 +174,8 @@ const PostingWall = () => {
                     <Card className="mb-6 p-4 bg-gray-100">
                         <form onSubmit={handlePostSubmit}>
                             <ReactQuill theme="snow" value={newPost} onChange={setNewPost} placeholder="Write a new post..." className="mb-3" />
-                            <FileUpload setIsUploadingFile={setIsUploadingFile}  isSubmitted={isSuccess} setFiles={setFiles} loading={isCreating}/>
+                            {!showEditPostModal && <FileUpload setIsUploadingFile={setIsUploadingFile}  isSubmitted={isSuccess} 
+                            setFiles={setFiles} loading={isCreating}/>}
                             <Button type="submit"   disabled={isCreating|| isUploadingfile } className="mt-3 bg-blue-600 text-white">   
                                 {isCreating ? "Posting..." : "Post"}
                             </Button>
