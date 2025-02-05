@@ -19,6 +19,7 @@ const AdminLayout = ({ children }) => {
   const dashboardTitle = roleTitles[user?.role] || "Dashboard";
 
   const allMenuItems = [
+
     { name: "Dashboard", url: "/admin/dashboard", icon: "fas fa-tachometer-alt", roles: ["admin"] },
     { name: "Dashboard", url: "/teacher/dashboard", icon: "fas fa-tachometer-alt", roles: ["teacher"] },
     { name: "Dashboard", url: "/student/dashboard", icon: "fas fa-tachometer-alt", roles: ["student"] },
@@ -34,7 +35,7 @@ const AdminLayout = ({ children }) => {
     { name: "Teachers", url: "/admin/teachers", icon: "fas fa-chalkboard-teacher", roles: ["admin", "teacher"] },
     { name: "New Student", url: "/admin/student/new", icon: "fas fa-user-plus", roles: ["admin"] },
     { name: "Students", url: "/admin/students", icon: "fas fa-users", roles: ["admin"] },
-    { name: "Student Counseling", url: "/admin/counseling/new", icon: "fas fa-comments", roles: ["admin","counsellor"] },
+    { name: "Student Counseling", url: "/admin/counseling/new", icon: "fas fa-comments", roles: ["admin", "counsellor"] },
     { name: "Counselings", url: "/admin/counselings", icon: "fas fa-comments", roles: ["admin"] },
     { name: "New Quiz", url: "/admin/quiz/new", icon: "fas fa-plus-circle", roles: ["admin", "teacher"] },
     { name: "New Exam", url: "/admin/exam", icon: "fas fa-plus-circle", roles: ["admin", "teacher"] },
@@ -44,7 +45,7 @@ const AdminLayout = ({ children }) => {
     { name: "Create User", url: "/admin/register", icon: "fas fa-user-plus", roles: ["admin"] },
     { name: "Users", url: "/admin/users", icon: "fas fa-user-friends", roles: ["admin"] },
     { name: "Student Fees", url: "/finance/student/fees", icon: "fas fa-user-friends", roles: ["admin", "finance"] },
-  ];
+    { name: "New Teacher Leave", url: "/admin/teacherleave/new", icon: "fas fa-chalkboard-teacher", roles: ["teacher"], },];
 
   // Filter menu items based on user role
   const menuItems = allMenuItems.filter((item) => item.roles.includes(user?.role));

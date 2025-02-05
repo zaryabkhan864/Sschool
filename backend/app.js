@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 // Handle Uncaught exceptions
 process.on("uncaughtException", (err) => {
   console.log(`ERROR: ${err}`);
-  console.log("Shutting down due to uncaught expection");
+  console.log("Shutting down due to uncaught exception");
   process.exit(1);
 });
 
@@ -48,18 +48,19 @@ app.use((req, res, next) => {
 
 import authRoutes from "./routes/auth.js";
 
-import counselingRoutes from "./routes/counseling.js";
-import courseRoutes from "./routes/course.js";
-import gradeRoutes from "./routes/grade.js";
-import studentRoutes from "./routes/students.js";
-import teacherRoutes from "./routes/teachers.js";
-import eventRoutes from "./routes/event.js";
-import quizRoutes from "./routes/quiz.js";
-import examRoutes from "./routes/exam.js";
 import announcementRoutes from "./routes/announcement.js";
 import commentRoutes from "./routes/comment.js";
 import feesRoutes from "./routes/fees.js";
 
+import counselingRoutes from "./routes/counseling.js";
+import courseRoutes from "./routes/course.js";
+import eventRoutes from "./routes/event.js";
+import examRoutes from "./routes/exam.js";
+import gradeRoutes from "./routes/grade.js";
+import quizRoutes from "./routes/quiz.js";
+import studentRoutes from "./routes/students.js";
+import teacherLeaveRoutes from "./routes/teacherLeave.js";
+import teacherRoutes from "./routes/teachers.js";
 
 import { fileURLToPath } from "url";
 
@@ -76,6 +77,7 @@ app.use("/api/v1", announcementRoutes);
 app.use("/api/v1", commentRoutes);
 // finances routes
 app.use("/api/v1", feesRoutes);
+app.use("/api/v1", teacherLeaveRoutes);
 
 if (process.env.NODE_ENV === "PRODUCTION") {
   app.use(express.static(path.join(__dirname, "../frontend/build")));

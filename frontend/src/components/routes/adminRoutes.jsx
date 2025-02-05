@@ -32,6 +32,7 @@ import ListTeachers from "../teacher/ListTeachers";
 import NewTeacher from "../teacher/NewTeacher";
 import TeacherDetails from "../teacher/TeacherDetails";
 import UpdateTeacher from "../teacher/UpdateTeacher";
+import NewTeacherLeave from "../teacherLeave/NewTeacherLeave";
 
 const adminRoutes = () => {
   return (
@@ -145,6 +146,14 @@ const adminRoutes = () => {
         element={
           <ProtectedRoute admin={true}>
             <TeacherDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/teacherleave/new"
+        element={
+          <ProtectedRoute admin={true}>
+            <NewTeacherLeave />
           </ProtectedRoute>
         }
       />
