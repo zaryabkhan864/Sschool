@@ -207,7 +207,7 @@ const PostingWall = () => {
 
                             {/* Post Content */}
                             <div className="flex items-center space-x-3">
-                                <img src={post?.userId?.avatar?.url} alt="Profile" className="w-10 h-10 rounded-full" />
+                                <img src={post?.userId?.avatar?.url || "/images/default_avatar.jpg"} alt="Profile" className="w-10 h-10 rounded-full" />
                                 <div>
                                     <h4 className="font-semibold">{post.userId.name}</h4>
                                     <span className="text-sm text-gray-600">{dayjs(post.createdAt).fromNow()}</span>

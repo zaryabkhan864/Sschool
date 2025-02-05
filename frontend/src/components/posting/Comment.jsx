@@ -43,7 +43,7 @@ const Comment = ({
     return (
         <div className="flex items-start space-x-3 border-t pt-3">
             <img 
-                src={comment.userId?.avatar?.url || "https://via.placeholder.com/40"} 
+                src={comment.userId?.avatar?.url || "/images/default_avatar.jpg"} 
                 alt="Profile" 
                 className="w-8 h-8 rounded-full"
             />
