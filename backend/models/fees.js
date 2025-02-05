@@ -1,6 +1,6 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
-const FeesSchema = new mongoose.Schema({
+export const FeesSchema = new mongoose.Schema({
     studentId: { type: mongoose.Schema.Types.ObjectId, ref: "Student", required: true },
     amount: { type: Number, required: true },
     feeType: { type: String, enum: ["Admission", "Tuition", "Exam", "Transport", "Hostel"], required: true },
@@ -10,4 +10,6 @@ const FeesSchema = new mongoose.Schema({
     paymentMethod: { type: String, enum: ["Cash", "Bank Transfer", "Online"] }
 });
 
-module.exports = mongoose.model("Fees", FeesSchema);
+
+export default mongoose.model("Fees", FeesSchema);
+

@@ -6,12 +6,19 @@ import NotFound from "./components/layout/NotFound";
 import useAdminRoutes from "./components/routes/adminRoutes";
 import useTeacherRoutes from "./components/routes/teacherRoutes";
 import useUserRoutes from "./components/routes/userRoutes";
+import useFinanceRoutes from "./components/routes/financeRoutes";
+import useStudentRoutes from "./components/routes/studentRoutes";
+import useCounselorRoutes from "./components/routes/counsellorRoutes";
+import usePrincipleRoutes from "./components/routes/principleRoutes";
 
 function App() {
   const userRoutes = useUserRoutes();
   const adminRoutes = useAdminRoutes();
   const teacherRoutes = useTeacherRoutes();
-
+  const financeRoutes = useFinanceRoutes();
+  const studentRoutes = useStudentRoutes();
+  const counselorRoutes = useCounselorRoutes();
+  const principleRoutes = usePrincipleRoutes();
   return (
     <div className="h-screen flex flex-col">
       <Router>
@@ -24,6 +31,10 @@ function App() {
             {userRoutes}
             {adminRoutes}
             {teacherRoutes}
+            {financeRoutes}
+            {studentRoutes}
+            {counselorRoutes}
+            {principleRoutes}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>

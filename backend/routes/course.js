@@ -9,7 +9,7 @@ import {
 } from "../controllers/courseContollers.js";
 import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 
-const router = express.Router();
+export const router = express.Router();
 
 router
   .route("/admin/courses")

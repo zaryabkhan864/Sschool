@@ -58,6 +58,8 @@ import quizRoutes from "./routes/quiz.js";
 import examRoutes from "./routes/exam.js";
 import announcementRoutes from "./routes/announcement.js";
 import commentRoutes from "./routes/comment.js";
+import feesRoutes from "./routes/fees.js";
+
 
 import { fileURLToPath } from "url";
 
@@ -72,6 +74,8 @@ app.use("/api/v1", examRoutes);
 app.use("/api/v1", counselingRoutes);
 app.use("/api/v1", announcementRoutes);
 app.use("/api/v1", commentRoutes);
+// finances routes
+app.use("/api/v1", feesRoutes);
 
 if (process.env.NODE_ENV === "PRODUCTION") {
   app.use(express.static(path.join(__dirname, "../frontend/build")));

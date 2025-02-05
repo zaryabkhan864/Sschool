@@ -18,7 +18,11 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
     avatar,
     role, // Explicitly passing role from req.body
   });
-  sendToken(user, 201, res);
+  res.status(201).json({
+    success: true,
+    user,
+  });
+  // sendToken(user, 201, res);
 });
 
 // Login user   =>  /api/v1/login

@@ -13,10 +13,12 @@ import { eventApi } from "./api/eventApi";
 import { quizApi } from "./api/quizApi";
 import { examApi } from "./api/examApi";
 import { postingApi } from "./api/postingApi";
+import { feesApi } from "./api/feesApi";
 
 export const store = configureStore({
   reducer: {
     auth: userReducer,
+    [feesApi.reducerPath]: feesApi.reducer,
     [quizApi.reducerPath]: quizApi.reducer,
     [examApi.reducerPath]: examApi.reducer,
     [studentApi.reducerPath]: studentApi.reducer,
@@ -31,6 +33,7 @@ export const store = configureStore({
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat([
+      feesApi.middleware,
       quizApi.middleware,
       examApi.middleware,
       studentApi.middleware,

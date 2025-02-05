@@ -26,6 +26,19 @@ const Login = () => {
     if (isAuthenticated && user?.role === "teacher") {
       navigate("/teacher/dashboard");
     }
+    if (isAuthenticated && user?.role === "student") {
+      navigate("/student/dashboard");
+    }
+    if (isAuthenticated && user?.role === "principle") {
+      navigate("/principle/dashboard");
+    }
+    if (isAuthenticated && user?.role === "finance") {
+      navigate("/finance/dashboard");
+    }
+    if (isAuthenticated && user?.role === "counsellor") {
+      navigate("/counsellor/dashboard");
+    }
+
     if (error) {
       toast.error(error?.data?.message);
     }
