@@ -18,6 +18,6 @@ router.route("/announcement").get(getAnnouncements);
 
 router.route("/announcement/:id").put(updateAnnouncement);
 
-router.route("/announcements/:id").delete(deleteAnnouncement);
+router.route("/announcement/:id").delete(deleteAnnouncement);
 
 export default router;

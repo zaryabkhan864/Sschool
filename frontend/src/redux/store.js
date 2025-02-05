@@ -15,6 +15,7 @@ import { studentApi } from "./api/studentsApi";
 import { teacherApi } from "./api/teacherApi";
 import { teacherLeaveApi } from "./api/teacherLeaveApi";
 import { userApi } from "./api/userApi";
+import { commentApi } from "./api/commentApi";
 
 export const store = configureStore({
   reducer: {
@@ -32,6 +33,7 @@ export const store = configureStore({
     [counselingApi.reducerPath]: counselingApi.reducer,
     [postingApi.reducerPath]: postingApi.reducer,
     [teacherLeaveApi.reducerPath]: teacherLeaveApi.reducer,
+    [commentApi.reducerPath]: commentApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat([
@@ -48,5 +50,6 @@ export const store = configureStore({
       counselingApi.middleware,
       postingApi.middleware,
       teacherLeaveApi.middleware,
+      commentApi.middleware,
     ]),
 });

@@ -39,10 +39,11 @@ class APIFilters {
     }
     return this;
   }
-  nestedPopulate(feild, field2) {
+  nestedPopulate(field, field2) {
     if (field) {
       this.query = this.query.populate({
-        path: feild,
+        path: field,
+        options: { sort: { createdAt: -1 } },
         populate: {
           path: field2,
         },
