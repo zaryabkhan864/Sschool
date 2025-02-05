@@ -45,6 +45,8 @@ const AdminLayout = ({ children }) => {
     { name: "Create User", url: "/admin/register", icon: "fas fa-user-plus", roles: ["admin"] },
     { name: "Users", url: "/admin/users", icon: "fas fa-user-friends", roles: ["admin"] },
     { name: "Student Fees", url: "/finance/student/fees", icon: "fas fa-user-friends", roles: ["admin", "finance"] },
+    { name: "Student Fees List", url: "/finance/students/fees", icon: "fas fa-user-friends", roles: ["admin", "finance"] },
+    { name: "Employee Salary", url: "/finance/employee/salaries", icon: "fas fa-user-friends", roles: ["admin", "finance"] },
     { name: "New Teacher Leave", url: "/admin/teacherleave/new", icon: "fas fa-chalkboard-teacher", roles: ["teacher"], },];
 
   // Filter menu items based on user role

@@ -5,12 +5,13 @@ import APIFilters from "../utils/apiFilters.js";
 
 // Create new fee entry => /api/v1/fees
 export const newFee = catchAsyncErrors(async (req, res, next) => {
-    const { studentId, amount, feeType, dueDate, status, paymentDate, paymentMethod } = req.body;
+    const { student, amount, feeType, currency, dueDate, status, paymentDate, paymentMethod } = req.body;
 
     const fee = await Fees.create({
-        studentId,
+        student,
         amount,
         feeType,
+        currency,
         dueDate,
         status,
         paymentDate,
@@ -26,7 +27,7 @@ export const newFee = catchAsyncErrors(async (req, res, next) => {
 // Get all fees => /api/v1/fees
 export const getFees = catchAsyncErrors(async (req, res, next) => {
     const resPerPage = 10;
-    const apiFilters = new APIFilters(Fees, req.query).search().filters();
+    const apiFilters = new APIFilters(Fees, req.query).search().filters().populate("student");
 
     let fees = await apiFilters.query;
     const filteredFeesCount = fees.length;

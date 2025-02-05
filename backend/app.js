@@ -51,6 +51,7 @@ import authRoutes from "./routes/auth.js";
 import announcementRoutes from "./routes/announcement.js";
 import commentRoutes from "./routes/comment.js";
 import feesRoutes from "./routes/fees.js";
+import salariesRoutes from "./routes/salaries.js";
 
 import counselingRoutes from "./routes/counseling.js";
 import courseRoutes from "./routes/course.js";
