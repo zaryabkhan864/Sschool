@@ -19,6 +19,9 @@ export const upload_file = (file, folder) => {
           url: result.url,
         });
       },
+      (error) => {
+        reject(new Error(`Upload failed: ${error.message}`));
+      },
       {
         resource_type: "auto",
         folder,

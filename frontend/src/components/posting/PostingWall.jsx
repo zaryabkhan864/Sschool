@@ -1,4 +1,4 @@
-import { Card, Button, Modal, Dropdown } from "flowbite-react";
+import { Card, Button, Dropdown } from "flowbite-react";
 import { useSelector } from 'react-redux';
 import "react-quill/dist/quill.snow.css";
 import { toast } from "react-hot-toast";
@@ -39,6 +39,7 @@ const PostingWall = () => {
     const { user } = useSelector((state) => state.auth);
 
     const [files, setFiles] = useState([]);
+    const [isUploadingfile, setIsUploadingFile] = useState(false);
     const [newPost, setNewPost] = useState("");
     const [updatedPost, setUpdatedPost] = useState(null);
 
@@ -88,18 +89,19 @@ const PostingWall = () => {
         }
     };
 
-    const updatePost = async () => {
-        if (!selectedPost?.message.trim()) return;
-        const result = await updateAnnouncement(selectedPost);
+    const updatePost = useCallback(async (message,files) => {
+        if (!message.trim()) return;
+        const result = await updateAnnouncement({id: updatedPost._id, body: {attachments:files, message}});
         if (result.data) {
             setPage(1);
             refetch();
-            setFiles([]);
+            setShowEditPostModal(false)
+            setUpdatedPost(null)
             toast.success("Announcement updated successfully.");
         } else {
             toast.error('Announcement failed to update.');
         }
-    };
+    }, [updatedPost, refetch, updateAnnouncement]);
     
     const handleCommentSubmit = async (postId, comment) => {
         if (!comment.trim()) return;
@@ -163,17 +165,6 @@ const PostingWall = () => {
         });
     };
 
-    // const handleEditPost = (content) => {
-    //     setEditPostContent(content);
-    //     setShowEditPostModal(true);
-    // };
-
-    // const saveEditedPost = async () => {
-    //     // Logic to save the edited post
-    //     // Call your API or update state here
-    //     setShowEditPostModal(false);
-    // };
-
     return (
         <AdminLayout>
             <MetaData title={"Posting Wall"} />
@@ -183,8 +174,8 @@ const PostingWall = () => {
                     <Card className="mb-6 p-4 bg-gray-100">
                         <form onSubmit={handlePostSubmit}>
                             <ReactQuill theme="snow" value={newPost} onChange={setNewPost} placeholder="Write a new post..." className="mb-3" />
-                            <FileUpload  isSubmitted={isSuccess} setFiles={setFiles} loading={isCreating}/>
-                            <Button type="submit"   disabled={isCreating} className="mt-3 bg-blue-600 text-white">   
+                            <FileUpload setIsUploadingFile={setIsUploadingFile}  isSubmitted={isSuccess} setFiles={setFiles} loading={isCreating}/>
+                            <Button type="submit"   disabled={isCreating|| isUploadingfile } className="mt-3 bg-blue-600 text-white">   
                                 {isCreating ? "Posting..." : "Post"}
                             </Button>
                         </form>
@@ -297,22 +288,19 @@ const PostingWall = () => {
                 </div>
             </div>
 
-            <EditPostModal 
-                show={showEditPostModal} 
+            {updatedPost &&(<EditPostModal 
+                show={showEditPostModal && updatedPost} 
                 onClose={() =>{
                     if(!isEditingPost) {
                         setShowEditPostModal(false)
-                        setSelectedPost(null)
+                        setUpdatedPost(null)
                     }}
                 }
-                onSave={updatePost}
-                selectedPost={selectedPost}
-                setSelectedPost={setSelectedPost}
-                loading={isEditingPost} 
-                setFiles={setFiles}
-                files={files}
-                
-            />
+                onSave={(message, files) => updatePost(message, files)}
+                selectedPost={updatedPost}
+                loading={isEditingPost}
+                isSubmitted={isPostEdited}           
+            />)}
 
             <ConfirmationModal 
                 show={showDeletePostModal} 

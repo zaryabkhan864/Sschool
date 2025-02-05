@@ -52,6 +52,11 @@ class APIFilters {
     return this;
   }
 
+  sort(sortBy, sortOrder) {
+      this.query = this.query.sort({ [sortBy]:sortOrder})
+    return this;
+  }
+
   pagination(resPerPage) {
     const currentPage = Number(this.queryStr.page) || 1;
     const skip = resPerPage * (currentPage - 1);
