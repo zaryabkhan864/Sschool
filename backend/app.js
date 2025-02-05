@@ -62,6 +62,7 @@ import quizRoutes from "./routes/quiz.js";
 import studentRoutes from "./routes/students.js";
 import teacherLeaveRoutes from "./routes/teacherLeave.js";
 import teacherRoutes from "./routes/teachers.js";
+import fileRoutes from "./routes/file.js";
 
 import { fileURLToPath } from "url";
 
@@ -79,6 +80,7 @@ app.use("/api/v1", commentRoutes);
 // finances routes
 app.use("/api/v1", feesRoutes);
 app.use("/api/v1", teacherLeaveRoutes);
+app.use("/api/v1", fileRoutes);
 
 if (process.env.NODE_ENV === "PRODUCTION") {
   app.use(express.static(path.join(__dirname, "../frontend/build")));

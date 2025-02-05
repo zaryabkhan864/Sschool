@@ -9,19 +9,10 @@ import APIFilters from "../utils/apiFilters.js";
 export const createAnnouncement = catchAsyncErrors(async (req, res) => {
     // Extract data from request body
     const { message, attachments, userId } = req.body;
-    let uploadedAttachments = []
-
-    // Upload all attachments if provided
-    if (attachments && attachments.length > 0) {
-      for (const attachment of attachments) {
-          const uploadedFile = await upload_file(attachment, "announcements/attachments");
-          uploadedAttachments.push(uploadedFile);
-      }
-    }
 
   const announcement = await Announcement.create({
     message,
-    attachments: uploadedAttachments,
+    attachments,
     userId
   });
 
@@ -34,7 +25,7 @@ export const createAnnouncement = catchAsyncErrors(async (req, res) => {
 /* get all announcements */
 export const getAnnouncements = catchAsyncErrors(async (req, res) => {
   const resPerPage = 8;
-  const apiFilters = new APIFilters(Announcement, req.query).search().filters();
+  const apiFilters = new APIFilters(Announcement, req.query).search().filters().sort("createdAt" , -1);
 
   apiFilters.populate('userId');
   apiFilters.nestedPopulate('comments','userId');
