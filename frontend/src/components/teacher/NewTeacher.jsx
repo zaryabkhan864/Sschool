@@ -16,6 +16,7 @@ const NewTeacher = () => {
   const { refetch } = useGetUserByTypeQuery('teacher');
 
   const [teacher, setTeacher] = useState({
+    role: 'teacher',
     name: "",
     age: "",
     gender: "",
