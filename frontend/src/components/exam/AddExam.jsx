@@ -85,7 +85,8 @@ const AddExam = () => {
             formValues.quarter
         ) {
             try {
-                const response = await getExamMarks(formValues).unwrap();
+                const selectedCourse = courses.find((item)=> item._id === formValues.course)
+                const response = await getExamMarks({...formValues, user:selectedCourse?.teacher}).unwrap();
                 console.log("Exam details response:", response);
                 setExamDetails(response.exam);
                 // Initialize marks state with student IDs

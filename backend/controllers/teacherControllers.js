@@ -205,7 +205,7 @@ export const getCoursesByRole = catchAsyncErrors(async (req, res, next) => {
     courses = await Course.find().populate("teacher");
     grades = await Grade.find().populate("courses");
   } else if (userRole === "teacher") {
-    const teacher = await Teacher.findOne({ user: userId });
+    const teacher = await user.findById(userId);
 
     if (!teacher) {
       return next(new ErrorHandler("Teacher not found", 404));

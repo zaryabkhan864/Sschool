@@ -88,7 +88,9 @@ const AddQuiz = () => {
             formValues.quizNumber
         ) {
             try {
-                const response = await getQuizDetails(formValues).unwrap();
+
+                const selectedCourse = courses.find((item)=> item._id === formValues.course)
+                const response = await getQuizDetails({...formValues, user: selectedCourse?.teacher}).unwrap();
                 console.log("Quiz details response:", response);
                 setQuizDetails(response.quiz);
                 // Initialize marks state with student IDs
