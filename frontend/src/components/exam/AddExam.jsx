@@ -64,6 +64,7 @@ const AddExam = () => {
             const body = {
                 gradeId: formValues.grade,
                 teacherId: userDetails.userId,
+                userRole: userDetails.role
             };
             sendGradeAndTeacherID(body)
                 .unwrap()
@@ -72,7 +73,7 @@ const AddExam = () => {
                 })
                 .catch((err) => console.error('Error fetching courses:', err));
         }
-    }, [formValues.grade, userDetails.userId, sendGradeAndTeacherID]);
+    }, [formValues.grade, userDetails.userId, sendGradeAndTeacherID, userDetails.role]);
 
 
      // Function to fetch quiz details
