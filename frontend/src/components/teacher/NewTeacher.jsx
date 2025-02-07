@@ -2,25 +2,26 @@ import React, { useEffect, useState } from "react";
 import { useCountries } from "react-countries";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import {
-  useCreateTeacherMutation,
-  useGetTeachersQuery,
-} from "../../redux/api/teacherApi";
+
+import { useRegisterMutation } from "../../redux/api/authApi";
+
+import { useGetUserByTypeQuery } from "../../redux/api/userApi";
+
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 
 const NewTeacher = () => {
   const navigate = useNavigate();
   const { countries } = useCountries();
-  const { refetch } = useGetTeachersQuery();
+  const { refetch } = useGetUserByTypeQuery('teacher');
 
   const [teacher, setTeacher] = useState({
-    teacherName: "",
+    name: "",
     age: "",
     gender: "",
     nationality: "",
-    teacherPhoneNumber: "",
-    teacherSecondPhoneNumber: "",
+    phoneNumber: "",
+    secondaryPhoneNumber: "",
     email: "",
     password: "",
     avatar: "", // Add avatar field
@@ -28,18 +29,18 @@ const NewTeacher = () => {
   const [avatarPreview, setAvatarPreview] = useState("");
 
   const {
-    teacherName,
+    name,
     age,
     gender,
     nationality,
-    teacherPhoneNumber,
-    teacherSecondPhoneNumber,
+    phoneNumber,
+    secondaryPhoneNumber,
     email,
     password,
   } = teacher;
 
-  const [createTeacher, { isLoading, error, isSuccess }] =
-    useCreateTeacherMutation();
+  const [register, { isLoading, error, isSuccess }] =
+  useRegisterMutation();
 
   useEffect(() => {
     if (error) {
@@ -79,7 +80,7 @@ const NewTeacher = () => {
       ...teacher,
     };
 
-    createTeacher(payload);
+    register(payload);
   };
 
   return (
@@ -92,17 +93,17 @@ const NewTeacher = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label
-                  htmlFor="teacherName_field"
+                  htmlFor="name_field"
                   className="block text-sm font-medium text-gray-700"
                 >
                   Teacher Name
                 </label>
                 <input
                   type="text"
-                  id="teacherName_field"
+                  id="name_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="teacherName"
-                  value={teacherName}
+                  name="name"
+                  value={name}
                   onChange={onChange}
                 />
               </div>
@@ -193,17 +194,17 @@ const NewTeacher = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label
-                  htmlFor="teacherPhoneNumber_field"
+                  htmlFor="phoneNumber_field"
                   className="block text-sm font-medium text-gray-700"
                 >
                   Contact No
                 </label>
                 <input
                   type="text"
-                  id="teacherPhoneNumber_field"
+                  id="phoneNumber_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="teacherPhoneNumber"
-                  value={teacherPhoneNumber}
+                  name="phoneNumber"
+                  value={phoneNumber}
                   maxLength={10}
                   minLength={10}
                   pattern="\d{10}"
@@ -221,17 +222,17 @@ const NewTeacher = () => {
               </div>
               <div className="mb-4">
                 <label
-                  htmlFor="teacherSecondPhoneNumber_field"
+                  htmlFor="secondaryPhoneNumber_field"
                   className="block text-sm font-medium text-gray-700"
                 >
                   Contact No(2)
                 </label>
                 <input
                   type="text"
-                  id="teacherSecondPhoneNumber_field"
+                  id="secondaryPhoneNumber_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="teacherSecondPhoneNumber"
-                  value={teacherSecondPhoneNumber}
+                  name="secondaryPhoneNumber"
+                  value={secondaryPhoneNumber}
                   maxLength={10}
                   minLength={10}
                   pattern="\d{10}"

@@ -6,22 +6,20 @@ import MetaData from "../layout/MetaData";
 
 import { Pagination, Table } from "flowbite-react";
 import { useSelector } from "react-redux";
-import {
-  useDeleteTeacherMutation,
-  useGetTeachersQuery,
-} from "../../redux/api/teacherApi";
+import {useDeleteUserMutation, useGetUserByTypeQuery } from "../../redux/api/userApi";
+
 import AdminLayout from "../layout/AdminLayout";
 
 const ListTeachers = () => {
   const navigate = useNavigate();
-  const { data, isLoading, error, refetch } = useGetTeachersQuery();
+  const { data, isLoading, error, refetch } = useGetUserByTypeQuery("teacher");
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [userRole, setUserRole] = useState("");
 
   const [
-    deleteTeacher,
+    deleteUser,
     { isLoading: isDeleteLoading, error: deleteError, isSuccess },
-  ] = useDeleteTeacherMutation();
+  ] = useDeleteUserMutation();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -44,12 +42,12 @@ const ListTeachers = () => {
   }, [error, deleteError, isSuccess, navigate, refetch, user]);
 
   const deleteTeacherHandler = (id) => {
-    deleteTeacher(id);
+    deleteUser(id);
   };
 
   // Filter and paginate the teachers
-  const filteredTeachers = data?.teachers?.filter((teacher) =>
-    teacher?.teacherName?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredTeachers = data?.users?.filter((teacher) =>
+    teacher?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const totalPages = Math.ceil((filteredTeachers?.length || 0) / itemsPerPage);
@@ -66,7 +64,7 @@ const ListTeachers = () => {
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">
-            {data?.teachers?.length} Teachers
+            {data?.users?.length} Teachers
           </h2>
 
           {/* Controls Section */}
@@ -119,7 +117,7 @@ const ListTeachers = () => {
                   className="bg-white dark:bg-gray-800"
                 >
                   <Table.Cell>{teacher?._id}</Table.Cell>
-                  <Table.Cell>{teacher?.teacherName}</Table.Cell>
+                  <Table.Cell>{teacher?.name}</Table.Cell>
                   <Table.Cell>{teacher?.age}</Table.Cell>
                   <Table.Cell>{teacher?.gender}</Table.Cell>
                   <Table.Cell>{teacher?.nationality}</Table.Cell>

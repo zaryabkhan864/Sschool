@@ -95,7 +95,7 @@ export const getCourseDetails = catchAsyncErrors(async (req, res) => {
 
 // Get all courses for a grade of teacher => /api/v1/courses/grade/teacher/:id
 export const getCoursesByGradeAndTeacherID = catchAsyncErrors(async (req, res) => {
-  const { gradeId, teacherId } = req.body; // Ensure gradeId and teacherId are passed in the body
+  const { gradeId, teacherId , userRole} = req.body; // Ensure gradeId and teacherId are passed in the body
  
   // Step 1: Find the grade
   const grade = await Grade.findById(gradeId).populate("courses"); // Populate courses array from Grade
@@ -108,9 +108,9 @@ export const getCoursesByGradeAndTeacherID = catchAsyncErrors(async (req, res) =
   }
 
   // Step 2: Filter courses by teacherId
-  const courses = grade.courses.filter((course) => {
+  const courses = userRole === 'teacher' ? grade.courses.filter((course) => {
     return course.teacher && course.teacher.toString() === teacherId;
-  });
+  }):grade.courses;
 
   if (courses.length === 0) {
     return res.status(404).json({

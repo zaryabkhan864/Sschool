@@ -4,7 +4,7 @@ import {
   getStudentDetails,
   getStudents,
   getStudentsQuizRecord,
-  newStudent,
+  // newStudent,
   updateStudent,
   getStudentsWithGrades
 } from "../controllers/studentControllers.js";
@@ -12,9 +12,9 @@ import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 
 const router = express.Router();
 
-router
-  .route("/admin/students")
-  .post(isAuthenticatedUser, authorizeRoles("admin"), newStudent);
+// router
+//   .route("/admin/students")
+//   .post(isAuthenticatedUser, authorizeRoles("admin"), newStudent);
 
 router.route("/students").get(getStudents);
 router.route("/students/grades").get(getStudentsWithGrades);

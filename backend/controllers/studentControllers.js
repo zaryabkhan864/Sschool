@@ -1,14 +1,12 @@
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
-import Student from "../models/student.js";
+import Student from "../models/user.js";
 import Quiz from "../models/quiz.js";
-import user from "../models/user.js";
 import APIFilters from "../utils/apiFilters.js";
-import { upload_file } from "../utils/cloudinary.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import _ from "lodash";
 // CRUD operations for students
 
-// Create a new student =>  /api/v1/student/create_student
+/* // Create a new student =>  /api/v1/student/create_student
 export const newStudent = catchAsyncErrors(async (req, res, next) => {
   let avatar = {};
   const role = "student";
@@ -67,7 +65,7 @@ export const newStudent = catchAsyncErrors(async (req, res, next) => {
   } else {
     return next(new ErrorHandler("Student Not created", 404));
   }
-});
+}); */
 
 // Get all students =>  /api/v1/students
 export const getStudents = catchAsyncErrors(async (req, res, next) => {
@@ -101,13 +99,14 @@ export const updateStudent = catchAsyncErrors(async (req, res) => {
     age: req.body.age,
     gender: req.body.gender,
     nationality: req.body.nationality,
-    images: req.body.images,
-    studentPhoneNumber: req.body.studentPhoneNumber,
-    parentOnePhoneNumber: req.body.parentOnePhoneNumber,
-    parentTwoPhoneNumber: req.body.parentTwoPhoneNumber,
-    user: req.body.user,
+    avatar: req.body.avatar,
+    siblings: req.body.siblings,
+    passportNumber: req.body.passportNumber,
+    phoneNumber: req.body.phoneNumber,
+    secondaryPhoneNumber: req.body.secondaryPhoneNumber,
+    address: req.body.address,
     grade: req.body.grade,
-    enrolledCourses: req.body.enrolledCourses,
+    // enrolledCourses: req.body.enrolledCourses,
   };
   const updatedStudent = await Student.findByIdAndUpdate(
     req.params.id,
@@ -137,7 +136,7 @@ export const deleteStudent = catchAsyncErrors(async (req, res) => {
 
 // Get student details =>  /api/v1/student/:id
 export const getStudentDetails = catchAsyncErrors(async (req, res, next) => {
-  const student = await Student.findById(req?.params?.id).populate("user");
+  const student = await Student.findById(req?.params?.id);
   if (!student) {
     return next(new ErrorHandler("Student not found", 404));
   }
@@ -162,7 +161,7 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
     user,
   }).populate({
     path: "marks.student",
-    select: "studentName", // Populate student names
+    select: "name", // Populate student names
   });
 
   console.log("Existing quiz: ", existingQuiz);
@@ -172,7 +171,7 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
       ...existingQuiz.toObject(),
       marks: existingQuiz.marks.map((mark) => ({
         ...mark.toObject(),
-        studentName: mark.student?.studentName || "Unknown", // Add student name to each mark
+        studentName: mark.student?.name || "Unknown", // Add student name to each mark
         student: mark.student?._id 
            })),
     };
@@ -218,7 +217,7 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
       const student = students.find((s) => s._id.toString() === mark.student.toString());
       return {
         ...mark.toObject(),
-        studentName: student?.studentName || "Unknown", // Add student name to each mark
+        studentName: student?.name || "Unknown", // Add student name to each mark
       };
     }),
   };
@@ -236,7 +235,7 @@ export const getStudentsWithGrades = catchAsyncErrors(async (req, res) => {
   const apiFilters = new APIFilters(Student, req.query).search().filters().populate('grade', 'gradeName');
   const students = await apiFilters.query;
 
-  const sortedStudents = _.sortBy(students,[(item) => item.grade?.gradeName?.toLowerCase()],'studentName')
+  const sortedStudents = _.sortBy(students,[(item) => item.grade?.gradeName?.toLowerCase()],'name')
   
   res.status(200).json({
     success: true,

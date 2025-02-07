@@ -96,6 +96,15 @@ export const userApi = createApi({
       },
       invalidatesTags: ["AdminUsers"],
     }),
+    getUserByType: builder.query({
+      query(type) {
+        return {
+          url: `/users/${type}`,
+          method: "get",
+        };
+      },
+      invalidatesTags: ["AdminUsers"],
+    }),
   }),
 });
 
@@ -110,4 +119,5 @@ export const {
   useGetUserDetailsQuery,
   useUpdateUserMutation,
   useDeleteUserMutation,
+  useGetUserByTypeQuery,
 } = userApi;

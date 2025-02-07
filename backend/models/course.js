@@ -16,7 +16,6 @@ const courseSchema = new mongoose.Schema(
       type: String,
       required: [true, "Please enter the code of course"],
       maxLength: [8, "Code cannot exceed 8 characters"],
-
     },
     year: {
       type: Number,
@@ -24,7 +23,7 @@ const courseSchema = new mongoose.Schema(
     },
     teacher: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Teacher",
+      ref: "User",
       required: false,
       default: null,
     }, //Assigned teacher

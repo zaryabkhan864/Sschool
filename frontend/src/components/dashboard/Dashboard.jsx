@@ -2,13 +2,15 @@ import React, { useState } from "react";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 import Slider from "../layout/Slider";
-import { useGetStudentsQuery } from "../../redux/api/studentsApi";
-import { useGetTeachersQuery } from "../../redux/api/teacherApi";
+
+import { useGetUserByTypeQuery } from "../../redux/api/userApi";
+
+
 
 const Dashboard = () => {
 
-  const { data: StudentCount } = useGetStudentsQuery();
-  const { data: TeacherCount } = useGetTeachersQuery();
+  const { data: StudentCount } = useGetUserByTypeQuery('student');
+  const { data: TeacherCount } = useGetUserByTypeQuery('teacher');
 
   return (
     <AdminLayout>
@@ -18,12 +20,12 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
             <div className="bg-green-500 text-white p-3 rounded-lg shadow-md">
               <h4 className="text font-bold">Total Students</h4>
-              <p className="text-lg mt-2"> {StudentCount?.students?.length}</p>
+              <p className="text-lg mt-2"> {StudentCount?.users?.length}</p>
             </div>
 
             <div className="bg-red-500 text-white p-3 rounded-lg shadow-md">
               <h4 className="font-bold">Total Teachers</h4>
-              <p className="text-lg mt-2">{TeacherCount?.teachers?.length}</p>
+              <p className="text-lg mt-2">{TeacherCount?.users?.length}</p>
             </div>
 
             <div className="bg-yellow-500 text-white p-3 rounded-lg shadow-md">

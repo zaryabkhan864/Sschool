@@ -16,9 +16,16 @@ const Register = () => {
     email: "",
     password: "",
     role: "user",
+    age: "",
+    gender: "",
+    nationality: "",
+    passportNumber: "",
+    phoneNumber: "",
+    secondaryPhoneNumber: "",
+    address: "",
   });
 
-  const { name, email, password, role } = user;
+  const { name, email, password, role, age, gender, nationality, passportNumber, phoneNumber, secondaryPhoneNumber, address } = user;
 
   const [register, { isLoading, error, isSuccess }] = useRegisterMutation();
 
@@ -111,6 +118,114 @@ const Register = () => {
                 <option value="principle">Principle</option>
                 <option value="counsellor">Counsellor</option>
               </select>
+            </div>
+
+            <div className="mb-4">
+              <label htmlFor="age_field" className="block text-sm font-medium text-gray-700">
+                Age
+              </label>
+              <input
+                type="number"
+                id="age_field"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                name="age"
+                value={age}
+                onChange={onChange}
+                required
+              />
+            </div>
+
+            <div className="mb-4">
+              <label htmlFor="gender_field" className="block text-sm font-medium text-gray-700">
+                Gender
+              </label>
+              <select
+                id="gender_field"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                name="gender"
+                value={gender}
+                onChange={onChange}
+                required
+              >
+                <option value="">Select Gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label htmlFor="nationality_field" className="block text-sm font-medium text-gray-700">
+                Nationality
+              </label>
+              <input
+                type="text"
+                id="nationality_field"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                name="nationality"
+                value={nationality}
+                onChange={onChange}
+                required
+              />
+            </div>
+
+            <div className="mb-4">
+              <label htmlFor="passport_field" className="block text-sm font-medium text-gray-700">
+                Passport Number
+              </label>
+              <input
+                type="text"
+                id="passport_field"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                name="passportNumber"
+                value={passportNumber}
+                onChange={onChange}
+              />
+            </div>
+
+            <div className="mb-4">
+              <label htmlFor="phone_field" className="block text-sm font-medium text-gray-700">
+                Phone Number
+              </label>
+              <input
+                type="text"
+                id="phone_field"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                name="phoneNumber"
+                value={phoneNumber}
+                onChange={onChange}
+                required
+              />
+            </div>
+
+            <div className="mb-4">
+              <label htmlFor="secondary_phone_field" className="block text-sm font-medium text-gray-700">
+                Secondary Phone Number
+              </label>
+              <input
+                type="text"
+                id="secondary_phone_field"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                name="secondaryPhoneNumber"
+                value={secondaryPhoneNumber}
+                onChange={onChange}
+                required
+              />
+            </div>
+
+            <div className="mb-4">
+              <label htmlFor="address_field" className="block text-sm font-medium text-gray-700">
+                Address
+              </label>
+              <input
+                type="text"
+                id="address_field"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                name="address"
+                value={address}
+                onChange={onChange}
+                required
+              />
             </div>
 
             <button

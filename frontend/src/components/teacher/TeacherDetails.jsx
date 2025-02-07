@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useParams } from "react-router-dom";
-import { useGetTeacherDetailsQuery } from "../../redux/api/teacherApi";
+import { useGetUserDetailsQuery } from "../../redux/api/userApi";
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 
 const TeacherDetails = () => {
   const params = useParams();
-  const { data, loading, error } = useGetTeacherDetailsQuery(params?.id);
+  const { data, loading, error } = useGetUserDetailsQuery(params?.id);
 
   const [teacher, setTeacher] = useState({
     teacherName: "",
@@ -22,18 +22,17 @@ const TeacherDetails = () => {
   const [avatarPreview, setAvatarPreview] = useState("");
 
   useEffect(() => {
-    if (data?.teacher) {
+    if (data?.user) {
       setTeacher({
-        teacherName: data?.teacher?.teacherName,
-        age: data?.teacher?.age,
-        gender: data?.teacher?.gender,
-        nationality: data?.teacher?.nationality,
-        teacherPhoneNumber: data?.teacher?.teacherPhoneNumber,
-        teacherSecondPhoneNumber: data?.teacher?.teacherSecondPhoneNumber,
-        avatar: data?.teacher?.user?.avatar?.url,
-        assignedCourses: data?.teacher?.assignedCourses,
+        teacherName: data?.user?.name,
+        age: data?.user?.age,
+        gender: data?.user?.gender,
+        nationality: data?.user?.nationality,
+        teacherPhoneNumber: data?.user?.phoneNumber,
+        teacherSecondPhoneNumber: data?.user?.secondaryPhoneNumber,
+        avatar: data?.user?.avatar?.url,
       });
-      setAvatarPreview(data?.teacher?.user?.avatar?.url);
+      setAvatarPreview(data?.user?.avatar?.url);
     }
     if (error) {
       toast.error(error?.data?.message);

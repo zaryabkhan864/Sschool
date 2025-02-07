@@ -65,6 +65,7 @@ const AddQuiz = () => {
             const body = {
                 gradeId: formValues.grade,
                 teacherId: userDetails.userId,
+                userRole: userDetails.role
             };
             sendGradeAndTeacherID(body)
                 .unwrap()
@@ -73,7 +74,7 @@ const AddQuiz = () => {
                 })
                 .catch((err) => console.error('Error fetching courses:', err));
         }
-    }, [formValues.grade, userDetails.userId, sendGradeAndTeacherID]);
+    }, [formValues.grade, userDetails.userId, sendGradeAndTeacherID, userDetails.role]);
 
     const [getQuizDetails, { isLoading, error }] = useGetStudentsQuizDetailsByQuizDataMutation();
 

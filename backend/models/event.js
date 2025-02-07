@@ -46,7 +46,7 @@ const eventSchema = new mongoose.Schema(
     },
     organizer: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Teacher", // Assuming a teacher organizes the event
+      ref: "User", // Assuming a teacher organizes the event
       required: false,
     },
     createdAt: {

@@ -1,5 +1,5 @@
 import Exam from "../models/exam.js";
-import Student from "../models/student.js";
+import Student from "../models/user.js";
 
 import ErrorHandler from "../utils/errorHandler.js";
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
@@ -36,7 +36,7 @@ export const getExamDetails = catchAsyncErrors(async (req, res, next) => {
       user,
     }).populate({
       path: "marks.student",
-      select: "studentName", // Populate student names
+      select: "name", // Populate student names
     });
   
   
@@ -45,7 +45,7 @@ export const getExamDetails = catchAsyncErrors(async (req, res, next) => {
         ...existingExam.toObject(),
         marks: existingExam.marks.map((mark) => ({
           ...mark.toObject(),
-          studentName: mark.student?.studentName || "Unknown", // Add student name to each mark
+          studentName: mark.student?.name || "Unknown", // Add student name to each mark
           student: mark.student?._id 
     })),
       };
@@ -97,7 +97,7 @@ export const getExamDetails = catchAsyncErrors(async (req, res, next) => {
         const student = students.find((s) => s._id.toString() === mark.student.toString());
         return {
           ...mark.toObject(),
-          studentName: student?.studentName || "Unknown", // Add student name to each mark
+          studentName: student?.name || "Unknown", // Add student name to each mark
         };
       }),
     };

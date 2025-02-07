@@ -6,7 +6,8 @@ import {
   useGetCoursesQuery,
   useUpdateCourseMutation,
 } from "../../redux/api/courseApi";
-import { useGetTeachersQuery } from "../../redux/api/teacherApi";
+import { useGetUserByTypeQuery } from "../../redux/api/userApi";
+
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
@@ -30,8 +31,8 @@ const UpdateCourse = () => {
     useUpdateCourseMutation();
   const { data, loading } = useGetCourseDetailsQuery(params?.id);
   const { data: teachersData, isLoading: teacherLoading } =
-    useGetTeachersQuery();
-  const teachers = teachersData?.teachers || []; // Ensure it's an array
+  useGetUserByTypeQuery('teacher');
+  const teachers = teachersData?.users || []; // Ensure it's an array
 
   useEffect(() => {
     if (data?.course) {
@@ -177,7 +178,7 @@ const UpdateCourse = () => {
                 {!teacherLoading &&
                   teachers?.map((t) => (
                     <option key={t._id} value={t._id}>
-                      {t.teacherName}
+                      {t.name}
                     </option>
                   ))}
               </select>

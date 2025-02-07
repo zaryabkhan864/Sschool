@@ -3,11 +3,9 @@ import { useCountries } from "react-countries";
 
 import toast from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  useGetTeacherDetailsQuery,
-  useGetTeachersQuery,
-  useUpdateTeacherMutation,
-} from "../../redux/api/teacherApi";
+
+import { useGetUserByTypeQuery, useGetUserDetailsQuery, useUpdateUserMutation } from "../../redux/api/userApi";
+
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
@@ -16,46 +14,49 @@ const UpdateTeacher = () => {
   const navigate = useNavigate();
   const { countries } = useCountries();
 
+  const { refetch } = useGetUserByTypeQuery("teacher");
+
   const params = useParams();
-  const { refetch } = useGetTeachersQuery();
 
   const [teacher, setTeacher] = useState({
-    teacherName: "",
+    name: "",
     age: "",
     gender: "",
     nationality: "",
-    teacherPhoneNumber: "",
-    teacherSecondPhoneNumber: "",
+    phoneNumber: "",
+    secondaryPhoneNumber: "",
     avatar: "", // Add avatar field
   });
   const [avatarPreview, setAvatarPreview] = useState("");
 
   const {
-    teacherName,
+    name,
     age,
     gender,
     nationality,
-    teacherPhoneNumber,
-    teacherSecondPhoneNumber,
+    phoneNumber,
+    secondaryPhoneNumber,
   } = teacher;
 
-  const [updateTeacher, { isLoading, error, isSuccess }] =
-    useUpdateTeacherMutation();
-  const { data, loading } = useGetTeacherDetailsQuery(params?.id);
+  const [updateUser, { isLoading, error, isSuccess }] =
+  useUpdateUserMutation();
+
+
+  const { data, loading } = useGetUserDetailsQuery(params?.id);
+
 
   useEffect(() => {
-    if (data?.teacher) {
+    if (data?.user) {
       setTeacher({
-        teacherName: data?.teacher?.teacherName,
-        age: data?.teacher?.age,
-        gender: data?.teacher?.gender,
-        nationality: data?.teacher?.nationality,
-        teacherPhoneNumber: data?.teacher?.teacherPhoneNumber,
-        teacherSecondPhoneNumber: data?.teacher?.teacherSecondPhoneNumber,
-        avatar: data?.teacher?.user?.avatar?.url,
+        name: data?.user?.name,
+        age: data?.user?.age,
+        gender: data?.user?.gender,
+        nationality: data?.user?.nationality,
+        phoneNumber: data?.user?.phoneNumber,
+        secondaryPhoneNumber: data?.user?.secondaryPhoneNumber,
+        avatar: data?.user?.avatar?.url,
       });
-      setAvatarPreview(data?.teacher?.user?.avatar?.url);
-
+      setAvatarPreview(data?.user?.avatar?.url);
     }
 
     if (error) {
@@ -65,7 +66,7 @@ const UpdateTeacher = () => {
     if (isSuccess) {
       toast.success("Teacher updated");
       navigate("/admin/teachers");
-      refetch();
+      refetch()
     }
   }, [data, error, isSuccess, navigate, refetch]);
 
@@ -92,7 +93,7 @@ const UpdateTeacher = () => {
 
   const submitHandler = (e) => {
     e.preventDefault();
-    updateTeacher({ id: params?.id, body: teacher });
+    updateUser({ id: params?.id, body: teacher });
   };
 
   return (
@@ -105,17 +106,17 @@ const UpdateTeacher = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label
-                  htmlFor="teacherName_field"
+                  htmlFor="name_field"
                   className="block text-sm font-medium text-gray-700"
                 >
                   Teacher Name
                 </label>
                 <input
                   type="text"
-                  id="teacherName_field"
+                  id="name_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="teacherName"
-                  value={teacherName}
+                  name="name"
+                  value={name}
                   onChange={onChange}
                 />
               </div>
@@ -149,7 +150,7 @@ const UpdateTeacher = () => {
                       id="male"
                       name="gender"
                       value="Male"
-                      checked={gender === "Male"}
+                      checked={gender === "Male"|| gender === "male"}
                       onChange={onChange}
                       className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
                     />
@@ -166,7 +167,7 @@ const UpdateTeacher = () => {
                       id="female"
                       name="gender"
                       value="Female"
-                      checked={gender === "Female"}
+                      checked={gender === "Female" || gender === "female"}
                       onChange={onChange}
                       className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
                     />
@@ -206,17 +207,17 @@ const UpdateTeacher = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label
-                  htmlFor="teacherPhoneNumber_field"
+                  htmlFor="phoneNumber_field"
                   className="block text-sm font-medium text-gray-700"
                 >
                   Contact No
                 </label>
                 <input
                   type="text"
-                  id="teacherPhoneNumber_field"
+                  id="phoneNumber_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="teacherPhoneNumber"
-                  value={teacherPhoneNumber}
+                  name="phoneNumber"
+                  value={phoneNumber}
                   maxLength={10}
                   minLength={10}
                   pattern="\d{10}"
@@ -234,17 +235,17 @@ const UpdateTeacher = () => {
               </div>
               <div className="mb-4">
                 <label
-                  htmlFor="teacherSecondPhoneNumber_field"
+                  htmlFor="secondaryPhoneNumber_field"
                   className="block text-sm font-medium text-gray-700"
                 >
                   Contact No(2)
                 </label>
                 <input
                   type="text"
-                  id="teacherSecondPhoneNumber_field"
+                  id="secondaryPhoneNumber_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="teacherSecondPhoneNumber"
-                  value={teacherSecondPhoneNumber}
+                  name="secondaryPhoneNumber"
+                  value={secondaryPhoneNumber}
                   maxLength={10}
                   minLength={10}
                   pattern="\d{10}"
