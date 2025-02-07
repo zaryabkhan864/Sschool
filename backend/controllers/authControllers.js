@@ -317,7 +317,7 @@ export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
     req.query.role= "student"
     const apiFilters = new APIFilters(User, req.query).search().filters().populate('grade', 'gradeName');
     const students = await apiFilters.query;
-    sortedStudents = _.sortBy(students,[(item) => item.grade?.gradeName?.toLowerCase()],'name')
+    sortedStudents = _.sortBy(students,[(item) => item.grade?.gradeName?.toLowerCase()],(item) => item?.name?.toLowerCase())
   }
   else{
     users = await User.find({ role: req.params.type });
