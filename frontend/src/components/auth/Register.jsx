@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useRegisterMutation } from "../../redux/api/authApi";
 import toast from "react-hot-toast";
+import { useCountries } from "react-countries";
+
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
 import MetaData from "../layout/MetaData";
 import AdminLayout from "../layout/AdminLayout";
 import { useGetAdminUsersQuery } from "../../redux/api/userApi";
@@ -10,6 +11,8 @@ import { useGetAdminUsersQuery } from "../../redux/api/userApi";
 const Register = () => {
   const navigate = useNavigate();
   const { refetch } = useGetAdminUsersQuery();
+  const { countries } = useCountries();
+
 
   const [user, setUser] = useState({
     name: "",
@@ -155,19 +158,27 @@ const Register = () => {
             </div>
 
             <div className="mb-4">
-              <label htmlFor="nationality_field" className="block text-sm font-medium text-gray-700">
-                Nationality
-              </label>
-              <input
-                type="text"
-                id="nationality_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="nationality"
-                value={nationality}
-                onChange={onChange}
-                required
-              />
-            </div>
+                <label
+                  htmlFor="nationality_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Nationality
+                </label>
+                <select
+                  type="text"
+                  id="nationality_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="nationality"
+                  value={nationality}
+                  onChange={onChange}
+                >
+                  {countries?.map(({ name, dial_code, code, flag }) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
             <div className="mb-4">
               <label htmlFor="passport_field" className="block text-sm font-medium text-gray-700">
