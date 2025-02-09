@@ -182,9 +182,9 @@ const PostingWall = () => {
                         </form>
                     </Card>
                     {announcements.map((post) => (
-                        <Card key={post._id} className="mb-4 p-4 shadow-lg relative">
+                        <Card key={post?._id} className="mb-4 p-4 shadow-lg relative">
                             {/* Dropdown Button for Edit and Delete */}
-                            {String(post?.userId._id) === String(user._id) && (
+                            {String(post?.userId?._id) === String(user?._id) && (
                             <div className="absolute top-4 right-4">
                                 <Dropdown
                                     label={<i className="fa fa-ellipsis-v text-gray-600 hover:text-gray-900 cursor-pointer"></i>}
@@ -209,13 +209,13 @@ const PostingWall = () => {
                             <div className="flex items-center space-x-3">
                                 <img src={post?.userId?.avatar?.url || "/images/default_avatar.jpg"} alt="Profile" className="w-10 h-10 rounded-full" />
                                 <div>
-                                    <h4 className="font-semibold">{post.userId.name}</h4>
-                                    <span className="text-sm text-gray-600">{dayjs(post.createdAt).fromNow()}</span>
+                                    <h4 className="font-semibold">{post?.userId?.name}</h4>
+                                    <span className="text-sm text-gray-600">{dayjs(post?.createdAt).fromNow()}</span>
                                 </div>
                             </div>
-                            <div className="mt-3" dangerouslySetInnerHTML={{ __html: post.message }} />
+                            <div className="mt-3" dangerouslySetInnerHTML={{ __html: post?.message }} />
                             <ul className='mt-6 list-none p-0 flex flex-wrap gap-5'>
-                            {post.attachments.length > 0 && post.attachments.map((file, index) =>(
+                            {post?.attachments.length > 0 && post?.attachments.map((file, index) =>(
                                 <li key={index}>
                                 <div className="relative text-center">
                                     <img 
@@ -242,14 +242,14 @@ const PostingWall = () => {
                                 </Button>
                             </div>
                             <div className="mt-3 space-y-3">
-                                {post.comments.slice(
+                                {post?.comments.slice(
                                     expandedPosts.has(post._id) ? 0 : 0 , expandedPosts.has(post._id)?post.comments.length : 2
                                 ).map((comment, idx) => (
                                     <Comment
                                         key={idx}
                                         comment={comment}
                                         currentUserId={user?._id}
-                                        postId={post._id}
+                                        postId={post?._id}
                                         onDelete={confirmDeleteComment}
                                         onUpdateComment={handleUpdateComment}
                                         isCommentDeleted = {deletingCommentSuccess}
