@@ -24,9 +24,6 @@ router
 router
     .route("/finance/get/fees")
     .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getFees);
-// Get single fee details
-router.route("/fees/:id")
-    .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getFeeDetails);
 
 // Update fee record
 
@@ -61,5 +58,8 @@ router.route("/revenue/expenses")
     .get(isAuthenticatedUser, authorizeRoles
         ("admin", "finance"), getRevenueVsExpenses);
         
+// Get single fee details
+router.route("/fees/:id")
+    .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getFeeDetails);
 
 export default router;

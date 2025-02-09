@@ -63,7 +63,7 @@ const financeRoutes = () => {
                 }
             />
             <Route
-                path="/finance/expenses/List"
+                path="/finance/expense/List"
                 element={
                     <ProtectedRoute finance={true} admin={true}>
                         <ListExpenses />

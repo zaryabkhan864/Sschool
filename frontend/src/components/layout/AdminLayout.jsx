@@ -49,7 +49,7 @@ const AdminLayout = ({ children }) => {
     { name: "Emp Salary", url: "/finance/employee/salaries", icon: "fas fa-coins", roles: ["admin", "finance"] },
     { name: "Emp Salary List", url: "/finance/employees/salaries", icon: "fas fa-list-alt", roles: ["admin", "finance"] },
     { name: "New Expense", url: "/finance/expenses", icon: "fas fa-money-check-alt", roles: ["admin", "finance"] },
-    { name: "Expense List", url: "/finance/expenses/List", icon: "fas fa-file-invoice-dollar", roles: ["admin", "finance"] },
+    { name: "Expense List", url: "/finance/expense/List", icon: "fas fa-file-invoice-dollar", roles: ["admin", "finance"] },
     { name: "New Teacher Leave", url: "/admin/teacherleave/new", icon: "fas fa-calendar-check", roles: ["teacher"] },
   ];
 
