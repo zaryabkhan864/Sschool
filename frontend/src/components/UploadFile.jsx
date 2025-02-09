@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useUploadFileMutation, useDeleteFileMutation } from '../redux/api/fileApi';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
+
 
 const FileUpload = ({setIsUploadingFile, setFiles, loading, isSubmitted}) => {
+  const { t  } = useTranslation();
   
   const [previews, setPreviews] = useState([]);
 
@@ -90,7 +93,7 @@ const truncateFileName = (fileName, maxLength) => {
         htmlFor="fileInput" 
         className={`cursor-pointer px-4 py-2 ${isLoading || loading || isDeleting ? 'bg-blue-400' : 'bg-blue-500'} text-white rounded hover:${isLoading || loading || isDeleting ? 'bg-gray-500' : 'bg-blue-600'}`}
       >
-        Upload Files
+        {t('uploadFile')}
       </label>
 
       {/* Display selected files with previews */}

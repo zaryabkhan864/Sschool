@@ -2,6 +2,8 @@ import { Button, Dropdown, Textarea } from "flowbite-react";
 import dayjs from "dayjs";
 import { useState, useCallback, useEffect } from "react";
 import ConfirmationModal from './ConfirmationModal';
+import { useTranslation } from 'react-i18next';
+
 
 const Comment = ({ 
     comment, 
@@ -13,6 +15,8 @@ const Comment = ({
     isUpdatingComment,
     isCommentUpdated,
 }) => {
+    const { t  } = useTranslation();
+
     const isCommentOwner = currentUserId === comment.userId?._id;
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -66,10 +70,10 @@ const Comment = ({
                             >
                                 <Dropdown.Item onClick={() =>{
                                     setIsEditing(true)}}>
-                                    Edit
+                                    {t('edit')}
                                 </Dropdown.Item>
                                 <Dropdown.Item onClick={() => setShowDeleteModal(true)}>
-                                    Delete
+                                {t('delete')}
                                 </Dropdown.Item>
                             </Dropdown>
 
@@ -78,7 +82,7 @@ const Comment = ({
                                 onClose={() => {if(!isDeletingComment) setShowDeleteModal(false)}} 
                                 loading={isDeletingComment || isUpdatingComment}
                                 onConfirm={handleDelete} 
-                                message="Are you sure you want to delete this comment? This action cannot be undone." 
+                                message={t('deleteMsg')} 
                             />
                         </>
                     )}
@@ -95,12 +99,12 @@ const Comment = ({
                             <Button 
                                 loading={isDeletingComment || isUpdatingComment}
                                 size="xs" color="blue" onClick={() => handleUpdate()}>
-                                Save
+                                {t('save')}
                             </Button>
                             <Button 
                                 loading={isDeletingComment || isUpdatingComment}
                                 size="xs" color="gray" onClick={()=>setIsEditing(false)}>
-                                Cancel
+                                {t('cancel')}
                             </Button>
                         </div>
                     </div>

@@ -10,6 +10,8 @@ import FileUpload from "../UploadFile";
 import Comment from './Comment';
 import ConfirmationModal from './ConfirmationModal';
 import EditPostModal from './EditPostModal';
+import { useTranslation } from 'react-i18next';
+
 
 import { useCreateAnnouncementMutation, useGetAnnouncementsQuery, useDeleteAnnouncementMutation, useUpdateAnnouncementMutation } from "../../redux/api/postingApi";
 import { useCreateCommentMutation, useDeleteCommentMutation, useUpdateCommentMutation } from "../../redux/api/commentApi";
@@ -18,6 +20,8 @@ import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 
 const PostingWall = () => {
+    const { t  } = useTranslation();
+
     dayjs.extend(relativeTime)
 
     const [page, setPage] = useState(1);
@@ -167,17 +171,17 @@ const PostingWall = () => {
 
     return (
         <AdminLayout>
-            <MetaData title={"Posting Wall"} />
+            <MetaData title={t("posting")} />
             <div className="flex justify-center items-center pt-5 pb-10">
                 <div className="w-full max-w-4xl">
-                    <h2 className="text-2xl font-semibold mb-6">Announcements</h2>
+                    <h2 className="text-2xl font-semibold mb-6">{t("posting")}</h2>
                     <Card className="mb-6 p-4 bg-gray-100">
                         <form onSubmit={handlePostSubmit}>
-                            <ReactQuill theme="snow" value={newPost} onChange={setNewPost} placeholder="Write a new post..." className="mb-3" />
+                            <ReactQuill theme="snow" value={newPost} onChange={setNewPost} placeholder={t("newPost")} className="mb-3" />
                             {!showEditPostModal && <FileUpload setIsUploadingFile={setIsUploadingFile}  isSubmitted={isSuccess} 
                             setFiles={setFiles} loading={isCreating}/>}
                             <Button type="submit"   disabled={isCreating|| isUploadingfile } className="mt-3 bg-blue-600 text-white">   
-                                {isCreating ? "Posting..." : "Post"}
+                                {isCreating ? t("postLoading") : t("post")}
                             </Button>
                         </form>
                     </Card>
@@ -195,12 +199,12 @@ const PostingWall = () => {
                                     <Dropdown.Item onClick={() => {
                                             setUpdatedPost(post)
                                             setShowEditPostModal(true)}}>
-                                        Edit
+                                        {t('edit')}
                                     </Dropdown.Item>
                                     <Dropdown.Item onClick={() => {
                                                     setSelectedPost(post) 
                                                     setShowDeletePostModal(true)}}>
-                                        Delete
+                                        {t('delete')}
                                     </Dropdown.Item>
                                 </Dropdown>
                             </div>)}
@@ -232,13 +236,13 @@ const PostingWall = () => {
                             <div className="mt-3">
                                 <input
                                     type="text"
-                                    placeholder="Write a comment..."
+                                    placeholder={t("placeholderComment")}
                                     value={comments[post.id] || ""}
                                     onChange={(e) => setComments({ ...comments, [post.id]: e.target.value })}
                                     className="w-full p-2 border rounded"
                                 />
                                 <Button disabled={!comments[post.id] ||isAddingComment} className="mt-2 bg-blue-500 text-white" onClick={() => handleCommentSubmit(post._id, comments[post.id] || "")}>
-                                    Add Comment
+                                {t("addComment")}
                                 </Button>
                             </div>
                             <div className="mt-3 space-y-3">
@@ -266,8 +270,8 @@ const PostingWall = () => {
                                         className="text-sm text-gray-600"
                                     >
                                         {expandedPosts.has(post._id) 
-                                            ? "Show Less" 
-                                            : `Show ${post.comments.length - 2} More Comments`}
+                                            ? t('showLess')
+                                            : `${t('show')} ${post.comments.length - 2} ${t('moreComments')}`}
                                     </Button>
                                 )}
                             </div>
@@ -282,7 +286,7 @@ const PostingWall = () => {
                                 size="xs"
                                 className="bg-blue-600 text-white font-medium px-6 py-2"
                             >
-                                {isLoading ? "Loading..." : "Load More"}
+                                {isLoading ? t("loading") : t('loadMore')}
                             </Button>
                         </div>
                     )}

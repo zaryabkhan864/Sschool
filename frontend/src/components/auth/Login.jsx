@@ -4,8 +4,12 @@ import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useLoginMutation } from "../../redux/api/authApi";
 import MetaData from "../layout/MetaData";
+import { useTranslation } from 'react-i18next';
+
 
 const Login = () => {
+  const { t  } = useTranslation();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -57,7 +61,7 @@ const Login = () => {
 
   return (
     <>
-      <MetaData title={"Login"} />
+      <MetaData title={t("login")} />
       <div className="flex flex-col-reverse lg:flex-row items-center justify-center min-h-screen px-4 py-6 bg-gray-100">
         {/* Left Side - Image */}
         <div className="w-full lg:w-1/2 flex justify-center">
@@ -71,14 +75,14 @@ const Login = () => {
         {/* Right Side - Form */}
         <div className="w-full lg:w-1/2 bg-white rounded-lg shadow-lg p-6">
           <form onSubmit={submitHandler}>
-            <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
+            <h2 className="text-2xl font-bold mb-6 text-center">{t('login')}</h2>
 
             <div className="mb-4">
               <label
                 htmlFor="email_field"
                 className="block text-sm font-medium text-gray-700"
               >
-                Email
+                {t('email')}
               </label>
               <input
                 type="email"
@@ -95,7 +99,7 @@ const Login = () => {
                 htmlFor="password_field"
                 className="block text-sm font-medium text-gray-700"
               >
-                Password
+                {t('password')}
               </label>
               <input
                 type="password"
@@ -112,7 +116,7 @@ const Login = () => {
                 href="/password/forgot"
                 className="text-sm text-orange-500 hover:underline"
               >
-                Forgot Password?
+                {t('forgetPassword')}?
               </a>
             </div>
 
@@ -122,7 +126,7 @@ const Login = () => {
               className="w-full bg-orange-500 text-white py-2 px-4 rounded-md shadow hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isLoading}
             >
-              {isLoading ? "Authenticating..." : "LOGIN"}
+              {isLoading ? t("authenticating") : t('login')}
             </button>
           </form>
         </div>
