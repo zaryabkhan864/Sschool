@@ -1,7 +1,11 @@
 import mongoose from "mongoose";
 
 export const SalarySchema = new mongoose.Schema({
-    employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "Employee", required: true },
+    employeeId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+    },
     amount: { type: Number, required: true },
     month: { type: String, required: true }, // e.g., "January 2024"
     status: { type: String, enum: ["Paid", "Unpaid"], default: "Unpaid" },

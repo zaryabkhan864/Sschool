@@ -4,7 +4,7 @@ import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 
-import {useDeleteUserMutation, useGetUserByTypeQuery } from "../../redux/api/userApi";
+import { useDeleteUserMutation, useGetUserByTypeQuery } from "../../redux/api/userApi";
 
 
 import AdminLayout from "../layout/AdminLayout";
@@ -109,7 +109,7 @@ const ListStudents = () => {
                   <Table.Cell>{student?._id}</Table.Cell>
                   <Table.Cell>{student?.name}</Table.Cell>
                   <Table.Cell>{student?.age}</Table.Cell>
-                  <Table.Cell>{student?.grade?.gradeName|| 'N/A'}</Table.Cell>
+                  <Table.Cell>{student?.grade?.gradeName || 'N/A'}</Table.Cell>
                   <Table.Cell>
                     <div className="flex space-x-2">
                       {userRole === "admin" && (

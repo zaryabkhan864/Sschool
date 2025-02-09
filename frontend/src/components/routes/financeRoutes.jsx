@@ -5,6 +5,9 @@ import FinanceDashboard from "../dashboard/FinanceDashboard";
 import NewFees from "../finance/fees/NewFees";
 import ListFees from "../finance/fees/ListFees";
 import NewSalary from "../finance/salary/NewSalary";
+import ListSalaries from "../finance/salary/ListSalaries";
+import NewExpenses from "../finance/expenses/NewExpenses";
+import ListExpenses from "../finance/expenses/ListExpenses";
 
 
 const financeRoutes = () => {
@@ -39,6 +42,31 @@ const financeRoutes = () => {
                 element={
                     <ProtectedRoute finance={true} admin={true}>
                         <NewSalary />
+                    </ProtectedRoute>
+                }
+            />
+      
+            <Route
+                path="/finance/employees/salaries"
+                element={
+                    <ProtectedRoute finance={true} admin={true}>
+                        <ListSalaries />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/finance/expenses"
+                element={
+                    <ProtectedRoute finance={true} admin={true}>
+                        <NewExpenses />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/finance/expenses/List"
+                element={
+                    <ProtectedRoute finance={true} admin={true}>
+                        <ListExpenses />
                     </ProtectedRoute>
                 }
             />
