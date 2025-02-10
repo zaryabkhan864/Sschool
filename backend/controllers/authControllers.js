@@ -6,10 +6,12 @@ import { getResetPasswordTemplate } from "../utils/emailTemplates.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import sendEmail from "../utils/sendEmail.js";
 import sendToken from "../utils/sendToken.js";
+import APIFilters from "../utils/apiFilters.js";
+import _ from "lodash";
 
 // Register user   =>  /api/v1/register
 export const registerUser = catchAsyncErrors(async (req, res, next) => {
-  const { name, email, password, avatar, role } = req.body;
+  const { name, email, password, avatar, role, age, gender, nationality, passportNumber, siblings, phoneNumber, secondaryPhoneNumber, address, grade } = req.body;
 
   const user = await User.create({
     name,
@@ -17,6 +19,15 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
     password,
     avatar,
     role, // Explicitly passing role from req.body
+    age,
+    gender,
+    nationality,
+    passportNumber,
+    siblings,
+    phoneNumber,
+    secondaryPhoneNumber,
+    address,
+    grade,
   });
   res.status(201).json({
     success: true,
@@ -193,9 +204,19 @@ export const updatePassword = catchAsyncErrors(async (req, res, next) => {
 
 // Update User Profile  =>  /api/v1/me/update
 export const updateProfile = catchAsyncErrors(async (req, res, next) => {
+
   const newUserData = {
     name: req.body.name,
     email: req.body.email,
+    age: req.body.age,
+    gender: req.body.gender,
+    nationality: req.body.nationality,
+    passportNumber: req.body.passportNumber,
+    siblings: req.body.siblings,
+    phoneNumber: req.body.phoneNumber,
+    secondaryPhoneNumber: req.body.secondaryPhoneNumber,
+    address: req.body.address,
+    grade: req.body.grade,
   };
 
   const user = await User.findByIdAndUpdate(req.user._id, newUserData, {
@@ -233,10 +254,27 @@ export const getUserDetails = catchAsyncErrors(async (req, res, next) => {
 
 // Update User Details - ADMIN  =>  /api/v1/admin/users/:id
 export const updateUser = catchAsyncErrors(async (req, res, next) => {
+  if(_.isString(req.body?.avatar)){ 
+   const avatar = await upload_file(req.body.avatar, "shopit/avatars");
+    if(avatar.url){
+      req.body.avatar = avatar
+    }
+  }
+
   const newUserData = {
     name: req.body.name,
     email: req.body.email,
     role: req.body.role,
+    age: req.body.age,
+    gender: req.body.gender,
+    nationality: req.body.nationality,
+    passportNumber: req.body.passportNumber,
+    siblings: req.body.siblings,
+    phoneNumber: req.body.phoneNumber,
+    secondaryPhoneNumber: req.body.secondaryPhoneNumber,
+    address: req.body.address,
+    avatar:req.body.avatar,
+    grade:  req.body.grade
   };
 
   const user = await User.findByIdAndUpdate(req.params.id, newUserData, {
@@ -267,5 +305,25 @@ export const deleteUser = catchAsyncErrors(async (req, res, next) => {
 
   res.status(200).json({
     success: true,
+  });
+});
+
+
+// Get all Users -  /api/v1/users
+export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
+  let users= []
+  let sortedStudents =[]
+  if(req.params.type === 'student'){
+    req.query.role= "student"
+    const apiFilters = new APIFilters(User, req.query).search().filters().populate('grade', 'gradeName');
+    const students = await apiFilters.query;
+    sortedStudents = _.sortBy(students,[(item) => item.grade?.gradeName?.toLowerCase()],(item) => item?.name?.toLowerCase())
+  }
+  else{
+    users = await User.find({ role: req.params.type });
+  }
+
+  res.status(200).json({
+    users: req.params.type === 'student'? sortedStudents: users ,
   });
 });

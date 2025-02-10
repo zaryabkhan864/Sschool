@@ -11,6 +11,7 @@ import {
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
+import dayjs from "dayjs";
 
 const ListEvents = () => {
   const navigate = useNavigate();
@@ -109,8 +110,8 @@ const ListEvents = () => {
                 >
                   <Table.Cell>{event?._id}</Table.Cell>
                   <Table.Cell>{event?.eventName}</Table.Cell>
-                  <Table.Cell>{event?.date}</Table.Cell>
-                  <Table.Cell>{event?.isPaid}</Table.Cell>
+                  <Table.Cell>{dayjs(event?.date).format('DD/MM/YYYY hh:mm:ss A')}</Table.Cell>
+                  <Table.Cell>{!!event?.isPaid?'Yes': 'No'}</Table.Cell>
                   <Table.Cell>
                     <div className="flex space-x-2">
                       {userRole === "admin" && (

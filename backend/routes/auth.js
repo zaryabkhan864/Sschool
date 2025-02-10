@@ -13,6 +13,7 @@ import {
   updateProfile,
   updateUser,
   uploadAvatar,
+  getUsersByType
 } from "../controllers/authControllers.js";
 const router = express.Router();
 
@@ -39,5 +40,9 @@ router
   .get(isAuthenticatedUser, authorizeRoles("admin"), getUserDetails)
   .put(isAuthenticatedUser, authorizeRoles("admin"), updateUser)
   .delete(isAuthenticatedUser, authorizeRoles("admin"), deleteUser);
+
+router
+  .route("/users/:type")
+  .get(getUsersByType)
 
 export default router;

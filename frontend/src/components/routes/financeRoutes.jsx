@@ -3,6 +3,8 @@ import { Route } from "react-router-dom";
 import ProtectedRoute from "../auth/ProtectedRoute";
 import FinanceDashboard from "../dashboard/FinanceDashboard";
 import NewFees from "../finance/fees/NewFees";
+import ListFees from "../finance/fees/ListFees";
+import NewSalary from "../finance/salary/NewSalary";
 
 
 const financeRoutes = () => {
@@ -24,7 +26,24 @@ const financeRoutes = () => {
                     </ProtectedRoute>
                 }
             />
+            <Route
+                path="/finance/students/fees"
+                element={
+                    <ProtectedRoute finance={true} admin={true}>
+                        <ListFees />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/finance/employee/salaries"
+                element={
+                    <ProtectedRoute finance={true} admin={true}>
+                        <NewSalary />
+                    </ProtectedRoute>
+                }
+            />
         </>
+
 
     );
 };

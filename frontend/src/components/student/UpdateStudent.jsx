@@ -5,11 +5,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useCountries } from "react-countries";
 
 import { useGetGradesQuery } from "../../redux/api/gradesApi";
-import {
-  useGetStudentDetailsQuery,
-  useGetStudentsQuery,
-  useUpdateStudentMutation,
-} from "../../redux/api/studentsApi";
+
+import { useGetUserByTypeQuery, useGetUserDetailsQuery, useUpdateUserMutation } from "../../redux/api/userApi";
+
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 
@@ -17,29 +15,26 @@ const UpdateStudent = () => {
   const params = useParams();
   const navigate = useNavigate();
   const { countries } = useCountries();
-  const { refetch } = useGetStudentsQuery();
+  const { refetch } = useGetUserByTypeQuery("student");
 
-  const {
-    data,
-    isLoading: studentLoading,
-    error: studentError,
-  } = useGetStudentDetailsQuery(params.id);
+  const { data } = useGetUserDetailsQuery(params?.id);
+
   const [
-    updateStudent,
+    updateUser,
     { isLoading: updateLoading, error: updateError, isSuccess: updateSuccess },
-  ] = useUpdateStudentMutation();
+  ] = useUpdateUserMutation();
+
   const { data: gradesData, isLoading: gradeLoading } = useGetGradesQuery();
   const grades = gradesData?.grades || []; // Ensure it's an array
 
   const [student, setStudent] = useState({
-    studentName: "",
+    name: "",
     age: "",
     gender: "",
     nationality: "",
     passportNumber: "",
-    studentPhoneNumber: "",
-    parentOnePhoneNumber: "",
-    parentTwoPhoneNumber: "",
+    phoneNumber: "",
+    secondaryPhoneNumber: "",
     address: "",
     grade: "",
     avatar: "", //Add avatar field
@@ -48,35 +43,33 @@ const UpdateStudent = () => {
   const [avatarPreview, setAvatarPreview] = useState("");
 
   const {
-    studentName,
+    name,
     age,
     gender,
     nationality,
     passportNumber,
-    studentPhoneNumber,
-    parentOnePhoneNumber,
-    parentTwoPhoneNumber,
+    phoneNumber,
+    secondaryPhoneNumber,
     address,
     grade,
   } = student;
 
   // Map student details from API to state
   useEffect(() => {
-    if (data?.student) {
+    if (data?.user) {
       setStudent({
-        studentName: data?.student?.studentName,
-        age: data?.student?.age,
-        gender: data?.student?.gender,
-        nationality: data?.student?.nationality,
-        passportNumber: data?.student?.passportNumber,
-        studentPhoneNumber: data?.student?.studentPhoneNumber,
-        parentOnePhoneNumber: data?.student?.parentOnePhoneNumber,
-        parentTwoPhoneNumber: data?.student?.parentTwoPhoneNumber,
-        address: data?.student?.address,
-        grade: data?.student?.grade,
-        avatar: data?.student?.user?.avatar?.url,
+        name: data?.user?.name,
+        age: data?.user?.age,
+        gender: data?.user?.gender,
+        nationality: data?.user?.nationality,
+        passportNumber: data?.user?.passportNumber,
+        phoneNumber: data?.user?.phoneNumber,
+        secondaryPhoneNumber: data?.user?.secondaryPhoneNumber,
+        address: data?.user?.address,
+        grade: data?.user?.grade,
+        avatar: data?.user?.avatar?.url,
       });
-      setAvatarPreview(data?.student?.user?.avatar?.url);
+      setAvatarPreview(data?.user?.avatar?.url);
     }
   }, [data]);
 
@@ -88,6 +81,7 @@ const UpdateStudent = () => {
     if (updateSuccess) {
       toast.success("Student updated successfully");
       navigate("/admin/students");
+      refetch()
     }
   }, [updateError, updateSuccess, navigate, refetch]);
 
@@ -113,19 +107,18 @@ const UpdateStudent = () => {
   const submitHandler = (e) => {
     e.preventDefault();
     const formattedStudent = {
-      studentName,
+      name,
       age,
       gender,
       nationality,
       passportNumber,
-      studentPhoneNumber,
-      parentOnePhoneNumber,
-      parentTwoPhoneNumber,
+      phoneNumber,
+      secondaryPhoneNumber,
       address,
       grade,
-      avatarPreview,
+      avatar: avatarPreview,
     };
-    updateStudent({ id: params.id, body: formattedStudent });
+    updateUser({ id: params.id, body: formattedStudent });
   };
 
   return (
@@ -138,17 +131,17 @@ const UpdateStudent = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label
-                  htmlFor="studentName_field"
+                  htmlFor="name_field"
                   className="block text-sm font-medium text-gray-700"
                 >
                   Student Name
                 </label>
                 <input
                   type="text"
-                  id="studentName_field"
+                  id="name_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="studentName"
-                  value={studentName}
+                  name="name"
+                  value={name}
                   onChange={onChange}
                 />
               </div>
@@ -290,20 +283,20 @@ const UpdateStudent = () => {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label
-                  htmlFor="studentPhoneNumber_field"
+                  htmlFor="phoneNumber_field"
                   className="block text-sm font-medium text-gray-700"
                 >
                   Contact No
                 </label>
                 <input
                   type="text"
-                  id="studentPhoneNumber_field"
+                  id="phoneNumber_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="studentPhoneNumber"
-                  value={studentPhoneNumber}
+                  name="phoneNumber"
+                  value={phoneNumber}
                   maxLength={10}
                   minLength={10}
                   pattern="\d{10}"
@@ -321,17 +314,17 @@ const UpdateStudent = () => {
               </div>
               <div className="mb-4">
                 <label
-                  htmlFor="parentOnePhoneNumber_field"
+                  htmlFor="secondaryPhoneNumber_field"
                   className="block text-sm font-medium text-gray-700"
                 >
                   Parent Contact No
                 </label>
                 <input
                   type="number"
-                  id="parentOnePhoneNumber_field"
+                  id="secondaryPhoneNumber_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="parentOnePhoneNumber"
-                  value={parentOnePhoneNumber}
+                  name="secondaryPhoneNumber"
+                  value={secondaryPhoneNumber}
                   maxLength={10}
                   minLength={10}
                   pattern="\d{10}"
@@ -348,7 +341,7 @@ const UpdateStudent = () => {
                 />
               </div>
 
-              <div className="mb-4">
+              {/* <div className="mb-4">
                 <label
                   htmlFor="parentTwoPhoneNumber_field"
                   className="block text-sm font-medium text-gray-700"
@@ -375,7 +368,7 @@ const UpdateStudent = () => {
                   }}
                   onChange={onChange}
                 />
-              </div>
+              </div> */}
             </div>
             <div className="mb-4">
               <label

@@ -29,7 +29,7 @@ const quizSchema = new mongoose.Schema(
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Teacher",
+      ref: "User",
       required: [true, "Please specify the teacher responsible for this quiz"],
     },
     marks: [
@@ -37,7 +37,7 @@ const quizSchema = new mongoose.Schema(
         student: {
           type: mongoose.Schema.Types.ObjectId,
           required: true,
-          ref: "Student",
+          ref: "User",
         },
         question1: {
           type: Number,

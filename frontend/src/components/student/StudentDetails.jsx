@@ -2,14 +2,15 @@ import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useParams } from "react-router-dom";
 import { useGetGradesQuery } from "../../redux/api/gradesApi";
-import { useGetStudentDetailsQuery } from "../../redux/api/studentsApi";
+import { useGetUserDetailsQuery } from "../../redux/api/userApi";
+
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 
 const StudentDetails = () => {
   const params = useParams();
-  const { data, loading, error } = useGetStudentDetailsQuery(params?.id);
+  const { data, loading, error } = useGetUserDetailsQuery(params?.id);
 
   const [student, setStudent] = useState({
     studentName: "",
@@ -30,21 +31,20 @@ const StudentDetails = () => {
   const grades = gradesData?.grades || []; // Ensure it's an array
 
   useEffect(() => {
-    if (data?.student) {
+    if (data?.user) {
       setStudent({
-        studentName: data.student.studentName,
-        age: data.student.age,
-        gender: data.student.gender,
-        nationality: data.student.nationality,
-        passportNumber: data.student.passportNumber,
-        studentPhoneNumber: data.student.studentPhoneNumber,
-        parentOnePhoneNumber: data.student.parentOnePhoneNumber,
-        parentTwoPhoneNumber: data.student.parentTwoPhoneNumber,
-        address: data.student.address,
-        grade: data.student.grade,
-        avatar: data?.student?.user?.avatar?.url,
+        studentName: data.user.name,
+        age: data.user.age,
+        gender: data.user.gender,
+        nationality: data.user.nationality,
+        passportNumber: data.user.passportNumber,
+        studentPhoneNumber: data.user.phoneNumber,
+        parentOnePhoneNumber: data.user.secondaryPhoneNumber,
+        address: data.user.address,
+        grade: data.user.grade,
+        avatar: data?.user?.avatar?.url,
       });
-      setAvatarPreview(data?.student?.user?.avatar?.url);
+      setAvatarPreview(data?.user?.avatar?.url);
     }
 
     if (error) {
@@ -98,7 +98,7 @@ const StudentDetails = () => {
               <p className="text-lg text-gray-900">{student.passportNumber}</p>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="mb-4">
               <p className="text-sm font-medium text-gray-700">Contact No:</p>
               <p className="text-lg text-gray-900">
@@ -113,14 +113,14 @@ const StudentDetails = () => {
                 {student.parentOnePhoneNumber}
               </p>
             </div>
-            <div className="mb-4">
+           {/*  <div className="mb-4">
               <p className="text-sm font-medium text-gray-700">
                 Parent Contact No(2):
               </p>
               <p className="text-lg text-gray-900">
                 {student.parentTwoPhoneNumber}
               </p>
-            </div>
+            </div> */}
           </div>
           <div className="mb-4">
             <p className="text-sm font-medium text-gray-700">Address:</p>

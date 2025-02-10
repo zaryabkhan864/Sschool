@@ -65,6 +65,7 @@ const AddQuiz = () => {
             const body = {
                 gradeId: formValues.grade,
                 teacherId: userDetails.userId,
+                userRole: userDetails.role
             };
             sendGradeAndTeacherID(body)
                 .unwrap()
@@ -73,7 +74,7 @@ const AddQuiz = () => {
                 })
                 .catch((err) => console.error('Error fetching courses:', err));
         }
-    }, [formValues.grade, userDetails.userId, sendGradeAndTeacherID]);
+    }, [formValues.grade, userDetails.userId, sendGradeAndTeacherID, userDetails.role]);
 
     const [getQuizDetails, { isLoading, error }] = useGetStudentsQuizDetailsByQuizDataMutation();
 
@@ -87,7 +88,9 @@ const AddQuiz = () => {
             formValues.quizNumber
         ) {
             try {
-                const response = await getQuizDetails(formValues).unwrap();
+
+                const selectedCourse = courses.find((item)=> item._id === formValues.course)
+                const response = await getQuizDetails({...formValues, user: selectedCourse?.teacher}).unwrap();
                 console.log("Quiz details response:", response);
                 setQuizDetails(response.quiz);
                 // Initialize marks state with student IDs

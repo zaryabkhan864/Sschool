@@ -9,7 +9,7 @@ import {
   useCreateCourseMutation,
   useGetCoursesQuery,
 } from "../../redux/api/courseApi";
-import { useGetTeachersQuery } from "../../redux/api/teacherApi";
+import { useGetUserByTypeQuery } from "../../redux/api/userApi";
 
 const NewCourse = () => {
   const navigate = useNavigate();
@@ -28,8 +28,8 @@ const NewCourse = () => {
   const [createCourse, { isLoading, error, isSuccess }] =
     useCreateCourseMutation();
   const { data: teachersData, isLoading: teacherLoading } =
-    useGetTeachersQuery();
-  const teachers = teachersData?.teachers || []; // Ensure it's an array
+  useGetUserByTypeQuery("teacher");
+  const teachers = teachersData?.users || []; // Ensure it's an array
 
   useEffect(() => {
     if (error) {
@@ -159,7 +159,7 @@ const NewCourse = () => {
                 {!teacherLoading &&
                   teachers?.map((t) => (
                     <option key={t._id} value={t._id}>
-                      {t.teacherName}
+                      {t.name}
                     </option>
                   ))}
               </select>

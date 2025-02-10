@@ -1,9 +1,154 @@
-import React from 'react'
+// import React, { useEffect, useState } from "react";
+// import toast from "react-hot-toast";
+// import { useNavigate } from "react-router-dom";
+// import { useCreateSalaryMutation } from "../../../redux/api/salaryApi";
+// import AdminLayout from "../../layout/AdminLayout";
+// import MetaData from "../../layout/MetaData";
 
-const NewSalary = () => {
-    return (
-        <div>NewSalary</div>
-    )
-}
 
-export default NewSalary
+// const NewSalary = () => {
+//     const navigate = useNavigate();
+//     const [createSalary, { isLoading, error, isSuccess }] = useCreateSalaryMutation();
+//     const { data: employeesData, isLoading: employeesLoading } = useGetEmployeesQuery();
+//     const employees = employeesData?.employees || [];
+
+//     const [salaryData, setSalaryData] = useState({
+//         employee: "",
+//         amount: "",
+//         month: "",
+//         status: "Unpaid",
+//         paymentDate: "",
+//         deductions: "",
+//         netSalary: "",
+//     });
+
+//     const { employee, amount, month, status, paymentDate, deductions, netSalary } = salaryData;
+
+//     useEffect(() => {
+//         if (error) {
+//             toast.error(error?.data?.message || "Something went wrong!");
+//         }
+//         if (isSuccess) {
+//             toast.success("Salary record created successfully");
+//             navigate("/finance/employees/salaries");
+//         }
+//     }, [error, isSuccess, navigate]);
+
+//     const onChange = (e) => {
+//         setSalaryData({ ...salaryData, [e.target.name]: e.target.value });
+//     };
+
+//     const submitHandler = (e) => {
+//         e.preventDefault();
+//         createSalary(salaryData);
+//     };
+
+//     return (
+//         <AdminLayout>
+//             <MetaData title={"Create New Salary"} />
+//             <div className="flex justify-center items-center pt-5 pb-10">
+//                 <div className="w-full max-w-7xl">
+//                     <h2 className="text-2xl font-semibold mb-6">New Salary</h2>
+//                     <form onSubmit={submitHandler}>
+//                         <div className="mb-4">
+//                             <label className="block text-sm font-medium text-gray-700">Employee Name</label>
+//                             <select
+//                                 name="employee"
+//                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+//                                 value={employee}
+//                                 onChange={onChange}
+//                             >
+//                                 <option value="" disabled>Select Employee</option>
+//                                 {!employeesLoading && employees.map((emp) => (
+//                                     <option key={emp._id} value={emp._id}>{emp.name}</option>
+//                                 ))}
+//                             </select>
+//                         </div>
+
+//                         <div className="grid grid-cols-2 gap-4">
+//                             <div className="mb-4">
+//                                 <label className="block text-sm font-medium text-gray-700">Amount</label>
+//                                 <input
+//                                     type="number"
+//                                     name="amount"
+//                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+//                                     value={amount}
+//                                     onChange={onChange}
+//                                 />
+//                             </div>
+//                             <div className="mb-4">
+//                                 <label className="block text-sm font-medium text-gray-700">Month</label>
+//                                 <input
+//                                     type="month"
+//                                     name="month"
+//                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+//                                     value={month}
+//                                     onChange={onChange}
+//                                 />
+//                             </div>
+//                         </div>
+
+//                         <div className="grid grid-cols-2 gap-4">
+//                             <div className="mb-4">
+//                                 <label className="block text-sm font-medium text-gray-700">Deductions</label>
+//                                 <input
+//                                     type="number"
+//                                     name="deductions"
+//                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+//                                     value={deductions}
+//                                     onChange={onChange}
+//                                 />
+//                             </div>
+//                             <div className="mb-4">
+//                                 <label className="block text-sm font-medium text-gray-700">Net Salary</label>
+//                                 <input
+//                                     type="number"
+//                                     name="netSalary"
+//                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+//                                     value={netSalary}
+//                                     onChange={onChange}
+//                                 />
+//                             </div>
+//                         </div>
+
+//                         <div className="grid grid-cols-2 gap-4">
+//                             <div className="mb-4">
+//                                 <label className="block text-sm font-medium text-gray-700">Status</label>
+//                                 <select
+//                                     name="status"
+//                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+//                                     value={status}
+//                                     onChange={onChange}
+//                                 >
+//                                     <option value="Unpaid">Unpaid</option>
+//                                     <option value="Paid">Paid</option>
+//                                     <option value="Pending">Pending</option>
+//                                 </select>
+//                             </div>
+//                             <div className="mb-4">
+//                                 <label className="block text-sm font-medium text-gray-700">Payment Date</label>
+//                                 <input
+//                                     type="date"
+//                                     name="paymentDate"
+//                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+//                                     value={paymentDate}
+//                                     onChange={onChange}
+//                                 />
+//                             </div>
+//                         </div>
+
+//                         <button
+//                             type="submit"
+//                             className={`w-full py-2 text-white font-semibold rounded-md ${isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"} focus:outline-none focus:ring focus:ring-blue-300`}
+//                             disabled={isLoading}
+//                         >
+//                             {isLoading ? "Creating..." : "CREATE"}
+//                         </button>
+//                     </form>
+//                 </div>
+//             </div>
+//         </AdminLayout>
+//     );
+// };
+
+// export default NewSalary;

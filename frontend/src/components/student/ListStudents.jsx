@@ -4,24 +4,23 @@ import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 
-import {
-  useDeleteStudentMutation,
-  useGetStudentsQuery,
-} from "../../redux/api/studentsApi";
+import {useDeleteUserMutation, useGetUserByTypeQuery } from "../../redux/api/userApi";
+
+
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 
 const ListStudents = () => {
   const navigate = useNavigate();
-  const { data, isLoading, error, refetch } = useGetStudentsQuery();
-  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const { data, isLoading, error, refetch } = useGetUserByTypeQuery("student");
+  const { user } = useSelector((state) => state.auth);
   const [userRole, setUserRole] = useState("");
 
   const [
-    deleteStudent,
+    deleteUser,
     { isLoading: isDeleteLoading, error: deleteError, isSuccess },
-  ] = useDeleteStudentMutation();
+  ] = useDeleteUserMutation();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -38,11 +37,11 @@ const ListStudents = () => {
   }, [error, deleteError, isSuccess, navigate, refetch, user]);
 
   const deleteStudentHandler = (id) => {
-    deleteStudent(id);
+    deleteUser(id);
   };
 
-  const filteredStudents = data?.students?.filter((student) =>
-    student?.studentName?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredStudents = data?.users?.filter((student) =>
+    student?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const totalPages = Math.ceil((filteredStudents?.length || 0) / itemsPerPage);
@@ -59,7 +58,7 @@ const ListStudents = () => {
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">
-            {data?.students?.length} Students
+            {data?.users?.length} Students
           </h2>
 
           {/* Controls Section */}
@@ -108,9 +107,9 @@ const ListStudents = () => {
                   className="bg-white dark:bg-gray-800"
                 >
                   <Table.Cell>{student?._id}</Table.Cell>
-                  <Table.Cell>{student?.studentName}</Table.Cell>
+                  <Table.Cell>{student?.name}</Table.Cell>
                   <Table.Cell>{student?.age}</Table.Cell>
-                  <Table.Cell>{student?.grade}</Table.Cell>
+                  <Table.Cell>{student?.grade?.gradeName|| 'N/A'}</Table.Cell>
                   <Table.Cell>
                     <div className="flex space-x-2">
                       {userRole === "admin" && (

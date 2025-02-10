@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useParams } from "react-router-dom";
 import { useGetCourseDetailsQuery } from "../../redux/api/courseApi";
-import { useGetTeachersQuery } from "../../redux/api/teacherApi";
+import { useGetUserByTypeQuery } from "../../redux/api/userApi";
+
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
@@ -20,8 +21,8 @@ const CourseDetails = () => {
   });
 
   const { data: teachersData, isLoading: teacherLoading } =
-    useGetTeachersQuery();
-  const teachers = teachersData?.teachers || []; // Ensure it's an array
+  useGetUserByTypeQuery('teacher');
+  const teachers = teachersData?.users || []; // Ensure it's an array
 
   useEffect(() => {
     if (data?.course) {
@@ -76,7 +77,7 @@ const CourseDetails = () => {
                   (t) =>
                     t._id === course.teacher && (
                       <p key={t._id} value={t._id}>
-                        {t.teacherName}
+                        {t.name}
                       </p>
                     )
                 )}

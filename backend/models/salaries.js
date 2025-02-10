@@ -1,6 +1,6 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
-const SalarySchema = new mongoose.Schema({
+export const SalarySchema = new mongoose.Schema({
     employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "Employee", required: true },
     amount: { type: Number, required: true },
     month: { type: String, required: true }, // e.g., "January 2024"
@@ -10,4 +10,4 @@ const SalarySchema = new mongoose.Schema({
     netSalary: { type: Number } // amount - deductions
 });
 
-module.exports = mongoose.model("Salary", SalarySchema);
+export default mongoose.model("Salary", SalarySchema);

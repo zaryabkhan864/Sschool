@@ -29,6 +29,48 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "user",
     },
+    age: {
+      type: Number,
+      required: [true, "Please enter age of student"],
+      maxLength: [2, "Student age cannot exceed 2 digits"],
+    },
+    gender: {
+      type: String,
+      required: [true, "Please enter the gender"],
+    },
+    nationality: {
+      type: String,
+      required: [true, "Please enter the nationality of student"],
+    },
+    passportNumber: {
+      type: String,
+      required: [false, "Please enter the passport number of student"],
+      maxLength: [14, "Passport number cannot exceed 14 digits"],
+    },
+    siblings: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Student", // Referencing other students
+      },
+    ],
+    phoneNumber: {
+      type: Number,
+      required: [true, "Please enter the phone number"],
+      maxLength: [10, "Contact number should be 10 digits"],
+    },
+    secondaryPhoneNumber: {
+      type: Number,
+      required: [true, "Please enter the phone number"],
+      maxLength: [10, "Contact number should be 10 digits"],
+    },
+    address: {
+      type: String,
+    },
+    grade: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Grade",
+      required: false,
+    },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
   },

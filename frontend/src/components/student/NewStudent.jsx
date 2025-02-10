@@ -4,27 +4,27 @@ import { toast } from "react-hot-toast";
 import { useCountries } from "react-countries";
 import { useNavigate } from "react-router-dom";
 import { useGetGradesQuery } from "../../redux/api/gradesApi";
-import {
-  useCreateStudentMutation,
-  useGetStudentsQuery,
-} from "../../redux/api/studentsApi";
+
+import { useRegisterMutation } from "../../redux/api/authApi";
+
+import { useGetUserByTypeQuery } from "../../redux/api/userApi";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 
 const NewStudent = () => {
   const navigate = useNavigate();
   const { countries } = useCountries();
-  const { refetch } = useGetStudentsQuery();
+  const { refetch } = useGetUserByTypeQuery("student");
 
   const [student, setStudent] = useState({
-    studentName: "",
+    role: "student",
+    name: "",
     age: "",
     gender: "",
     nationality: "",
     passportNumber: "",
-    studentPhoneNumber: "",
-    parentOnePhoneNumber: "",
-    parentTwoPhoneNumber: "",
+    phoneNumber: "",
+    secondaryPhoneNumber: "",
     address: "",
     grade: "",
     email: "",
@@ -34,22 +34,20 @@ const NewStudent = () => {
   const [avatarPreview, setAvatarPreview] = useState("");
 
   const {
-    studentName,
+    name,
     age,
     gender,
     nationality,
     passportNumber,
-    studentPhoneNumber,
-    parentOnePhoneNumber,
-    parentTwoPhoneNumber,
+    phoneNumber,
+    secondaryPhoneNumber,
     address,
     grade,
     email,
     password,
   } = student;
 
-  const [createStudent, { isLoading, error, isSuccess }] =
-    useCreateStudentMutation();
+  const [register, { isLoading, error, isSuccess }] = useRegisterMutation();
 
   const { data: gradesData, isLoading: gradeLoading } = useGetGradesQuery();
   const grades = gradesData?.grades || []; // Ensure it's an array
@@ -62,6 +60,7 @@ const NewStudent = () => {
     if (isSuccess) {
       toast.success("Student created");
       navigate("/admin/students");
+      refetch()
     }
   }, [error, isSuccess, navigate, refetch]);
 
@@ -89,7 +88,7 @@ const NewStudent = () => {
     const payload = {
       ...student,
     };
-    createStudent(payload);
+    register(payload);
   };
 
   return (
@@ -102,17 +101,17 @@ const NewStudent = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label
-                  htmlFor="studentName_field"
+                  htmlFor="name_field"
                   className="block text-sm font-medium text-gray-700"
                 >
                   Student Name
                 </label>
                 <input
                   type="text"
-                  id="studentName_field"
+                  id="name_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="studentName"
-                  value={studentName}
+                  name="name"
+                  value={name}
                   onChange={onChange}
                 />
               </div>
@@ -256,20 +255,20 @@ const NewStudent = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label
-                  htmlFor="studentPhoneNumber_field"
+                  htmlFor="phoneNumber_field"
                   className="block text-sm font-medium text-gray-700"
                 >
                   Contact No
                 </label>
                 <input
                   type="text"
-                  id="studentPhoneNumber_field"
+                  id="phoneNumber_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="studentPhoneNumber"
-                  value={studentPhoneNumber}
+                  name="phoneNumber"
+                  value={phoneNumber}
                   maxLength={10}
                   minLength={10}
                   pattern="\d{10}"
@@ -287,17 +286,17 @@ const NewStudent = () => {
               </div>
               <div className="mb-4">
                 <label
-                  htmlFor="parentOnePhoneNumber_field"
+                  htmlFor="secondaryPhoneNumber_field"
                   className="block text-sm font-medium text-gray-700"
                 >
                   Parent Contact No
                 </label>
                 <input
                   type="number"
-                  id="parentOnePhoneNumber_field"
+                  id="secondaryPhoneNumber_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="parentOnePhoneNumber"
-                  value={parentOnePhoneNumber}
+                  name="secondaryPhoneNumber"
+                  value={secondaryPhoneNumber}
                   maxLength={10}
                   minLength={10}
                   pattern="\d{10}"
@@ -314,34 +313,6 @@ const NewStudent = () => {
                 />
               </div>
 
-              <div className="mb-4">
-                <label
-                  htmlFor="parentTwoPhoneNumber_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Parent Contact No(2)
-                </label>
-                <input
-                  type="number"
-                  id="parentTwoPhoneNumber_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="parentTwoPhoneNumber"
-                  value={parentTwoPhoneNumber}
-                  maxLength={10}
-                  minLength={10}
-                  pattern="\d{10}"
-                  required
-                  onInvalid={(e) =>
-                    e.target.setCustomValidity(
-                      "Phone number must be exactly 10 digits"
-                    )
-                  }
-                  onInput={(e) => {
-                    e.target.setCustomValidity("");
-                  }}
-                  onChange={onChange}
-                />
-              </div>
             </div>
             <div className="mb-4">
               <label
