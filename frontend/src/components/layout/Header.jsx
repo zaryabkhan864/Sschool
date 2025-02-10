@@ -84,7 +84,6 @@ const Header = () => {
     <nav className="flex items-center justify-between px-4 bg-gray-100 shadow-lg relative">
       {user ? (
         <>
-        <LanguageSwitcher/>
           {/* Mobile Menu Button */}
           <button
             className="md:hidden text-gray-700 px-4 py-2"
@@ -133,6 +132,7 @@ const Header = () => {
             <Search />
           </div> */}
           <div className="flex items-center">
+            <LanguageSwitcher/>
             {/* Timer */}
             <div className="text-xl text-gray-800 mx-4">{`Login Time: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`}</div>
             {/* User Info and Settings */}
@@ -142,7 +142,6 @@ const Header = () => {
               onMouseLeave={handleMouseLeave}
             >
               <div className="flex items-center text-gray-700 hover:text-gray-900">
-        <LanguageSwitcher/>
 
                 <figure className="w-10 h-10 rounded-full overflow-hidden mr-2">
                   <img
