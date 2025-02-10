@@ -29,7 +29,7 @@ import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 
 const PostingWall = () => {
-    const { t  } = useTranslation();
+    const { t, i18n  } = useTranslation();
 
     dayjs.extend(relativeTime)
 
@@ -179,10 +179,10 @@ const PostingWall = () => {
             <MetaData title={t("posting")} />
             <div className="flex justify-center items-center pt-5 pb-10">
                 <div className="w-full ">
-                    <h2 className="text-2xl font-semibold mb-6">Announcements</h2>
+                    <h2 className="text-2xl font-semibold mb-6">{t('posting')}</h2>
                     <Card className="mb-6 p-4 bg-gray-100">
                         <form onSubmit={handlePostSubmit}>
-                            <ReactQuill theme="snow" value={newPost} onChange={setNewPost} placeholder="Write a new post..." className="mb-3" />
+                            <ReactQuill key={i18n?.language} theme="snow" value={newPost} onChange={setNewPost} placeholder={t("newPost")} className="mb-3" />
                             {!showEditPostModal && <FileUpload setIsUploadingFile={setIsUploadingFile} isSubmitted={isSuccess} setFiles={setFiles} loading={isCreating} />}
                             <Button type="submit" disabled={isCreating || isUploadingFile} className="mt-3 bg-blue-600 text-white">
                             {isCreating ? t("postLoading") : t("post")}
