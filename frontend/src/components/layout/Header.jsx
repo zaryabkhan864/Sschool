@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useLazyLogoutQuery } from "../../redux/api/authApi";
 import { Cog6ToothIcon } from "@heroicons/react/24/outline";
+import LanguageSwitcher from "../LanguageSwitcher";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -83,6 +84,7 @@ const Header = () => {
     <nav className="flex items-center justify-between px-4 bg-gray-100 shadow-lg relative">
       {user ? (
         <>
+        <LanguageSwitcher/>
           {/* Mobile Menu Button */}
           <button
             className="md:hidden text-gray-700 px-4 py-2"
@@ -140,6 +142,8 @@ const Header = () => {
               onMouseLeave={handleMouseLeave}
             >
               <div className="flex items-center text-gray-700 hover:text-gray-900">
+        <LanguageSwitcher/>
+
                 <figure className="w-10 h-10 rounded-full overflow-hidden mr-2">
                   <img
                     src={user?.avatar ? user?.avatar?.url : "/images/default_avatar.jpg"}

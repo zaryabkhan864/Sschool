@@ -6,8 +6,7 @@ i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    fallbackLng: 'tr', // Fallback language is Turkish
-    lng: 'tr', // Default language is Turkish
+    fallbackLng: 'en',
     debug: true,
     interpolation: {
       escapeValue: false, // React already escapes values
