@@ -1,9 +1,10 @@
+import dayjs from 'dayjs';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 const LanguageSwitcher = ()=> {
   const { i18n } = useTranslation();
-  const [isEnglish, setIsEnglish] = React.useState(true);
+  const [isEnglish, setIsEnglish] = React.useState( i18n?.language==='en');
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
@@ -13,6 +14,7 @@ const LanguageSwitcher = ()=> {
     const newLang = isEnglish ? 'tr' : 'en';
     changeLanguage(newLang);
     setIsEnglish(!isEnglish);
+    dayjs.locale(newLang)
   };
 
   return (
