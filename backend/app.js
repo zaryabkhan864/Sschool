@@ -52,6 +52,7 @@ import announcementRoutes from "./routes/announcement.js";
 import commentRoutes from "./routes/comment.js";
 import feesRoutes from "./routes/fees.js";
 import salariesRoutes from "./routes/salaries.js";
+import expense from "./routes/expenses.js";
 
 import counselingRoutes from "./routes/counseling.js";
 import courseRoutes from "./routes/course.js";
@@ -79,6 +80,8 @@ app.use("/api/v1", announcementRoutes);
 app.use("/api/v1", commentRoutes);
 // finances routes
 app.use("/api/v1", feesRoutes);
+app.use("/api/v1", salariesRoutes);
+app.use("/api/v1", expense);
 app.use("/api/v1", teacherLeaveRoutes);
 app.use("/api/v1", fileRoutes);
 

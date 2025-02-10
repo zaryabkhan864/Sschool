@@ -15,7 +15,7 @@ export const router = express.Router();
 // Create new salary entry
 router
     .route("/finance/salaries")
-    .post(isAuthenticatedUser, authorizeRoles("admin", "finance"), newSalary);
+    .post(isAuthenticatedUser, newSalary);
 
 // Get all salaries
 router

@@ -1,9 +1,12 @@
-const mongoose = require("mongoose");
 
-const RevenueSchema = new mongoose.Schema({
+import mongoose from "mongoose";
+
+
+export const RevenueSchema = new mongoose.Schema({
     source: { type: String, enum: ["Fees", "Donations", "Grants"], required: true },
     amount: { type: Number, required: true },
     date: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model("Revenue", RevenueSchema);
+
+export default mongoose.model("Revenue", RevenueSchema);

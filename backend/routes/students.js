@@ -17,7 +17,7 @@ const router = express.Router();
 //   .post(isAuthenticatedUser, authorizeRoles("admin"), newStudent);
 
 router.route("/students").get(getStudents);
-router.route("/students/grades").get(getStudentsWithGrades);
+router.route("/students/grades/:type").get(getStudentsWithGrades);
 router
   .route("/admin/student/:id")
   .put(isAuthenticatedUser, authorizeRoles("admin"), updateStudent);

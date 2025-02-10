@@ -16,14 +16,11 @@ export const studentApi = createApi({
       }),
     }),
     getStudentsWithGrades: builder.query({
-      query: (params) => ({
-        url: "/students/grades",
-        params: {
-          page: params?.page,
-          keyword: params?.keyword,
-          category: params?.category,
-        },
+      query: (type) => ({
+        url: `/students/grades/${type}`,
+        method: "get",
       }),
+      invalidatesTags: ["AdminUsers"],
     }),
     getStudentDetails: builder.query({
       query: (id) => `/student/${id}`,

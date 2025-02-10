@@ -1,6 +1,7 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
-const ExpenseSchema = new mongoose.Schema({
+
+export const ExpenseSchema = new mongoose.Schema({
     category: { type: String, enum: ["Electricity", "Maintenance", "Books", "Furniture", "Events"], required: true },
     amount: { type: Number, required: true },
     date: { type: Date, default: Date.now },
@@ -8,4 +9,5 @@ const ExpenseSchema = new mongoose.Schema({
     vendor: { type: String }
 });
 
-module.exports = mongoose.model("Expense", ExpenseSchema);
+
+export default mongoose.model("Expense", ExpenseSchema);

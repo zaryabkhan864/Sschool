@@ -4,24 +4,24 @@ import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import {
-    useDeleteFeeMutation,
-    useGetFeesQuery,
-} from "../../../redux/api/feesApi";
+    useDeleteSalaryMutation,
+    useGetSalariesQuery,
+} from "../../../redux/api/salaryApi";
 import AdminLayout from "../../layout/AdminLayout";
 import Loader from "../../layout/Loader";
 import MetaData from "../../layout/MetaData";
 
-const ListFees = () => {
+const ListSalaries = () => {
     const navigate = useNavigate();
-    const { data, isLoading, error, refetch } = useGetFeesQuery();
-    console.log("what", data);
+    const { data, isLoading, error, refetch } = useGetSalariesQuery();
+    console.log("what is salaries", data);
     const { isAuthenticated, user } = useSelector((state) => state.auth);
     const [userRole, setUserRole] = useState("");
 
     const [
-        deleteFee,
+        deleteSalary,
         { isLoading: isDeleteLoading, error: deleteError, isSuccess },
-    ] = useDeleteFeeMutation();
+    ] = useDeleteSalaryMutation();
 
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -37,23 +37,23 @@ const ListFees = () => {
         }
 
         if (isSuccess) {
-            toast.success("Fee record deleted successfully");
+            toast.success("Salary record deleted successfully");
             refetch();
         }
         if (user?.role === "admin") setUserRole(user?.role);
     }, [error, deleteError, isSuccess, navigate, refetch, user]);
 
-    const deleteFeeHandler = (id) => {
-        deleteFee(id);
+    const deleteSalaryHandler = (id) => {
+        deleteSalary(id);
     };
 
-    // Filter and paginate the fees
-    const filteredFees = data?.fees?.filter((fee) =>
-        fee?.feeType?.toLowerCase().includes(searchTerm.toLowerCase())
+    // Filter and paginate the salaries
+    const filteredSalaries = data?.salaries?.filter((salary) =>
+        salary?.month?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const totalPages = Math.ceil((filteredFees?.length || 0) / itemsPerPage);
-    const paginatedFees = filteredFees?.slice(
+    const totalPages = Math.ceil((filteredSalaries?.length || 0) / itemsPerPage);
+    const paginatedSalaries = filteredSalaries?.slice(
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage
     );
@@ -62,11 +62,11 @@ const ListFees = () => {
 
     return (
         <AdminLayout>
-            <MetaData title={"All Fees Records"} />
+            <MetaData title={"All Salary Records"} />
             <div className="flex justify-center items-center pt-5 pb-10">
                 <div className="w-full max-w-7xl">
                     <h2 className="text-2xl font-semibold mb-6">
-                        {data?.fees?.length} Fees Records
+                        {data?.salaries?.length} Salary Records
                     </h2>
 
                     {/* Controls Section */}
@@ -99,36 +99,40 @@ const ListFees = () => {
                         </div>
                     </div>
 
-                    {/* Fees Table */}
+                    {/* Salaries Table */}
                     <Table hoverable={true} className="w-full">
                         <Table.Head>
-
-                            <Table.HeadCell>Student</Table.HeadCell>
+                           
+                            <Table.HeadCell>Employee Name</Table.HeadCell>
                             <Table.HeadCell>Amount</Table.HeadCell>
-                            <Table.HeadCell>Type</Table.HeadCell>
+                            <Table.HeadCell>Month</Table.HeadCell>
                             <Table.HeadCell>Status</Table.HeadCell>
+                            <Table.HeadCell>Deductions</Table.HeadCell>
+                            <Table.HeadCell>Net Salary</Table.HeadCell>
                             <Table.HeadCell>Actions</Table.HeadCell>
                         </Table.Head>
                         <Table.Body>
-                            {paginatedFees?.map((fee) => (
-                                <Table.Row key={fee?._id} className="bg-white dark:bg-gray-800">
-
-                                    <Table.Cell>{fee?.student?.name}</Table.Cell>
-                                    <Table.Cell>{fee?.amount} {fee?.currency}</Table.Cell>
-                                    <Table.Cell>{fee?.feeType}</Table.Cell>
-                                    <Table.Cell>{fee?.status}</Table.Cell>
+                            {paginatedSalaries?.map((salary) => (
+                                <Table.Row key={salary?._id} className="bg-white dark:bg-gray-800">
+                                 
+                                    <Table.Cell>{salary?.employeeId?.name}</Table.Cell>
+                                    <Table.Cell>{salary?.amount}</Table.Cell>
+                                    <Table.Cell>{salary?.month}</Table.Cell>
+                                    <Table.Cell>{salary?.status}</Table.Cell>
+                                    <Table.Cell>{salary?.deductions}</Table.Cell>
+                                    <Table.Cell>{salary?.netSalary}</Table.Cell>
                                     <Table.Cell>
                                         <div className="flex space-x-2">
                                             {userRole === "admin" && (
                                                 <Link
-                                                    to={`/admin/fees/${fee?._id}`}
+                                                    to={`/admin/salaries/${salary?._id}`}
                                                     className="px-3 py-2 text-blue-600 border border-blue-600 rounded hover:bg-blue-600 hover:text-white focus:outline-none"
                                                 >
                                                     <i className="fa fa-pencil"></i>
                                                 </Link>
                                             )}
                                             <Link
-                                                to={`/admin/fee/${fee?._id}/details`}
+                                                to={`/admin/salary/${salary?._id}/details`}
                                                 className="px-3 py-2 text-green-600 border border-green-600 rounded hover:bg-green-600 hover:text-white focus:outline-none"
                                             >
                                                 <i className="fa fa-eye"></i>
@@ -136,7 +140,7 @@ const ListFees = () => {
                                             {userRole === "admin" && (
                                                 <button
                                                     className="px-3 py-2 text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white focus:outline-none"
-                                                    onClick={() => deleteFeeHandler(fee?._id)}
+                                                    onClick={() => deleteSalaryHandler(salary?._id)}
                                                     disabled={isDeleteLoading}
                                                 >
                                                     <i className="fa fa-trash"></i>
@@ -165,4 +169,4 @@ const ListFees = () => {
     );
 };
 
-export default ListFees;
+export default ListSalaries;

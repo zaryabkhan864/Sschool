@@ -4,6 +4,7 @@ import Quiz from "../models/quiz.js";
 import APIFilters from "../utils/apiFilters.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import _ from "lodash";
+import student from "../models/student.js";
 // CRUD operations for students
 
 /* // Create a new student =>  /api/v1/student/create_student
@@ -172,8 +173,8 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
       marks: existingQuiz.marks.map((mark) => ({
         ...mark.toObject(),
         studentName: mark.student?.name || "Unknown", // Add student name to each mark
-        student: mark.student?._id 
-           })),
+        student: mark.student?._id
+      })),
     };
 
     return res.status(200).json({
@@ -231,15 +232,30 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
 
 
 /* get all students with grades */
-export const getStudentsWithGrades = catchAsyncErrors(async (req, res) => {
-  const apiFilters = new APIFilters(Student, req.query).search().filters().populate('grade', 'gradeName');
-  const students = await apiFilters.query;
+// export const getStudentsWithGrades = catchAsyncErrors(async (req, res) => {
+//   const apiFilters = new APIFilters(Student, req.query).search().filters().populate('grade', 'gradeName');
+//   console.log("apiFilters: ", apiFilters);
+//   const students = await apiFilters.query;
 
-  const sortedStudents = _.sortBy(students,[(item) => item.grade?.gradeName?.toLowerCase()],'name')
-  
+//   const sortedStudents = _.sortBy(students, [(item) => item.grade?.gradeName?.toLowerCase()], 'name')
+
+//   res.status(200).json({
+//     success: true,
+//     students: sortedStudents,
+//   });
+// });
+
+
+export const getStudentsWithGrades = catchAsyncErrors(async (req, res) => {
+  const apiFilters = new APIFilters(Student, req.query).search().filters();
+  console.log("apiFilters: ", apiFilters);
+  let students = await apiFilters.query;
+
+  apiFilters.pagination(resPerPage);
+  students = await apiFilters.query.clone();
+
   res.status(200).json({
     success: true,
-    students: sortedStudents,
+    students,
   });
 });
-
