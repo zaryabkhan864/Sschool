@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from 'react-i18next';
 import {
   useDeleteCourseMutation,
   useGetCoursesQuery,
@@ -12,6 +13,7 @@ import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 
 const ListCourses = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data, isLoading, error, refetch } = useGetCoursesQuery();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -36,11 +38,11 @@ const ListCourses = () => {
     }
 
     if (isSuccess) {
-      toast.success("Course Deleted");
+      toast.success(t("courseDeleted"));
       refetch();
     }
     if (user?.role === "admin") setUserRole(user?.role);
-  }, [error, deleteError, isSuccess, navigate, refetch, user]);
+  }, [error, deleteError, isSuccess, navigate, refetch, user, t]);
 
   const deleteCourseHandler = (id) => {
     deleteCourse(id);
@@ -61,11 +63,11 @@ const ListCourses = () => {
 
   return (
     <AdminLayout>
-      <MetaData title={"All Courses"} />
+      <MetaData title={t("allCourses")} />
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">
-            {data?.courses?.length} Courses
+            {data?.courses?.length} {t("courses")}
           </h2>
 
           {/* Controls Section */}
@@ -73,7 +75,7 @@ const ListCourses = () => {
             {/* Search Bar */}
             <input
               type="text"
-              placeholder="Search..."
+              placeholder={t("search")}
               className="block w-full md:w-1/3 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -85,7 +87,7 @@ const ListCourses = () => {
                 htmlFor="itemsPerPage"
                 className="mr-2 text-sm font-medium"
               >
-                Entries per page:
+                {t("entriesPerPage")}:
               </label>
               <select
                 id="itemsPerPage"
@@ -104,11 +106,11 @@ const ListCourses = () => {
           {/* Courses Table */}
           <Table hoverable={true} className="w-full">
             <Table.Head>
-              <Table.HeadCell>ID</Table.HeadCell>
-              <Table.HeadCell>Course Name</Table.HeadCell>
-              <Table.HeadCell>Code</Table.HeadCell>
-              <Table.HeadCell>Year</Table.HeadCell>
-              <Table.HeadCell>Actions</Table.HeadCell>
+              <Table.HeadCell>{t("id")}</Table.HeadCell>
+              <Table.HeadCell>{t("courseName")}</Table.HeadCell>
+              <Table.HeadCell>{t("code")}</Table.HeadCell>
+              <Table.HeadCell>{t("year")}</Table.HeadCell>
+              <Table.HeadCell>{t("actions")}</Table.HeadCell>
             </Table.Head>
             <Table.Body>
               {paginatedCourses?.map((course) => (

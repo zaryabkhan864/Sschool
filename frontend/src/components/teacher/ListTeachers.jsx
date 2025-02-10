@@ -10,7 +10,10 @@ import {useDeleteUserMutation, useGetUserByTypeQuery } from "../../redux/api/use
 
 import AdminLayout from "../layout/AdminLayout";
 
+import { useTranslation } from "react-i18next";
+
 const ListTeachers = () => {
+    const { t } = useTranslation();
   const navigate = useNavigate();
   const { data, isLoading, error, refetch } = useGetUserByTypeQuery("teacher");
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -60,11 +63,11 @@ const ListTeachers = () => {
 
   return (
     <AdminLayout>
-      <MetaData title={"All Teachers"} />
+      <MetaData title={t("allTeachers")} />
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">
-            {data?.users?.length} Teachers
+            {data?.users?.length} {t("teachers")}
           </h2>
 
           {/* Controls Section */}
@@ -72,7 +75,7 @@ const ListTeachers = () => {
             {/* Search Bar */}
             <input
               type="text"
-              placeholder="Search..."
+              placeholder={t("search")}
               className="block w-full md:w-1/3 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -80,11 +83,8 @@ const ListTeachers = () => {
 
             {/* Records per Page Dropdown */}
             <div className="flex items-center mt-2 md:mt-0">
-              <label
-                htmlFor="itemsPerPage"
-                className="mr-2 text-sm font-medium"
-              >
-                Entries per page:
+              <label htmlFor="itemsPerPage" className="mr-2 text-sm font-medium">
+                {t("entriesPerPage")}:
               </label>
               <select
                 id="itemsPerPage"
@@ -103,19 +103,16 @@ const ListTeachers = () => {
           {/* Teachers Table */}
           <Table hoverable={true} className="w-full">
             <Table.Head>
-              <Table.HeadCell>ID</Table.HeadCell>
-              <Table.HeadCell>Teacher Name</Table.HeadCell>
-              <Table.HeadCell>Age</Table.HeadCell>
-              <Table.HeadCell>Gender</Table.HeadCell>
-              <Table.HeadCell>Nationalty</Table.HeadCell>
-              <Table.HeadCell>Actions</Table.HeadCell>
+              <Table.HeadCell>{t("id")}</Table.HeadCell>
+              <Table.HeadCell>{t("teacherName")}</Table.HeadCell>
+              <Table.HeadCell>{t("age")}</Table.HeadCell>
+              <Table.HeadCell>{t("gender")}</Table.HeadCell>
+              <Table.HeadCell>{t("nationality")}</Table.HeadCell>
+              <Table.HeadCell>{t("actions")}</Table.HeadCell>
             </Table.Head>
             <Table.Body>
               {paginatedTeachers?.map((teacher) => (
-                <Table.Row
-                  key={teacher?._id}
-                  className="bg-white dark:bg-gray-800"
-                >
+                <Table.Row key={teacher?._id} className="bg-white dark:bg-gray-800">
                   <Table.Cell>{teacher?._id}</Table.Cell>
                   <Table.Cell>{teacher?.name}</Table.Cell>
                   <Table.Cell>{teacher?.age}</Table.Cell>
@@ -126,47 +123,49 @@ const ListTeachers = () => {
                       {userRole === "admin" && (
                         <Link
                           to={`/admin/teachers/${teacher?._id}`}
-                          className="px-3 py-2 text-blue-600 border border-blue-600 rounded hover:bg-blue-600 hover:text-white focus:outline-none"
-                        >
-                          <i className="fa fa-pencil"></i>
-                        </Link>
-                      )}
+                      className="px-3 py-2 text-blue-600 border border-blue-600 rounded hover:bg-blue-600 hover:text-white focus:outline-none"
+                    >
+                      <i className="fa fa-pencil"></i>
+                    </Link>
+                  )}
 
-                      <Link
-                        to={`/admin/teacher/${teacher?._id}/details`}
-                        className="px-3 py-2 text-green-600 border border-green-600 rounded hover:bg-green-600 hover:text-white focus:outline-none"
-                      >
-                        <i className="fa fa-eye"></i>
-                      </Link>
-                      {userRole === "admin" && (
-                        <button
-                          className="px-3 py-2 text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white focus:outline-none"
-                          onClick={() => deleteTeacherHandler(teacher?._id)}
-                          disabled={isDeleteLoading}
-                        >
-                          <i className="fa fa-trash"></i>
-                        </button>
-                      )}
-                    </div>
-                  </Table.Cell>
-                </Table.Row>
-              ))}
-            </Table.Body>
-          </Table>
+                    <Link
+                      to={`/admin/teacher/${teacher?._id}/details`}
+                    className="px-3 py-2 text-green-600 border border-green-600 rounded hover:bg-green-600 hover:text-white focus:outline-none"
+                  >
+                    <i className="fa fa-eye"></i>
+                  </Link>
 
-          {/* Pagination */}
-          <div className="flex justify-center mt-4">
-            <Pagination
-              currentPage={currentPage}
-              layout="navigation"
-              onPageChange={(page) => setCurrentPage(page)}
-              showIcons={true}
-              totalPages={totalPages}
-            />
-          </div>
-        </div>
+                  {userRole === "admin" && (
+                    <button
+                      className="px-3 py-2 text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white focus:outline-none"
+                      onClick={() => deleteTeacherHandler(teacher?._id)}
+                      disabled={isDeleteLoading}
+                    >
+                      <i className="fa fa-trash"></i>
+                    </button>
+                  )}
+                </div>
+              </Table.Cell>
+          </Table.Row>
+          ))}
+        </Table.Body>
+      </Table>
+
+      {/* Pagination */}
+      <div className="flex justify-center mt-4">
+        <Pagination
+          currentPage={currentPage}
+          layout="navigation"
+          onPageChange={(page) => setCurrentPage(page)}
+          showIcons={true}
+          totalPages={totalPages}
+        />
       </div>
-    </AdminLayout>
+    </div>
+  </div >
+</AdminLayout >
+
   );
 };
 

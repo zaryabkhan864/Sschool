@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 
 
 const Login = () => {
-  const { t  } = useTranslation();
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,7 +21,7 @@ const Login = () => {
     user,
     isLoading: userLoading,
   } = useSelector((state) => state.auth);
-  console.log("userrole", user?.role);
+
 
   useEffect(() => {
     if (isAuthenticated && user?.role === "admin") {

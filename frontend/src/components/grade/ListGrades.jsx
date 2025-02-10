@@ -10,8 +10,10 @@ import {
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
+import { useTranslation } from "react-i18next";
 
 const ListGrades = () => {
+    const { t } = useTranslation();
   const navigate = useNavigate();
   const { data, isLoading, error, refetch } = useGetGradesQuery();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -54,18 +56,18 @@ const ListGrades = () => {
 
   return (
     <AdminLayout>
-      <MetaData title={"All Grades"} />
+      <MetaData title={t("allGrades")} />
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">
-            {data?.grades?.length} Grades
+            {data?.grades?.length} {t("grades")}
           </h2>
 
           {/* Controls Section */}
           <div className="flex flex-col md:flex-row justify-between items-center mb-4">
             <input
               type="text"
-              placeholder="Search..."
+              placeholder={t("search")}
               className="block w-full md:w-1/3 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -75,7 +77,7 @@ const ListGrades = () => {
                 htmlFor="itemsPerPage"
                 className="mr-2 text-sm font-medium"
               >
-                Entries per page:
+                {t("entriesPerPage")}:
               </label>
               <select
                 id="itemsPerPage"
@@ -94,11 +96,11 @@ const ListGrades = () => {
           {/* Grades Table */}
           <Table hoverable={true} className="w-full">
             <Table.Head>
-              <Table.HeadCell>ID</Table.HeadCell>
-              <Table.HeadCell>Grade Name</Table.HeadCell>
-              <Table.HeadCell>Year From</Table.HeadCell>
-              <Table.HeadCell>Year To</Table.HeadCell>
-              <Table.HeadCell>Actions</Table.HeadCell>
+              <Table.HeadCell>{t("id")}</Table.HeadCell>
+              <Table.HeadCell>{t("gradeName")}</Table.HeadCell>
+              <Table.HeadCell>{t("yearFrom")}</Table.HeadCell>
+              <Table.HeadCell>{t("yearTo")}</Table.HeadCell>
+              <Table.HeadCell>{t("actions")}</Table.HeadCell>
             </Table.Head>
             <Table.Body>
               {paginatedGrades?.map((grade) => (

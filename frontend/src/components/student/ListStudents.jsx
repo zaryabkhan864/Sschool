@@ -4,14 +4,16 @@ import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 
-import {useDeleteUserMutation, useGetUserByTypeQuery } from "../../redux/api/userApi";
+import { useDeleteUserMutation, useGetUserByTypeQuery } from "../../redux/api/userApi";
 
 
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
+import { useTranslation } from "react-i18next";
 
 const ListStudents = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data, isLoading, error, refetch } = useGetUserByTypeQuery("student");
   const { user } = useSelector((state) => state.auth);
@@ -54,18 +56,18 @@ const ListStudents = () => {
 
   return (
     <AdminLayout>
-      <MetaData title={"All Students"} />
+      <MetaData title={t("allStudents")} />
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">
-            {data?.users?.length} Students
+            {data?.users?.length} {t("Students")}
           </h2>
 
           {/* Controls Section */}
           <div className="flex flex-col md:flex-row justify-between items-center mb-4">
             <input
               type="text"
-              placeholder="Search..."
+              placeholder={t("search")}
               className="block w-full md:w-1/3 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -75,7 +77,7 @@ const ListStudents = () => {
                 htmlFor="itemsPerPage"
                 className="mr-2 text-sm font-medium"
               >
-                Entries per page:
+                {t("entriesPerPage")}:
               </label>
               <select
                 id="itemsPerPage"
@@ -94,11 +96,11 @@ const ListStudents = () => {
           {/* Students Table */}
           <Table hoverable={true} className="w-full">
             <Table.Head>
-              <Table.HeadCell>ID</Table.HeadCell>
-              <Table.HeadCell>Student Name</Table.HeadCell>
-              <Table.HeadCell>Age</Table.HeadCell>
-              <Table.HeadCell>Grade</Table.HeadCell>
-              <Table.HeadCell>Actions</Table.HeadCell>
+              <Table.HeadCell>{t("id")}</Table.HeadCell>
+              <Table.HeadCell>{t("studentName")}</Table.HeadCell>
+              <Table.HeadCell>{t('age')}</Table.HeadCell>
+              <Table.HeadCell>{t('grade')}</Table.HeadCell>
+              <Table.HeadCell>{t("actions")}</Table.HeadCell>
             </Table.Head>
             <Table.Body>
               {paginatedStudents?.map((student) => (
@@ -109,7 +111,7 @@ const ListStudents = () => {
                   <Table.Cell>{student?._id}</Table.Cell>
                   <Table.Cell>{student?.name}</Table.Cell>
                   <Table.Cell>{student?.age}</Table.Cell>
-                  <Table.Cell>{student?.grade?.gradeName|| 'N/A'}</Table.Cell>
+                  <Table.Cell>{student?.grade?.gradeName || 'N/A'}</Table.Cell>
                   <Table.Cell>
                     <div className="flex space-x-2">
                       {userRole === "admin" && (
