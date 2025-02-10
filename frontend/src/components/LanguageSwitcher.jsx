@@ -21,7 +21,7 @@ const LanguageSwitcher = ()=> {
       <label className="relative inline-flex items-center cursor-pointer">
         <input type="checkbox" checked={isEnglish} onChange={handleToggle} className="sr-only" />
         <div className="w-10 h-6 bg-blue-200 rounded-full shadow-inner"></div>
-        <div className={`absolute w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${isEnglish ? 'translate-x-0' : 'translate-x-4'}`}></div>
+        <div className={`absolute w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out ${isEnglish ? 'translate-x-1' : 'translate-x-5'}`}></div>
       </label>
     </div>
   );
