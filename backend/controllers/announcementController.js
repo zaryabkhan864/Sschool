@@ -1,6 +1,8 @@
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
+import mongoose  from "mongoose";
 import Announcement from "../models/announcement.js";
 import Comment from "../models/comment.js"
+import Grade from "../models/grade.js"
 import { upload_file, delete_file } from "../utils/cloudinary.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import APIFilters from "../utils/apiFilters.js";
@@ -24,6 +26,38 @@ export const createAnnouncement = catchAsyncErrors(async (req, res) => {
 
 /* get all announcements */
 export const getAnnouncements = catchAsyncErrors(async (req, res) => {
+  const {role:userRole, grade: userGrade} = req.user
+  if(userRole === 'student'){
+    const result = await Grade.aggregate([
+      // 1. Match the grade by ID
+      { $match: { _id: new mongoose.Types.ObjectId(userGrade) } },
+      
+      // 2. Lookup courses in the grade
+      {
+        $lookup: {
+          from: "courses",        // Collection name (case-sensitive)
+          localField: "courses",  // Array of course IDs in Grade
+          foreignField: "_id",    // Match course _id in Courses collection
+          as: "courseDetails"
+        }
+      },
+      
+      // 3. Unwind courses to process individually
+      { $unwind: "$courseDetails" },      
+      // 5. Group unique teacher IDs
+      {
+        $group: {
+          _id: null,
+          teacherIds: { $addToSet: "$courseDetails.teacher" }
+        }
+      },
+      
+      // 6. Project to clean up output
+      { $project: { _id: 0, teacherIds: 1 } }
+    ]); 
+
+    req.query.userId = result[0].teacherIds
+  }
   const resPerPage = 8;
   const apiFilters = new APIFilters(Announcement, req.query).search().filters().sort("createdAt" , -1);
 

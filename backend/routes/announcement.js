@@ -14,10 +14,10 @@ router
   .route("/announcement")
   .post(isAuthenticatedUser, authorizeRoles("admin","teacher"), createAnnouncement);
 
-router.route("/announcement").get(getAnnouncements);
+router.route("/announcement").get(isAuthenticatedUser,getAnnouncements);
 
-router.route("/announcement/:id").put(updateAnnouncement);
+router.route("/announcement/:id").put(isAuthenticatedUser,updateAnnouncement);
 
-router.route("/announcement/:id").delete(deleteAnnouncement);
+router.route("/announcement/:id").delete(isAuthenticatedUser, deleteAnnouncement);
 
 export default router;
