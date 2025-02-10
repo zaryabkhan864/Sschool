@@ -9,7 +9,7 @@ import { useGetUserByTypeQuery } from "../../../redux/api/userApi";
 const NewSalary = () => {
     const navigate = useNavigate();
     const [createSalary, { isLoading, error, isSuccess }] = useCreateSalaryMutation();
-    const { data: employeesData, isLoading: employeesLoading } = useGetUserByTypeQuery("teacher");
+    const { data: employeesData, isLoading: employeesLoading } = useGetUserByTypeQuery("employee");
     console.log("employeesData", employeesData)
     const employees = employeesData?.users || [];
 
