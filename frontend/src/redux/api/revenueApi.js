@@ -10,6 +10,9 @@ export const revenueApi = createApi({
             query: () => "/finance/revenue",
             providesTags: ["Revenue"],
         }),
+        getFeeStatics: builder.query({
+            query: () => "/fees/statistics",
+        }),
         getRevenueDetails: builder.query({
             query: (id) => `/revenue/${id}`,
             providesTags: ["Revenue"],
@@ -46,6 +49,7 @@ export const revenueApi = createApi({
 
 export const {
     useGetRevenueQuery,
+    useGetFeeStaticsQuery,
     useGetRevenueDetailsQuery,
     useCreateRevenueMutation,
     useUpdateRevenueMutation,

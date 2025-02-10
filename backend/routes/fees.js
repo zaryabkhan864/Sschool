@@ -57,7 +57,7 @@ router.route("/fees/statistics")
 router.route("/revenue/expenses")
     .get(isAuthenticatedUser, authorizeRoles
         ("admin", "finance"), getRevenueVsExpenses);
-        
+
 // Get single fee details
 router.route("/fees/:id")
     .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getFeeDetails);
