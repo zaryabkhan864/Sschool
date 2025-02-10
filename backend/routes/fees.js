@@ -8,6 +8,8 @@ import {
     getFeesByStudent,
     getUnpaidFees,
     getOverdueFees,
+    getFeesStats,
+    getRevenueVsExpenses
 } from "../controllers/feesController.js";
 import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 
@@ -22,9 +24,6 @@ router
 router
     .route("/finance/get/fees")
     .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getFees);
-// Get single fee details
-router.route("/fees/:id")
-    .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getFeeDetails);
 
 // Update fee record
 
@@ -49,5 +48,18 @@ router.route("/fees/unpaid")
 // Get overdue fees
 router.route("/fees/overdue")
     .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getOverdueFees);
+
+// Get all fees statistics
+router.route("/fees/statistics")
+    .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getFeesStats);
+
+// Get revenue vs expenses
+router.route("/revenue/expenses")
+    .get(isAuthenticatedUser, authorizeRoles
+        ("admin", "finance"), getRevenueVsExpenses);
+
+// Get single fee details
+router.route("/fees/:id")
+    .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getFeeDetails);
 
 export default router;

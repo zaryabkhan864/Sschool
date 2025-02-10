@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useLazyLogoutQuery } from "../../redux/api/authApi";
 import { Cog6ToothIcon } from "@heroicons/react/24/outline";
+import LanguageSwitcher from "../LanguageSwitcher";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -131,6 +132,7 @@ const Header = () => {
             <Search />
           </div> */}
           <div className="flex items-center">
+            <LanguageSwitcher/>
             {/* Timer */}
             <div className="text-xl text-gray-800 mx-4">{`Login Time: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`}</div>
             {/* User Info and Settings */}
@@ -140,6 +142,7 @@ const Header = () => {
               onMouseLeave={handleMouseLeave}
             >
               <div className="flex items-center text-gray-700 hover:text-gray-900">
+
                 <figure className="w-10 h-10 rounded-full overflow-hidden mr-2">
                   <img
                     src={user?.avatar ? user?.avatar?.url : "/images/default_avatar.jpg"}
@@ -187,12 +190,15 @@ const Header = () => {
       ) : (
         !isLoading && (
           <div className="flex justify-center w-full">
+            <>
+            <LanguageSwitcher/>
             <Link
               to="/"
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
               Login
             </Link>
+            </>
           </div>
         )
       )}

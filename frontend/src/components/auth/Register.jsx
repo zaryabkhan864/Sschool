@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useRegisterMutation } from "../../redux/api/authApi";
 import toast from "react-hot-toast";
 import { useCountries } from "react-countries";
-
 import { useNavigate } from "react-router-dom";
 import MetaData from "../layout/MetaData";
 import AdminLayout from "../layout/AdminLayout";
@@ -12,7 +11,6 @@ const Register = () => {
   const navigate = useNavigate();
   const { refetch } = useGetAdminUsersQuery();
   const { countries } = useCountries();
-
 
   const [user, setUser] = useState({
     name: "",
@@ -28,7 +26,19 @@ const Register = () => {
     address: "",
   });
 
-  const { name, email, password, role, age, gender, nationality, passportNumber, phoneNumber, secondaryPhoneNumber, address } = user;
+  const {
+    name,
+    email,
+    password,
+    role,
+    age,
+    gender,
+    nationality,
+    passportNumber,
+    phoneNumber,
+    secondaryPhoneNumber,
+    address,
+  } = user;
 
   const [register, { isLoading, error, isSuccess }] = useRegisterMutation();
 
@@ -60,104 +70,166 @@ const Register = () => {
         <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">Register New User</h2>
           <form onSubmit={submitHandler}>
-            <div className="mb-4">
-              <label htmlFor="name_field" className="block text-sm font-medium text-gray-700">
-                Name
-              </label>
-              <input
-                type="text"
-                id="name_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="name"
-                value={name}
-                onChange={onChange}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="mb-4">
+                <label
+                  htmlFor="name_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Name
+                </label>
+                <input
+                  type="text"
+                  id="name_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="name"
+                  value={name}
+                  onChange={onChange}
+                />
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="email_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Email
+                </label>
+                <input
+                  type="email"
+                  id="email_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="email"
+                  value={email}
+                  onChange={onChange}
+                />
+              </div>
             </div>
 
-            <div className="mb-4">
-              <label htmlFor="email_field" className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <input
-                type="email"
-                id="email_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="email"
-                value={email}
-                onChange={onChange}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="mb-4">
+                <label
+                  htmlFor="password_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Password
+                </label>
+                <input
+                  type="password"
+                  id="password_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="password"
+                  value={password}
+                  onChange={onChange}
+                />
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="role_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Role
+                </label>
+                <select
+                  id="role_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="role"
+                  value={role}
+                  onChange={onChange}
+                >
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                  <option value="teacher">Teacher</option>
+                  <option value="student">Student</option>
+                  <option value="finance">Finance</option>
+                  <option value="principle">Principle</option>
+                  <option value="counsellor">Counsellor</option>
+                </select>
+              </div>
             </div>
 
-            <div className="mb-4">
-              <label htmlFor="password_field" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                type="password"
-                id="password_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="password"
-                value={password}
-                onChange={onChange}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="mb-4">
+                <label
+                  htmlFor="age_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Age
+                </label>
+                <input
+                  type="number"
+                  id="age_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="age"
+                  value={age}
+                  onChange={onChange}
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="gender_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Gender
+                </label>
+                <div className="flex items-center space-x-4 mt-1">
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="male"
+                      name="gender"
+                      value="male"
+                      checked={gender === "male"}
+                      onChange={onChange}
+                      className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                    />
+                    <label
+                      htmlFor="male"
+                      className="ml-2 text-sm text-gray-700"
+                    >
+                      Male
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="female"
+                      name="gender"
+                      value="female"
+                      checked={gender === "female"}
+                      onChange={onChange}
+                      className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                    />
+                    <label
+                      htmlFor="female"
+                      className="ml-2 text-sm text-gray-700"
+                    >
+                      Female
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="other"
+                      name="gender"
+                      value="other"
+                      checked={gender === "other"}
+                      onChange={onChange}
+                      className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                    />
+                    <label
+                      htmlFor="other"
+                      className="ml-2 text-sm text-gray-700"
+                    >
+                      Other
+                    </label>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="mb-4">
-              <label htmlFor="role_field" className="block text-sm font-medium text-gray-700">
-                Role
-              </label>
-              <select
-                id="role_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="role"
-                value={role}
-                onChange={onChange}
-              >
-                <option value="user">User</option>
-                <option value="admin">Admin</option>
-                <option value="teacher">Teacher</option>
-                <option value="student">Student</option>
-                <option value="finance">Finance</option>
-                <option value="principle">Principle</option>
-                <option value="counsellor">Counsellor</option>
-              </select>
-            </div>
-
-            <div className="mb-4">
-              <label htmlFor="age_field" className="block text-sm font-medium text-gray-700">
-                Age
-              </label>
-              <input
-                type="number"
-                id="age_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="age"
-                value={age}
-                onChange={onChange}
-                required
-              />
-            </div>
-
-            <div className="mb-4">
-              <label htmlFor="gender_field" className="block text-sm font-medium text-gray-700">
-                Gender
-              </label>
-              <select
-                id="gender_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="gender"
-                value={gender}
-                onChange={onChange}
-                required
-              >
-                <option value="">Select Gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-
-            <div className="mb-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="mb-4">
                 <label
                   htmlFor="nationality_field"
                   className="block text-sm font-medium text-gray-700"
@@ -179,53 +251,66 @@ const Register = () => {
                   ))}
                 </select>
               </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="passport_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Passport Number
+                </label>
+                <input
+                  type="text"
+                  id="passport_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="passportNumber"
+                  value={passportNumber}
+                  onChange={onChange}
+                />
+              </div>
+            </div>
 
-            <div className="mb-4">
-              <label htmlFor="passport_field" className="block text-sm font-medium text-gray-700">
-                Passport Number
-              </label>
-              <input
-                type="text"
-                id="passport_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="passportNumber"
-                value={passportNumber}
-                onChange={onChange}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="mb-4">
+                <label
+                  htmlFor="phone_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Phone Number
+                </label>
+                <input
+                  type="text"
+                  id="phone_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="phoneNumber"
+                  value={phoneNumber}
+                  onChange={onChange}
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="secondary_phone_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Secondary Phone Number
+                </label>
+                <input
+                  type="text"
+                  id="secondary_phone_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="secondaryPhoneNumber"
+                  value={secondaryPhoneNumber}
+                  onChange={onChange}
+                  required
+                />
+              </div>
             </div>
 
             <div className="mb-4">
-              <label htmlFor="phone_field" className="block text-sm font-medium text-gray-700">
-                Phone Number
-              </label>
-              <input
-                type="text"
-                id="phone_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="phoneNumber"
-                value={phoneNumber}
-                onChange={onChange}
-                required
-              />
-            </div>
-
-            <div className="mb-4">
-              <label htmlFor="secondary_phone_field" className="block text-sm font-medium text-gray-700">
-                Secondary Phone Number
-              </label>
-              <input
-                type="text"
-                id="secondary_phone_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="secondaryPhoneNumber"
-                value={secondaryPhoneNumber}
-                onChange={onChange}
-                required
-              />
-            </div>
-
-            <div className="mb-4">
-              <label htmlFor="address_field" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="address_field"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Address
               </label>
               <input
@@ -241,7 +326,8 @@ const Register = () => {
 
             <button
               type="submit"
-              className={`w-full py-2 text-white font-semibold rounded-md ${isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"} focus:outline-none focus:ring focus:ring-blue-300`}
+              className={`w-full py-2 text-white font-semibold rounded-md ${isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+                } focus:outline-none focus:ring focus:ring-blue-300`}
               disabled={isLoading}
             >
               {isLoading ? "Registering..." : "REGISTER"}

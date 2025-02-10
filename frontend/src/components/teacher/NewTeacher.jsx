@@ -41,7 +41,7 @@ const NewTeacher = () => {
   } = teacher;
 
   const [register, { isLoading, error, isSuccess }] =
-  useRegisterMutation();
+    useRegisterMutation();
 
   useEffect(() => {
     if (error) {
@@ -311,9 +311,8 @@ const NewTeacher = () => {
 
             <button
               type="submit"
-              className={`w-full py-2 text-white font-semibold rounded-md ${
-                isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-              } focus:outline-none focus:ring focus:ring-blue-300`}
+              className={`w-full py-2 text-white font-semibold rounded-md ${isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+                } focus:outline-none focus:ring focus:ring-blue-300`}
               disabled={isLoading}
             >
               {isLoading ? "Creating..." : "CREATE"}

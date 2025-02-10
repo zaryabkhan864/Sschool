@@ -5,10 +5,10 @@ import ConfirmationModal from './ConfirmationModal';
 import { useTranslation } from 'react-i18next';
 
 
-const Comment = ({ 
-    comment, 
-    currentUserId,  
-    onDelete, 
+const Comment = ({
+    comment,
+    currentUserId,
+    onDelete,
     onUpdateComment,
     isCommentDeleted,
     isDeletingComment,
@@ -20,15 +20,14 @@ const Comment = ({
     const isCommentOwner = currentUserId === comment.userId?._id;
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    const [commentMessage, updatedCommentMessage] = useState(comment?.message|| "");
-
+    const [commentMessage, updatedCommentMessage] = useState(comment?.message || "");
 
     const handleDelete = useCallback(async () => {
         await onDelete(comment._id);
     }, [comment._id, onDelete]);
 
     const handleUpdate = useCallback(async () => {
-        if(!commentMessage) return
+        if (!commentMessage) return;
         await onUpdateComment(comment._id, commentMessage);
     }, [comment._id, commentMessage, onUpdateComment]);
 
@@ -46,9 +45,9 @@ const Comment = ({
 
     return (
         <div className="flex items-start space-x-3 border-t pt-3">
-            <img 
-                src={comment.userId?.avatar?.url || "/images/default_avatar.jpg"} 
-                alt="Profile" 
+            <img
+                src={comment.userId?.avatar?.url || "/images/default_avatar.jpg"}
+                alt="Profile"
                 className="w-8 h-8 rounded-full"
             />
             <div className="flex-1">
@@ -76,10 +75,9 @@ const Comment = ({
                                 {t('delete')}
                                 </Dropdown.Item>
                             </Dropdown>
-
-                            <ConfirmationModal 
-                                show={showDeleteModal} 
-                                onClose={() => {if(!isDeletingComment) setShowDeleteModal(false)}} 
+                            <ConfirmationModal
+                                show={showDeleteModal}
+                                onClose={() => { if (!isDeletingComment) setShowDeleteModal(false); }}
                                 loading={isDeletingComment || isUpdatingComment}
                                 onConfirm={handleDelete} 
                                 message={t('deleteMsg')} 
@@ -96,12 +94,12 @@ const Comment = ({
                             className="w-full p-2 border rounded"
                         />
                         <div className="mt-2 flex space-x-2">
-                            <Button 
+                            <Button
                                 loading={isDeletingComment || isUpdatingComment}
                                 size="xs" color="blue" onClick={() => handleUpdate()}>
                                 {t('save')}
                             </Button>
-                            <Button 
+                            <Button
                                 loading={isDeletingComment || isUpdatingComment}
                                 size="xs" color="gray" onClick={()=>setIsEditing(false)}>
                                 {t('cancel')}
@@ -116,4 +114,4 @@ const Comment = ({
     );
 };
 
-export default Comment; 
+export default Comment;

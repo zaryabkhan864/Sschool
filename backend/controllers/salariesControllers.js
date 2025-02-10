@@ -6,6 +6,7 @@ import APIFilters from "../utils/apiFilters.js";
 // Create new salary entry => /api/v1/salaries
 export const newSalary = catchAsyncErrors(async (req, res, next) => {
     const { employeeId, amount, month, status, paymentDate, deductions, netSalary } = req.body;
+    console.log("req.body", req.body)
 
     const salary = await Salary.create({
         employeeId,

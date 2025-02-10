@@ -5,12 +5,15 @@ import { useCreateFeeMutation } from "../../../redux/api/feesApi";
 import AdminLayout from "../../layout/AdminLayout";
 import MetaData from "../../layout/MetaData";
 import { useGetStudentsWithGradesQuery } from "../../../redux/api/studentsApi";
+import { useDeleteUserMutation, useGetUserByTypeQuery } from "../../../redux/api/userApi";
 
 const NewFees = () => {
     const navigate = useNavigate();
     const [createFees, { isLoading, error, isSuccess }] = useCreateFeeMutation();
-    const { data: studentsData, isLoading: studentLoading } = useGetStudentsWithGradesQuery();
-    const students = studentsData?.students || [];
+
+    const { data: studentsData, isLoading: studentLoading } = useGetUserByTypeQuery("student");
+    console.log("student data", studentsData);
+    const students = studentsData?.users || [];
 
     const [feesData, setFeesData] = useState({
         student: "",
@@ -67,7 +70,7 @@ const NewFees = () => {
                                 {!studentLoading &&
                                     students?.map((s) => (
                                         <option key={s._id} value={s._id}>
-                                            {s.studentName} - {s?.grade?.gradeName}
+                                            {s.name} - {s?.grade?.gradeName}
                                         </option>
                                     ))}
                             </select>
