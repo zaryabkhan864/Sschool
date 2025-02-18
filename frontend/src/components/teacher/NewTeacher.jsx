@@ -9,8 +9,10 @@ import { useGetUserByTypeQuery } from "../../redux/api/userApi";
 
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
+import { useTranslation } from "react-i18next";
 
 const NewTeacher = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { countries } = useCountries();
   const { refetch } = useGetUserByTypeQuery('teacher');
@@ -89,7 +91,7 @@ const NewTeacher = () => {
       <MetaData title={"Create New Teacher"} />
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">New Teacher</h2>
+          <h2 className="text-2xl font-semibold mb-6">{t('New Teacher')}</h2>
           <form onSubmit={submitHandler}>
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
@@ -97,7 +99,7 @@ const NewTeacher = () => {
                   htmlFor="name_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Teacher Name
+                  {t('Teacher Name')}
                 </label>
                 <input
                   type="text"
@@ -113,7 +115,7 @@ const NewTeacher = () => {
                   htmlFor="age_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Age
+                  {t('Age')}
                 </label>
                 <input
                   type="number"
@@ -132,7 +134,7 @@ const NewTeacher = () => {
                   htmlFor="nationality_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Nationality
+                  {t('Nationality')}
                 </label>
                 <select
                   type="text"
@@ -151,7 +153,7 @@ const NewTeacher = () => {
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">
-                  Gender
+                  {t('Gender')}
                 </label>
                 <div className="flex items-center space-x-4 mt-1">
                   <div className="flex items-center">
@@ -168,7 +170,7 @@ const NewTeacher = () => {
                       htmlFor="male"
                       className="ml-2 text-sm text-gray-700"
                     >
-                      Male
+                      {t('Male')}
                     </label>
                   </div>
                   <div className="flex items-center">
@@ -185,7 +187,7 @@ const NewTeacher = () => {
                       htmlFor="female"
                       className="ml-2 text-sm text-gray-700"
                     >
-                      Female
+                      {t('Female')}
                     </label>
                   </div>
                 </div>
@@ -198,7 +200,7 @@ const NewTeacher = () => {
                   htmlFor="phoneNumber_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Contact No
+                  {t('Contact No')}
                 </label>
                 <input
                   type="text"
@@ -226,7 +228,7 @@ const NewTeacher = () => {
                   htmlFor="secondaryPhoneNumber_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Contact No(2)
+                  {t('Contact No 2')}
                 </label>
                 <input
                   type="text"
@@ -257,7 +259,7 @@ const NewTeacher = () => {
                   htmlFor="email_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Email
+                  {t('Email')} 
                 </label>
                 <input
                   type="email"
@@ -273,7 +275,7 @@ const NewTeacher = () => {
                   htmlFor="password_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Password
+                  {t('Password')}
                 </label>
                 <input
                   type="password"
@@ -290,7 +292,7 @@ const NewTeacher = () => {
                 htmlFor="avatar_field"
                 className="block text-sm font-medium text-gray-700"
               >
-                Avatar
+                {t('Avatar')} 
               </label>
               <input
                 type="file"

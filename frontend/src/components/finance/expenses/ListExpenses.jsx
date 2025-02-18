@@ -10,8 +10,10 @@ import {
 import AdminLayout from "../../layout/AdminLayout";
 import Loader from "../../layout/Loader";
 import MetaData from "../../layout/MetaData";
+import { useTranslation } from "react-i18next";
 
 const ListExpenses = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { data, isLoading, error, refetch } = useGetExpensesQuery();
     const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -65,7 +67,7 @@ const ListExpenses = () => {
             <div className="flex justify-center items-center pt-5 pb-10">
                 <div className="w-full max-w-7xl">
                     <h2 className="text-2xl font-semibold mb-6">
-                        {data?.expenses?.length} Expenses Records
+                        {data?.expenses?.length} {t('Expenses Records')}
                     </h2>
 
                     {/* Controls Section */}
@@ -82,7 +84,7 @@ const ListExpenses = () => {
                         {/* Records per Page Dropdown */}
                         <div className="flex items-center mt-2 md:mt-0">
                             <label htmlFor="itemsPerPage" className="mr-2 text-sm font-medium">
-                                Entries per page:
+                                {t('entriesPerPage')}:
                             </label>
                             <select
                                 id="itemsPerPage"
@@ -101,12 +103,12 @@ const ListExpenses = () => {
                     {/* Expenses Table */}
                     <Table hoverable={true} className="w-full">
                         <Table.Head>
-                            <Table.HeadCell>Category</Table.HeadCell>
-                            <Table.HeadCell>Amount</Table.HeadCell>
-                            <Table.HeadCell>Date</Table.HeadCell>
-                            <Table.HeadCell>Description</Table.HeadCell>
-                            <Table.HeadCell>Vendor</Table.HeadCell>
-                            <Table.HeadCell>Actions</Table.HeadCell>
+                            <Table.HeadCell>{t('Category')}</Table.HeadCell>
+                            <Table.HeadCell>{t('Amount')}</Table.HeadCell>
+                            <Table.HeadCell>{t('Date')}</Table.HeadCell>
+                            <Table.HeadCell>{t('Description')}</Table.HeadCell>
+                            <Table.HeadCell>{t('Vendor')}</Table.HeadCell>
+                            <Table.HeadCell>{t('Actions')}</Table.HeadCell>
                         </Table.Head>
                         <Table.Body>
                             {paginatedExpenses?.map((expense) => (

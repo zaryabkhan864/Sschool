@@ -6,8 +6,10 @@ import { useNavigate } from "react-router-dom";
 import MetaData from "../layout/MetaData";
 import AdminLayout from "../layout/AdminLayout";
 import { useGetAdminUsersQuery } from "../../redux/api/userApi";
+import { useTranslation } from "react-i18next";
 
 const Register = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { refetch } = useGetAdminUsersQuery();
   const { countries } = useCountries();
@@ -68,7 +70,7 @@ const Register = () => {
       <MetaData title={"Register New User"} />
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">Register New User</h2>
+          <h2 className="text-2xl font-semibold mb-6">{t('Register New User')}</h2>
           <form onSubmit={submitHandler}>
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
@@ -76,7 +78,7 @@ const Register = () => {
                   htmlFor="name_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Name
+                  {t('Name')}
                 </label>
                 <input
                   type="text"
@@ -92,7 +94,7 @@ const Register = () => {
                   htmlFor="email_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Email
+                  {t('Email')}
                 </label>
                 <input
                   type="email"
@@ -111,7 +113,7 @@ const Register = () => {
                   htmlFor="password_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Password
+                  {t('Password')}
                 </label>
                 <input
                   type="password"
@@ -127,7 +129,7 @@ const Register = () => {
                   htmlFor="role_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Role
+                  {t('Role')}
                 </label>
                 <select
                   id="role_field"
@@ -136,13 +138,13 @@ const Register = () => {
                   value={role}
                   onChange={onChange}
                 >
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                  <option value="teacher">Teacher</option>
-                  <option value="student">Student</option>
-                  <option value="finance">Finance</option>
-                  <option value="principle">Principle</option>
-                  <option value="counsellor">Counsellor</option>
+                  <option value="user">{t('User')}</option>
+                  <option value="admin">{t('Admin')}</option>
+                  <option value="teacher">{t('Teacher')}</option>
+                  <option value="student">{t('Student')}</option>
+                  <option value="finance">{t('Finance')}</option>
+                  <option value="principle">{t('Principle')}</option>
+                  <option value="counsellor">{t('Counsellor')}</option>
                 </select>
               </div>
             </div>
@@ -153,7 +155,7 @@ const Register = () => {
                   htmlFor="age_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Age
+                  {t('Age')}
                 </label>
                 <input
                   type="number"
@@ -170,7 +172,7 @@ const Register = () => {
                   htmlFor="gender_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Gender
+                  {t('Gender')}
                 </label>
                 <div className="flex items-center space-x-4 mt-1">
                   <div className="flex items-center">
@@ -187,7 +189,7 @@ const Register = () => {
                       htmlFor="male"
                       className="ml-2 text-sm text-gray-700"
                     >
-                      Male
+                      {t('Male')}
                     </label>
                   </div>
                   <div className="flex items-center">
@@ -204,7 +206,7 @@ const Register = () => {
                       htmlFor="female"
                       className="ml-2 text-sm text-gray-700"
                     >
-                      Female
+                      {t('Female')}
                     </label>
                   </div>
                   <div className="flex items-center">
@@ -221,7 +223,7 @@ const Register = () => {
                       htmlFor="other"
                       className="ml-2 text-sm text-gray-700"
                     >
-                      Other
+                      {t('Other')}
                     </label>
                   </div>
                 </div>
@@ -234,7 +236,7 @@ const Register = () => {
                   htmlFor="nationality_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Nationality
+                  {t('Nationality')}
                 </label>
                 <select
                   type="text"
@@ -256,7 +258,7 @@ const Register = () => {
                   htmlFor="passport_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Passport Number
+                  {t('Passport Number')}
                 </label>
                 <input
                   type="text"
@@ -275,7 +277,7 @@ const Register = () => {
                   htmlFor="phone_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Phone Number
+                  {t('Phone Number')}
                 </label>
                 <input
                   type="text"
@@ -292,7 +294,7 @@ const Register = () => {
                   htmlFor="secondary_phone_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Secondary Phone Number
+                  {t('Secondary Phone Number')}
                 </label>
                 <input
                   type="text"
@@ -311,7 +313,7 @@ const Register = () => {
                 htmlFor="address_field"
                 className="block text-sm font-medium text-gray-700"
               >
-                Address
+                {t('Address')}
               </label>
               <input
                 type="text"

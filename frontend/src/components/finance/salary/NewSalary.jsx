@@ -5,12 +5,13 @@ import { useCreateSalaryMutation } from "../../../redux/api/salaryApi";
 import AdminLayout from "../../layout/AdminLayout";
 import MetaData from "../../layout/MetaData";
 import { useGetUserByTypeQuery } from "../../../redux/api/userApi";
+import { useTranslation } from "react-i18next";
 
 const NewSalary = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [createSalary, { isLoading, error, isSuccess }] = useCreateSalaryMutation();
     const { data: employeesData, isLoading: employeesLoading } = useGetUserByTypeQuery("employee");
-    console.log("employeesData", employeesData)
     const employees = employeesData?.users || [];
 
     const [salaryData, setSalaryData] = useState({
@@ -50,17 +51,17 @@ const NewSalary = () => {
             <MetaData title={"Create New Salary"} />
             <div className="flex justify-center items-center pt-5 pb-10">
                 <div className="w-full max-w-7xl">
-                    <h2 className="text-2xl font-semibold mb-6">New Salary</h2>
+                    <h2 className="text-2xl font-semibold mb-6">{t('New Salary')}</h2>
                     <form onSubmit={submitHandler}>
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">Employee Name</label>
+                            <label className="block text-sm font-medium text-gray-700">{t('Employee Name')}</label>
                             <select
                                 name="employeeId" // Change name to employeeId
                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 value={employeeId} // Set value to employeeId
                                 onChange={onChange}
                             >
-                                <option value="" disabled>Select Employee</option>
+                                <option value="" disabled>{t('Select Employee')}</option>
                                 {!employeesLoading && employees.map((emp) => (
                                     <option key={emp._id} value={emp._id}>{emp.name}</option>
                                 ))}
@@ -69,7 +70,7 @@ const NewSalary = () => {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">Amount</label>
+                                <label className="block text-sm font-medium text-gray-700">{t('Amount')}</label>
                                 <input
                                     type="number"
                                     name="amount"
@@ -79,7 +80,7 @@ const NewSalary = () => {
                                 />
                             </div>
                             <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">Month</label>
+                                <label className="block text-sm font-medium text-gray-700">{t('Month')}</label>
                                 <input
                                     type="month"
                                     name="month"
@@ -92,7 +93,7 @@ const NewSalary = () => {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">Deductions</label>
+                                <label className="block text-sm font-medium text-gray-700">{t('Deductions')}</label>
                                 <input
                                     type="number"
                                     name="deductions"
@@ -102,7 +103,7 @@ const NewSalary = () => {
                                 />
                             </div>
                             <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">Net Salary</label>
+                                <label className="block text-sm font-medium text-gray-700">{t('Net Salary')}</label>
                                 <input
                                     type="number"
                                     name="netSalary"
@@ -115,20 +116,20 @@ const NewSalary = () => {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">Status</label>
+                                <label className="block text-sm font-medium text-gray-700">{t('Status')}</label>
                                 <select
                                     name="status"
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     value={status}
                                     onChange={onChange}
                                 >
-                                    <option value="Unpaid">Unpaid</option>
-                                    <option value="Paid">Paid</option>
-                                    <option value="Pending">Pending</option>
+                                    <option value="Unpaid">{t('Unpaid')}</option>
+                                    <option value="Paid">{t('Paid')}</option>
+                                    <option value="Pending">{t('Pending')}</option>
                                 </select>
                             </div>
                             <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">Payment Date</label>
+                                <label className="block text-sm font-medium text-gray-700">{t('Payment Date')}</label>
                                 <input
                                     type="date"
                                     name="paymentDate"

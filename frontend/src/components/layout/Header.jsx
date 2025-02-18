@@ -15,7 +15,7 @@ const Header = () => {
   const { user } = useSelector((state) => state.auth);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [timer, setTimer] = useState(0);  // Store time in seconds
+  const [timer, setTimer] = useState(0);
   const dropdownTimeoutRef = useRef(null);
 
   const handleMouseEnter = () => {
@@ -32,7 +32,6 @@ const Header = () => {
   const logoutHandler = () => {
     logout()
       .then(() => {
-        console.log("Logout successful");
         window.location.href = "/";
         localStorage.clear();
         sessionStorage.clear();
@@ -46,7 +45,6 @@ const Header = () => {
     setMenuOpen(!menuOpen);
   };
 
-  // Timer function to start on login and reset on logout
   useEffect(() => {
     if (user) {
       const timerInterval = setInterval(() => {
@@ -58,13 +56,11 @@ const Header = () => {
   }, [user]);
 
   useEffect(() => {
-    // Save the timer value to localStorage
     if (timer > 0) {
       localStorage.setItem("timer", timer);
     }
   }, [timer]);
 
-  // Load timer from localStorage on page load
   useEffect(() => {
     const savedTimer = localStorage.getItem("timer");
     if (savedTimer) {
@@ -72,7 +68,6 @@ const Header = () => {
     }
   }, []);
 
-  // Convert timer (in seconds) to minutes and seconds
   const minutes = Math.floor(timer / 60);
   const seconds = timer % 60;
 
@@ -81,10 +76,9 @@ const Header = () => {
   }
 
   return (
-    <nav className="flex items-center justify-between px-4 bg-gray-100 shadow-lg relative">
+    <nav className="flex items-center justify-between px-4  shadow-lg relative py-3">
       {user ? (
         <>
-          {/* Mobile Menu Button */}
           <button
             className="md:hidden text-gray-700 px-4 py-2"
             onClick={toggleMenu}
@@ -92,18 +86,17 @@ const Header = () => {
             {menuOpen ? "✖" : "☰"}
           </button>
 
-          {/* Logo */}
           <div className="flex items-center">
             <Link to="/">
               <img
                 src="/images/Logo.png"
                 alt="School Logo"
-                className="w-16 md:w-20"
+                className="w-14 md:w-18"
               />
             </Link>
+            <h2>School Managment System</h2>
           </div>
 
-          {/* Mobile Dropdown Menu */}
           {menuOpen && (
             <div className="absolute top-12 left-0 w-full bg-white shadow-md md:hidden z-10">
               <ul className="flex flex-col items-start">
@@ -127,22 +120,15 @@ const Header = () => {
             </div>
           )}
 
-          {/* Search Bar */}
-          {/* <div className="hidden md:block md:w-1/3">
-            <Search />
-          </div> */}
           <div className="flex items-center">
             <LanguageSwitcher/>
-            {/* Timer */}
             <div className="text-xl text-gray-800 mx-4">{`Login Time: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`}</div>
-            {/* User Info and Settings */}
             <div
               className="hidden md:flex relative items-center"
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
             >
               <div className="flex items-center text-gray-700 hover:text-gray-900">
-
                 <figure className="w-10 h-10 rounded-full overflow-hidden mr-2">
                   <img
                     src={user?.avatar ? user?.avatar?.url : "/images/default_avatar.jpg"}
@@ -194,7 +180,7 @@ const Header = () => {
             <LanguageSwitcher/>
             <Link
               to="/"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-300"
             >
               Login
             </Link>

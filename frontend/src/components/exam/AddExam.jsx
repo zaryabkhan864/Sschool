@@ -9,8 +9,10 @@ import Loader from '../layout/Loader';
 import { useGetExamMarksMutation, useUpdateExamMarksMutation } from '../../redux/api/examApi.js';
 import { useGetCourseByGradeAndTeacherIDMutation } from '../../redux/api/courseApi';
 import { useGetGradeByUserIdAndRoleMutation } from '../../redux/api/gradesApi';
+import { useTranslation } from 'react-i18next';
 
 const AddExam = () => {
+    const { t } = useTranslation();
     const [userDetails, setUserDetails] = useState('');
     const [grades, setGrades] = useState([]);
     const [courses, setCourses] = useState([]);
@@ -147,7 +149,7 @@ const AddExam = () => {
                     value={formValues.grade}
                     onChange={handleDropdownChange}
                 >
-                    <option value="">Select Grade</option>
+                    <option value="">{t('Select Grade')}</option>
                     {grades.map((grade) => (
                         <option key={grade._id} value={grade._id}>
                             {grade.gradeName}
@@ -162,7 +164,7 @@ const AddExam = () => {
                     onChange={handleDropdownChange}
                     disabled={!formValues.grade}
                 >
-                    <option value="">Select Course</option>
+                    <option value="">{t('Select Course')}</option>
                     {courses.map((course) => (
                         <option key={course._id} value={course._id}>
                             {course.courseName}
@@ -177,7 +179,7 @@ const AddExam = () => {
                     onChange={handleDropdownChange}
                     disabled={!formValues.grade || !formValues.course}
                 >
-                    <option value="">Select Semester</option>
+                    <option value="">{t('Select Semester')}</option>
                     <option value="1">1</option>
                     <option value="2">2</option>
                 </select>
@@ -189,7 +191,7 @@ const AddExam = () => {
                     onChange={handleDropdownChange}
                     disabled={!formValues.grade || !formValues.course || !formValues.semester}
                 >
-                    <option value="">Select Quarter</option>
+                    <option value="">{t('Select Quarter')}</option>
                     <option value="1">1</option>
                     <option value="2">2</option>
                 </select>
@@ -201,9 +203,9 @@ const AddExam = () => {
                     <table className="min-w-full bg-white border border-gray-300">
                         <thead>
                             <tr>
-                                <th className="py-2 px-4 border-b">Student Name</th>
+                                <th className="py-2 px-4 border-b">{t('Student Name')}</th>
                             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((markIndex) => (
-                                <th className="py-2 px-4 border-b" key={markIndex}>Mark {markIndex}</th>
+                                <th className="py-2 px-4 border-b" key={markIndex}>{t('Mark')} {markIndex}</th>
                             ))}
                                
                             </tr>

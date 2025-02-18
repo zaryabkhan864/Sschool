@@ -150,7 +150,6 @@ export const getStudentDetails = catchAsyncErrors(async (req, res, next) => {
 export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => {
   const { grade, course, semester, quarter, quizNumber, user } = req.body;
 
-  console.log("Received data: ", req.body);
 
   // Step 1: Check if a quiz exists with the given details
   let existingQuiz = await Quiz.findOne({
@@ -165,7 +164,7 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
     select: "name", // Populate student names
   });
 
-  console.log("Existing quiz: ", existingQuiz);
+
 
   if (existingQuiz) {
     const quizWithStudentNames = {
@@ -248,7 +247,6 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
 
 export const getStudentsWithGrades = catchAsyncErrors(async (req, res) => {
   const apiFilters = new APIFilters(Student, req.query).search().filters();
-  console.log("apiFilters: ", apiFilters);
   let students = await apiFilters.query;
 
   apiFilters.pagination(resPerPage);

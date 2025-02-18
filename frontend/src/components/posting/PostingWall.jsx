@@ -29,7 +29,7 @@ import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 
 const PostingWall = () => {
-    const { t, i18n  } = useTranslation();
+    const { t, i18n } = useTranslation();
 
     dayjs.extend(relativeTime)
 
@@ -180,38 +180,71 @@ const PostingWall = () => {
             <div className="flex justify-center items-center pt-5 pb-10">
                 <div className="w-full ">
                     <h2 className="text-2xl font-semibold mb-6">{t('posting')}</h2>
-                    <Card className="mb-6 p-4 bg-gray-100">
-                        <form onSubmit={handlePostSubmit}>
-                            <ReactQuill key={i18n?.language} theme="snow" value={newPost} onChange={setNewPost} placeholder={t("newPost")} className="mb-3" />
-                            {!showEditPostModal && <FileUpload setIsUploadingFile={setIsUploadingFile} isSubmitted={isSuccess} setFiles={setFiles} loading={isCreating} />}
-                            <Button type="submit" disabled={isCreating || isUploadingFile} className="mt-3 bg-blue-600 text-white">
-                            {isCreating ? t("postLoading") : t("post")}
-                            </Button>
-                        </form>
-                    </Card>
+                    <Card className="mb-6 p-6 bg-white shadow-sm">
+    <form onSubmit={handlePostSubmit} className="space-y-4">
+        <ReactQuill
+            key={i18n?.language}
+            theme="snow"
+            value={newPost}
+            onChange={setNewPost}
+            placeholder={t("newPost")}
+            className="mb-4 border border-gray-300 rounded-lg"
+        />
+
+        {!showEditPostModal && (
+            <div className="flex items-center justify-between">
+                <FileUpload
+                    setIsUploadingFile={setIsUploadingFile}
+                    isSubmitted={isSuccess}
+                    setFiles={setFiles}
+                    loading={isCreating}
+                />
+                <Button
+                    type="submit"
+                    disabled={isCreating || isUploadingFile}
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                >
+                    {isCreating ? (
+                        <>
+                            <i className="fa fa-spinner fa-spin"></i>
+                            {t("postLoading")}
+                        </>
+                    ) : (
+                        <>
+                            <i className="fa fa-paper-plane"></i>
+                            {/* {t("post")} */}
+                        </>
+                    )}
+                </Button>
+            </div>
+        )}
+    </form>
+</Card>
                     {announcements.map((post) => (
                         <Card key={post._id} className="mb-4 p-4 shadow-lg relative">
                             {/* Dropdown Button for Edit and Delete */}
                             {String(post?.userId._id) === String(user._id) && (
-                            <div className="absolute top-4 right-4">
-                                <Dropdown
-                                    label={<i className="fa fa-ellipsis-v text-gray-600 hover:text-gray-900 cursor-pointer"></i>}
-                                    inline={true}
-                                    arrowIcon={false}
-                                    placement="left-start"
-                                >
-                                    <Dropdown.Item onClick={() => {
+                                <div className="absolute top-4 right-4">
+                                    <Dropdown
+                                        label={<i className="fa fa-ellipsis-v text-gray-600 hover:text-gray-900 cursor-pointer"></i>}
+                                        inline={true}
+                                        arrowIcon={false}
+                                        placement="left-start"
+                                    >
+                                        <Dropdown.Item onClick={() => {
                                             setUpdatedPost(post)
-                                            setShowEditPostModal(true)}}>
-                                        {t('edit')}
-                                    </Dropdown.Item>
-                                    <Dropdown.Item onClick={() => {
-                                                    setSelectedPost(post) 
-                                                    setShowDeletePostModal(true)}}>
-                                        {t('delete')}
-                                    </Dropdown.Item>
-                                </Dropdown>
-                            </div>)}
+                                            setShowEditPostModal(true)
+                                        }}>
+                                            {t('edit')}
+                                        </Dropdown.Item>
+                                        <Dropdown.Item onClick={() => {
+                                            setSelectedPost(post)
+                                            setShowDeletePostModal(true)
+                                        }}>
+                                            {t('delete')}
+                                        </Dropdown.Item>
+                                    </Dropdown>
+                                </div>)}
 
                             {/* Post Content */}
                             <div className="flex items-center space-x-3">
@@ -239,8 +272,8 @@ const PostingWall = () => {
                                     onChange={(e) => setComments({ ...comments, [post.id]: e.target.value })}
                                     className="w-full p-2 border rounded"
                                 />
-                                <Button disabled={!comments[post.id] ||isAddingComment} className="mt-2 bg-blue-500 text-white" onClick={() => handleCommentSubmit(post._id, comments[post.id] || "")}>
-                                {t("addComment")}
+                                <Button disabled={!comments[post.id] || isAddingComment} className="mt-2 bg-blue-500 text-white" onClick={() => handleCommentSubmit(post._id, comments[post.id] || "")}>
+                                    {t("addComment")}
                                 </Button>
                             </div>
                             <div className="mt-3 space-y-3">
@@ -267,7 +300,7 @@ const PostingWall = () => {
                                         color="light"
                                         className="text-sm text-gray-600"
                                     >
-                                        {expandedPosts.has(post._id) 
+                                        {expandedPosts.has(post._id)
                                             ? t('showLess')
                                             : `${t('show')} ${post.comments.length - 2} ${t('moreComments')}`}
                                     </Button>

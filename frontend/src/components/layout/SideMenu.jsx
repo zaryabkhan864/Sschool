@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const SideMenu = ({ menuItems }) => {
+  const { t } = useTranslation();
   const location = useLocation();
   const [activeMenuItem, setActiveMenuItem] = useState(location.pathname);
   const [isOpen, setIsOpen] = useState(false);
@@ -43,7 +45,7 @@ const SideMenu = ({ menuItems }) => {
                 activeMenuItem.includes(menuItem.url) ? "true" : "false"
               }
             >
-              <i className={`${menuItem.icon} fa-fw mr-2`}></i> {menuItem.name}
+              <i className={`${menuItem.icon} fa-fw mr-2`}></i> {t(menuItem.name)}
             </Link>
           ))}
         </div>

@@ -8,8 +8,10 @@ import {
 } from "../../redux/api/eventApi";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
+import { useTranslation } from "react-i18next";
 
 const NewEvent = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { refetch } = useGetEventsQuery();
 
@@ -55,14 +57,14 @@ const NewEvent = () => {
       <MetaData title={"Create New Grade"} />
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">New Event</h2>
+          <h2 className="text-2xl font-semibold mb-6">{t('New Event')}</h2>
           <form onSubmit={submitHandler}>
             <div className="mb-4">
               <label
                 htmlFor="eventName_field"
                 className="block text-sm font-medium text-gray-700"
               >
-                Event Name
+                {t('Event Name')}
               </label>
               <input
                 type="text"
@@ -78,7 +80,7 @@ const NewEvent = () => {
                 htmlFor="description_field"
                 className="block text-sm font-medium text-gray-700"
               >
-                Description
+                {t('Description')}
               </label>
               <textarea
                 id="description_field"
@@ -95,7 +97,7 @@ const NewEvent = () => {
                   htmlFor="date_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Date
+                  {t('Date')}
                 </label>
                 <input
                   type="date"
@@ -111,7 +113,7 @@ const NewEvent = () => {
                   htmlFor="venue_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Venue
+                  {t('Venue')}
                 </label>
                 <input
                   type="text"
@@ -127,7 +129,7 @@ const NewEvent = () => {
                   htmlFor="isPaid_field"
                   className="block text-sm font-medium text-gray-700 "
                 >
-                  Paid
+                  {t('Paid')}
                 </label>
                 <input
                   type="checkbox"
@@ -142,7 +144,7 @@ const NewEvent = () => {
                     htmlFor="amount_field"
                     className="block text-sm font-medium text-gray-700"
                   >
-                    Amount
+                    {t('Amount')}
                   </label>
                   <input
                     type="number"
@@ -161,7 +163,7 @@ const NewEvent = () => {
                     htmlFor="currency_field"
                     className="block text-sm font-medium text-gray-700"
                   >
-                    Currency
+                    {t('Currency')}
                   </label>
                   <select
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -171,7 +173,7 @@ const NewEvent = () => {
                     onChange={onChange}
                   >
                     <option value="" disabled>
-                      Select Currency
+                      {t('Select Currency')}
                     </option>
                     <option value="USD">USD</option>
                     <option value="CAD">CAD</option>

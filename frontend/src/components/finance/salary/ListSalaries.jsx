@@ -10,8 +10,10 @@ import {
 import AdminLayout from "../../layout/AdminLayout";
 import Loader from "../../layout/Loader";
 import MetaData from "../../layout/MetaData";
+import { useTranslation } from "react-i18next";
 
 const ListSalaries = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { data, isLoading, error, refetch } = useGetSalariesQuery();
     console.log("what is salaries", data);
@@ -66,7 +68,7 @@ const ListSalaries = () => {
             <div className="flex justify-center items-center pt-5 pb-10">
                 <div className="w-full max-w-7xl">
                     <h2 className="text-2xl font-semibold mb-6">
-                        {data?.salaries?.length} Salary Records
+                        {data?.salaries?.length} {t('Salary Records')}
                     </h2>
 
                     {/* Controls Section */}
@@ -83,7 +85,7 @@ const ListSalaries = () => {
                         {/* Records per Page Dropdown */}
                         <div className="flex items-center mt-2 md:mt-0">
                             <label htmlFor="itemsPerPage" className="mr-2 text-sm font-medium">
-                                Entries per page:
+                                {t('entriesPerPage')}:
                             </label>
                             <select
                                 id="itemsPerPage"
@@ -103,13 +105,13 @@ const ListSalaries = () => {
                     <Table hoverable={true} className="w-full">
                         <Table.Head>
                            
-                            <Table.HeadCell>Employee Name</Table.HeadCell>
-                            <Table.HeadCell>Amount</Table.HeadCell>
-                            <Table.HeadCell>Month</Table.HeadCell>
-                            <Table.HeadCell>Status</Table.HeadCell>
-                            <Table.HeadCell>Deductions</Table.HeadCell>
-                            <Table.HeadCell>Net Salary</Table.HeadCell>
-                            <Table.HeadCell>Actions</Table.HeadCell>
+                            <Table.HeadCell>{t('Employee Name')}</Table.HeadCell>
+                            <Table.HeadCell>{t('Amount')}</Table.HeadCell>
+                            <Table.HeadCell>{t('Month')}</Table.HeadCell>
+                            <Table.HeadCell>{t('Status')}</Table.HeadCell>
+                            <Table.HeadCell>{t('Deductions')}</Table.HeadCell>
+                            <Table.HeadCell>{t('Net Salary')}</Table.HeadCell>
+                            <Table.HeadCell>{t('Actions')}</Table.HeadCell>
                         </Table.Head>
                         <Table.Body>
                             {paginatedSalaries?.map((salary) => (

@@ -10,11 +10,12 @@ import {
 import AdminLayout from "../../layout/AdminLayout";
 import Loader from "../../layout/Loader";
 import MetaData from "../../layout/MetaData";
+import { useTranslation } from "react-i18next";
 
 const ListFees = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { data, isLoading, error, refetch } = useGetFeesQuery();
-    console.log("what", data);
     const { isAuthenticated, user } = useSelector((state) => state.auth);
     const [userRole, setUserRole] = useState("");
 
@@ -66,7 +67,7 @@ const ListFees = () => {
             <div className="flex justify-center items-center pt-5 pb-10">
                 <div className="w-full max-w-7xl">
                     <h2 className="text-2xl font-semibold mb-6">
-                        {data?.fees?.length} Fees Records
+                        {data?.fees?.length} {t('Fees Records')}
                     </h2>
 
                     {/* Controls Section */}
@@ -83,7 +84,7 @@ const ListFees = () => {
                         {/* Records per Page Dropdown */}
                         <div className="flex items-center mt-2 md:mt-0">
                             <label htmlFor="itemsPerPage" className="mr-2 text-sm font-medium">
-                                Entries per page:
+                                {t('entriesPerPage')}:
                             </label>
                             <select
                                 id="itemsPerPage"
@@ -103,11 +104,11 @@ const ListFees = () => {
                     <Table hoverable={true} className="w-full">
                         <Table.Head>
 
-                            <Table.HeadCell>Student</Table.HeadCell>
-                            <Table.HeadCell>Amount</Table.HeadCell>
-                            <Table.HeadCell>Type</Table.HeadCell>
-                            <Table.HeadCell>Status</Table.HeadCell>
-                            <Table.HeadCell>Actions</Table.HeadCell>
+                            <Table.HeadCell>{t('Student')}</Table.HeadCell>
+                            <Table.HeadCell>{t('Amount')}</Table.HeadCell>
+                            <Table.HeadCell>{t('Type')}</Table.HeadCell>
+                            <Table.HeadCell>{t('Status')}</Table.HeadCell>
+                            <Table.HeadCell>{t('Actions')}</Table.HeadCell>
                         </Table.Head>
                         <Table.Body>
                             {paginatedFees?.map((fee) => (

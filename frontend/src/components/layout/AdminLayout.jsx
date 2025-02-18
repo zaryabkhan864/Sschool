@@ -1,25 +1,26 @@
 import React from "react";
 import { useSelector } from "react-redux";
 import SideMenu from "./SideMenu";
+import { useTranslation } from "react-i18next";
 
 const AdminLayout = ({ children }) => {
+  const { t } = useTranslation();
   const { user } = useSelector((state) => state.auth);
 
   // Role-based Dashboard Titles
   const roleTitles = {
-    user: "User Dashboard",
-    admin: "Admin Dashboard",
-    teacher: "Teacher Dashboard",
-    student: "Student Dashboard",
-    finance: "Finance Dashboard",
-    principle: "Principal Dashboard",
-    counsellor: "Counsellor Dashboard",
+    user: t("User Dashboard"),
+    admin: t("Admin Dashboard"),
+    teacher: t("Teacher Dashboard"),
+    student: t("Student Dashboard"),
+    finance: t("Finance Dashboard"),
+    principle: t("Principal Dashboard"),
+    counsellor: t("Counsellor Dashboard"),
   };
 
-  const dashboardTitle = roleTitles[user?.role] || "Dashboard";
+  const dashboardTitle = roleTitles[user?.role] || t("Dashboard");
 
   const allMenuItems = [
-
     { name: "Dashboard", url: "/admin/dashboard", icon: "fas fa-chart-line", roles: ["admin"] },
     { name: "Dashboard", url: "/teacher/dashboard", icon: "fas fa-chalkboard", roles: ["teacher"] },
     { name: "Dashboard", url: "/student/dashboard", icon: "fas fa-user-graduate", roles: ["student"] },

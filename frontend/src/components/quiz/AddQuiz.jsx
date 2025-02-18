@@ -11,7 +11,10 @@ import { useGetCourseByGradeAndTeacherIDMutation } from '../../redux/api/courseA
 import { useGetGradeByUserIdAndRoleMutation } from '../../redux/api/gradesApi';
 import { useUpdateQuizMarksMutation } from '../../redux/api/quizApi';
 
+import { useTranslation } from 'react-i18next';
+
 const AddQuiz = () => {
+    const { t } = useTranslation();
     const [userDetails, setUserDetails] = useState('');
     const [grades, setGrades] = useState([]);
     const [courses, setCourses] = useState([]);
@@ -89,9 +92,9 @@ const AddQuiz = () => {
         ) {
             try {
 
-                const selectedCourse = courses.find((item)=> item._id === formValues.course)
-                const response = await getQuizDetails({...formValues, user: selectedCourse?.teacher}).unwrap();
-                console.log("Quiz details response:", response);
+                const selectedCourse = courses.find((item) => item._id === formValues.course)
+                const response = await getQuizDetails({ ...formValues, user: selectedCourse?.teacher }).unwrap();
+
                 setQuizDetails(response.quiz);
                 // Initialize marks state with student IDs
                 const initialMarks = {};
@@ -124,7 +127,7 @@ const AddQuiz = () => {
     const handleMarkChange = (studentId, markIndex, value) => {
         setMarks(prevMarks => ({
             ...prevMarks,
-            [studentId]: {...prevMarks[studentId], [`question${markIndex}`]: value}
+            [studentId]: { ...prevMarks[studentId], [`question${markIndex}`]: value }
         }));
     };
 
@@ -152,7 +155,7 @@ const AddQuiz = () => {
                     value={formValues.grade}
                     onChange={handleDropdownChange}
                 >
-                    <option value="">Select Grade</option>
+                    <option value="">{t('Select Grade')}</option>
                     {grades.map((grade) => (
                         <option key={grade._id} value={grade._id}>
                             {grade.gradeName}
@@ -167,7 +170,7 @@ const AddQuiz = () => {
                     onChange={handleDropdownChange}
                     disabled={!formValues.grade}
                 >
-                    <option value="">Select Course</option>
+                    <option value="">{t('Select Course')}</option>
                     {courses.map((course) => (
                         <option key={course._id} value={course._id}>
                             {course.courseName}
@@ -182,7 +185,7 @@ const AddQuiz = () => {
                     onChange={handleDropdownChange}
                     disabled={!formValues.grade || !formValues.course}
                 >
-                    <option value="">Select Semester</option>
+                    <option value="">{t('Select Semester')}</option>
                     <option value="1">1</option>
                     <option value="2">2</option>
                 </select>
@@ -194,7 +197,7 @@ const AddQuiz = () => {
                     onChange={handleDropdownChange}
                     disabled={!formValues.grade || !formValues.course || !formValues.semester}
                 >
-                    <option value="">Select Quarter</option>
+                    <option value="">{t('Select Quarter')}</option>
                     <option value="1">1</option>
                     <option value="2">2</option>
                 </select>
@@ -206,13 +209,13 @@ const AddQuiz = () => {
                     onChange={handleDropdownChange}
                     disabled={!formValues.grade || !formValues.course || !formValues.semester || !formValues.quarter}
                 >
-                    <option value="">Select Quiz Number</option>
+                    <option value="">{t('Select Quiz Number')}</option>
                     <option value="1">1</option>
                     <option value="2">2</option>
                 </select>
             </div>
 
-            {!quizDetails && isLoading && (<Loader/>)}
+            {!quizDetails && isLoading && (<Loader />)}
 
 
             {quizDetails && !isLoading && (
@@ -220,16 +223,16 @@ const AddQuiz = () => {
                     <table className="min-w-full bg-white border border-gray-300">
                         <thead>
                             <tr>
-                                <th className="py-2 px-4 border-b">Student Name</th>
-                                <th className="py-2 px-4 border-b">Mark 1</th>
-                                <th className="py-2 px-4 border-b">Mark 2</th>
-                                <th className="py-2 px-4 border-b">Mark 3</th>
-                                <th className="py-2 px-4 border-b">Mark 4</th>
-                                <th className="py-2 px-4 border-b">Mark 5</th>
+                                <th className="py-2 px-4 border-b">{t('Student Name')}</th>
+                                <th className="py-2 px-4 border-b">{t('Mark')} 1</th>
+                                <th className="py-2 px-4 border-b">{t('Mark')} 2</th>
+                                <th className="py-2 px-4 border-b">{t('Mark')} 3</th>
+                                <th className="py-2 px-4 border-b">{t('Mark')} 4</th>
+                                <th className="py-2 px-4 border-b">{t('Mark')} 5</th>
                             </tr>
                         </thead>
                         <tbody>
-                        {Object.entries(marks).map(([key, value]) => (
+                            {Object.entries(marks).map(([key, value]) => (
                                 <tr key={key}>
                                     <td className="py-2 px-4 border-b">{value.studentName}</td>
                                     {[1, 2, 3, 4, 5].map((markIndex) => (

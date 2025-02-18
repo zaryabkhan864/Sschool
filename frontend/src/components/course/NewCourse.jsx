@@ -10,8 +10,10 @@ import {
   useGetCoursesQuery,
 } from "../../redux/api/courseApi";
 import { useGetUserByTypeQuery } from "../../redux/api/userApi";
+import { useTranslation } from "react-i18next";
 
 const NewCourse = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { refetch } = useGetCoursesQuery();
 
@@ -28,7 +30,7 @@ const NewCourse = () => {
   const [createCourse, { isLoading, error, isSuccess }] =
     useCreateCourseMutation();
   const { data: teachersData, isLoading: teacherLoading } =
-  useGetUserByTypeQuery("teacher");
+    useGetUserByTypeQuery("teacher");
   const teachers = teachersData?.users || []; // Ensure it's an array
 
   useEffect(() => {
@@ -57,14 +59,14 @@ const NewCourse = () => {
       <MetaData title={"Create New Course"} />
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">New Course</h2>
+          <h2 className="text-2xl font-semibold mb-6">{t('New Course')}</h2>
           <form onSubmit={submitHandler}>
             <div className="mb-4">
               <label
                 htmlFor="courseName_field"
                 className="block text-sm font-medium text-gray-700"
               >
-                Course Name
+                {t('Course Name')}
               </label>
               <input
                 type="text"
@@ -81,7 +83,7 @@ const NewCourse = () => {
                 htmlFor="description_field"
                 className="block text-sm font-medium text-gray-700"
               >
-                Description
+                {t('Description')}
               </label>
               <textarea
                 id="description_field"
@@ -99,7 +101,7 @@ const NewCourse = () => {
                   htmlFor="code_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Code
+                  {t('Code')}
                 </label>
                 <input
                   type="text"
@@ -126,7 +128,7 @@ const NewCourse = () => {
                   htmlFor="year_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Year
+                 {t('Year')} 
                 </label>
                 <input
                   type="number"
@@ -144,7 +146,7 @@ const NewCourse = () => {
                 htmlFor="teacher_field"
                 className="block text-sm font-medium text-gray-700"
               >
-                Teacher
+                {t('Teacher')}
               </label>
               <select
                 id="teacher_field"
@@ -154,7 +156,7 @@ const NewCourse = () => {
                 onChange={onChange}
               >
                 <option value="" disabled>
-                  Select Teacher
+                  {t('Select A Teacher')}
                 </option>
                 {!teacherLoading &&
                   teachers?.map((t) => (

@@ -4,8 +4,10 @@ import { useNavigate } from "react-router-dom";
 import { useCreateExpenseMutation } from "../../../redux/api/expensesApi";
 import AdminLayout from "../../layout/AdminLayout";
 import MetaData from "../../layout/MetaData";
+import { useTranslation } from "react-i18next";
 
 const NewExpenses = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [createExpense, { isLoading, error, isSuccess }] = useCreateExpenseMutation();
 
@@ -44,10 +46,10 @@ const NewExpenses = () => {
             <MetaData title={"Create New Expense"} />
             <div className="flex justify-center items-center pt-5 pb-10">
                 <div className="w-full max-w-7xl">
-                    <h2 className="text-2xl font-semibold mb-6">New Expense</h2>
+                    <h2 className="text-2xl font-semibold mb-6">{t('New Expense')}</h2>
                     <form onSubmit={submitHandler}>
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">Category</label>
+                            <label className="block text-sm font-medium text-gray-700">{t('Category')}</label>
                             <select
                                 name="category"
                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -55,17 +57,17 @@ const NewExpenses = () => {
                                 onChange={onChange}
                                 required
                             >
-                                <option value="" disabled>Select Category</option>
-                                <option value="Electricity">Electricity</option>
-                                <option value="Maintenance">Maintenance</option>
-                                <option value="Books">Books</option>
-                                <option value="Furniture">Furniture</option>
-                                <option value="Events">Events</option>
+                                <option value="" disabled>{t('Select Category')}</option>
+                                <option value="Electricity">{t('Electricity')}</option>
+                                <option value="Maintenance">{t('Maintenance')}</option>
+                                <option value="Books">{t('Books')}</option>
+                                <option value="Furniture">{t('Furniture')}</option>
+                                <option value="Events">{t('Events')}</option>
                             </select>
                         </div>
 
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">Amount</label>
+                            <label className="block text-sm font-medium text-gray-700">{t('Amount')}</label>
                             <input
                                 type="number"
                                 name="amount"
@@ -77,7 +79,7 @@ const NewExpenses = () => {
                         </div>
 
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">Date</label>
+                            <label className="block text-sm font-medium text-gray-700">{t('Date')}</label>
                             <input
                                 type="date"
                                 name="date"
@@ -89,7 +91,7 @@ const NewExpenses = () => {
                         </div>
 
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">Description</label>
+                            <label className="block text-sm font-medium text-gray-700">{t('Description')}</label>
                             <textarea
                                 name="description"
                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -99,7 +101,7 @@ const NewExpenses = () => {
                         </div>
 
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">Vendor</label>
+                            <label className="block text-sm font-medium text-gray-700">{t('Vendor')}</label>
                             <input
                                 type="text"
                                 name="vendor"

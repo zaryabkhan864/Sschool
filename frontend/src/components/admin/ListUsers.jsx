@@ -10,8 +10,10 @@ import {
   useDeleteUserMutation,
   useGetAdminUsersQuery,
 } from "../../redux/api/userApi";
+import { useTranslation } from "react-i18next";
 
 const ListUsers = () => {
+  const { t } = useTranslation();
   const { data, isLoading, error, refetch } = useGetAdminUsersQuery();
 
   const [
@@ -60,7 +62,7 @@ const ListUsers = () => {
       <MetaData title={"All Users"} />
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">{data?.users?.length} Users</h2>
+          <h2 className="text-2xl font-semibold mb-6">{data?.users?.length} {t('Users')}</h2>
 
           {/* Controls Section */}
           <div className="flex flex-col md:flex-row justify-between items-center mb-4">
@@ -76,7 +78,7 @@ const ListUsers = () => {
             {/* Records per Page Dropdown */}
             <div className="flex items-center mt-2 md:mt-0">
               <label htmlFor="itemsPerPage" className="mr-2 text-sm font-medium">
-                Entries per page:
+                {t('entriesPerPage')}:
               </label>
               <select
                 id="itemsPerPage"
@@ -95,11 +97,11 @@ const ListUsers = () => {
           {/* Users Table */}
           <Table hoverable={true} className="w-full">
             <Table.Head>
-              <Table.HeadCell>ID</Table.HeadCell>
-              <Table.HeadCell>Name</Table.HeadCell>
-              <Table.HeadCell>Email</Table.HeadCell>
-              <Table.HeadCell>Role</Table.HeadCell>
-              <Table.HeadCell>Actions</Table.HeadCell>
+              <Table.HeadCell>{t('id')}</Table.HeadCell>
+              <Table.HeadCell>{t('Name')}</Table.HeadCell>
+              <Table.HeadCell>{t('Email')}</Table.HeadCell>
+              <Table.HeadCell>{t('Role')}</Table.HeadCell>
+              <Table.HeadCell>{t('actions')}</Table.HeadCell>
             </Table.Head>
             <Table.Body>
               {paginatedUsers?.map((user) => (

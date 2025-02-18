@@ -10,7 +10,9 @@ import { useGetStudentsWithGradesQuery } from "../../redux/api/studentsApi";
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
+import { useTranslation } from "react-i18next";
 const StudentCounseling = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { refetch } = useGetCounselingsQuery();
 
@@ -57,14 +59,14 @@ const StudentCounseling = () => {
       <MetaData title={"Students Counseling"} />
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">Student Counseling</h2>
+          <h2 className="text-2xl font-semibold mb-6">{t('Student Counseling')}</h2>
           <form onSubmit={submitHandler}>
             <div className="mb-4">
               <label
                 htmlFor="student_field"
                 className="block text-sm font-medium text-gray-700"
               >
-                Student{" "}
+                {t('Student Name')}
               </label>
               <select
                 id="student_field"
@@ -74,7 +76,7 @@ const StudentCounseling = () => {
                 onChange={onChange}
               >
                 <option value="" disabled>
-                  Select Student
+                  {t('Select Student')}
                 </option>
                 {!studentLoading &&
                   students?.map((s) => (
@@ -89,7 +91,7 @@ const StudentCounseling = () => {
                 htmlFor="query_field"
                 className="block text-sm font-medium text-gray-700"
               >
-                complain/problem
+                {t('Complain/Problem')}
               </label>
               <textarea
                 id="query_field"
@@ -105,7 +107,7 @@ const StudentCounseling = () => {
                 htmlFor="comment_field"
                 className="block text-sm font-medium text-gray-700"
               >
-                Suggestion/Comment
+                {t('Suggestion/Comment')}
               </label>
               <textarea
                 id="comment_field"
@@ -118,9 +120,8 @@ const StudentCounseling = () => {
             </div>
             <button
               type="submit"
-              className={`w-full py-2 text-white font-semibold rounded-md ${
-                isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-              } focus:outline-none focus:ring focus:ring-blue-300`}
+              className={`w-full py-2 text-white font-semibold rounded-md ${isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+                } focus:outline-none focus:ring focus:ring-blue-300`}
               disabled={isLoading}
             >
               {isLoading ? "Creating..." : "CREATE"}

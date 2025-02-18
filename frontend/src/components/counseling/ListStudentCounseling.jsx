@@ -10,8 +10,10 @@ import {
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
+import { useTranslation } from "react-i18next";
 
 const ListStudentCounselings = () => {
+    const { t } = useTranslation();
   const navigate = useNavigate();
   const { data, isLoading, error, refetch } = useGetCounselingsQuery();
 
@@ -71,7 +73,7 @@ const ListStudentCounselings = () => {
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">
-            {data?.counselings?.length} Counselings
+            {data?.counselings?.length}  {t('Counselings')}
           </h2>
 
           {/* Controls Section */}
@@ -91,7 +93,7 @@ const ListStudentCounselings = () => {
                 htmlFor="itemsPerPage"
                 className="mr-2 text-sm font-medium"
               >
-                Entries per page:
+                {t('Entries per page:')}
               </label>
               <select
                 id="itemsPerPage"
@@ -110,9 +112,9 @@ const ListStudentCounselings = () => {
           {/* Counselings Table */}
           <Table hoverable={true} className="w-full">
             <Table.Head>
-              <Table.HeadCell>ID</Table.HeadCell>
-              <Table.HeadCell>student</Table.HeadCell>
-              <Table.HeadCell>Complain</Table.HeadCell>
+              <Table.HeadCell>{t('ID')}</Table.HeadCell>
+              <Table.HeadCell>{t('Student Name')}</Table.HeadCell>
+              <Table.HeadCell>{t('Complain')}</Table.HeadCell>
             </Table.Head>
             <Table.Body>
               {paginatedCounselings?.map((counseling) => (

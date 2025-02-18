@@ -10,8 +10,10 @@ import { useRegisterMutation } from "../../redux/api/authApi";
 import { useGetUserByTypeQuery } from "../../redux/api/userApi";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
+import { useTranslation } from "react-i18next";
 
 const NewStudent = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { countries } = useCountries();
   const { refetch } = useGetUserByTypeQuery("student");
@@ -96,7 +98,7 @@ const NewStudent = () => {
       <MetaData title={"Create New Student"} />
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">New Student</h2>
+          <h2 className="text-2xl font-semibold mb-6">{t('New Student')}</h2>
           <form onSubmit={submitHandler}>
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
@@ -104,7 +106,7 @@ const NewStudent = () => {
                   htmlFor="name_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Student Name
+                  {t('Student Name')}
                 </label>
                 <input
                   type="text"
@@ -120,7 +122,7 @@ const NewStudent = () => {
                   htmlFor="passportNumber_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Passport No
+                  {t('Passport No')}
                 </label>
                 <input
                   type="text"
@@ -150,7 +152,7 @@ const NewStudent = () => {
                   htmlFor="age_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Age
+                  {t('Age')}
                 </label>
                 <input
                   type="number"
@@ -163,7 +165,7 @@ const NewStudent = () => {
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">
-                  Gender
+                  {t('Gender')}
                 </label>
                 <div className="flex items-center space-x-4 mt-1">
                   <div className="flex items-center">
@@ -180,7 +182,7 @@ const NewStudent = () => {
                       htmlFor="male"
                       className="ml-2 text-sm text-gray-700"
                     >
-                      Male
+                      {t('Male')}
                     </label>
                   </div>
                   <div className="flex items-center">
@@ -197,7 +199,7 @@ const NewStudent = () => {
                       htmlFor="female"
                       className="ml-2 text-sm text-gray-700"
                     >
-                      Female
+                      {t('Female')}
                     </label>
                   </div>
                 </div>
@@ -210,7 +212,7 @@ const NewStudent = () => {
                   htmlFor="nationality_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Nationality
+                  {t('Nationality')}
                 </label>
                 <select
                   type="text"
@@ -233,7 +235,7 @@ const NewStudent = () => {
                   htmlFor="grade_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Grade
+                  {t('Grade')}
                 </label>
                 <select
                   id="grade_field"
@@ -243,7 +245,7 @@ const NewStudent = () => {
                   onChange={onChange}
                 >
                   <option value="" disabled>
-                    Select Grade
+                    {t('Select Grade')}
                   </option>
                   {!gradeLoading &&
                     grades?.map((g) => (
@@ -261,7 +263,7 @@ const NewStudent = () => {
                   htmlFor="phoneNumber_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Contact No
+                  {t('Contact No')}
                 </label>
                 <input
                   type="text"
@@ -289,7 +291,7 @@ const NewStudent = () => {
                   htmlFor="secondaryPhoneNumber_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Parent Contact No
+                  {t('Parent Contact No')}
                 </label>
                 <input
                   type="number"
@@ -319,7 +321,7 @@ const NewStudent = () => {
                 htmlFor="address_field"
                 className="block text-sm font-medium text-gray-700"
               >
-                Address
+                {t('Address')}
               </label>
               <textarea
                 id="address_field"
@@ -337,7 +339,7 @@ const NewStudent = () => {
                   htmlFor="email_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Email
+                  {t('Email')}
                 </label>
                 <input
                   type="email"
@@ -353,7 +355,7 @@ const NewStudent = () => {
                   htmlFor="password_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Password
+                  {t('Password')}
                 </label>
                 <input
                   type="password"
@@ -370,7 +372,7 @@ const NewStudent = () => {
                 htmlFor="avatar_field"
                 className="block text-sm font-medium text-gray-700"
               >
-                Avatar
+                {t('Avatar')}
               </label>
               <input
                 type="file"
