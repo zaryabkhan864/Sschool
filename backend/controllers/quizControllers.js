@@ -29,7 +29,7 @@ export const updateQuiz = catchAsyncErrors(async (req, res) => {
 
     res.status(200).json({
         success: true,
-        Quiz,
+        quiz,
         message: "Quiz marks updated successfully",
     });
 });

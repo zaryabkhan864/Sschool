@@ -63,6 +63,7 @@ import quizRoutes from "./routes/quiz.js";
 import studentRoutes from "./routes/students.js";
 import teacherLeaveRoutes from "./routes/teacherLeave.js";
 import teacherRoutes from "./routes/teachers.js";
+import attendanceRoute from "./routes/attendance.js"
 import fileRoutes from "./routes/file.js";
 
 import { fileURLToPath } from "url";
@@ -78,6 +79,7 @@ app.use("/api/v1", examRoutes);
 app.use("/api/v1", counselingRoutes);
 app.use("/api/v1", announcementRoutes);
 app.use("/api/v1", commentRoutes);
+app.use("/api/v1",attendanceRoute)
 // finances routes
 app.use("/api/v1", feesRoutes);
 app.use("/api/v1", salariesRoutes);

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import {
@@ -11,16 +10,19 @@ import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import { useTranslation } from "react-i18next";
+import { useGetUserByTypeQuery } from "../../redux/api/userApi";
+
 const StudentCounseling = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { refetch } = useGetCounselingsQuery();
 
   // 1 get add student data...
-  const { data: studentsData, isLoading: studentLoading } =
-    useGetStudentsWithGradesQuery();
+  const { data: studentsData, isLoading: studentLoading } = useGetUserByTypeQuery("student");
+  console.log("studentsData", studentsData);
+
   // 2 get student details from coming data
-  const students = studentsData?.students || []; // Ensure it's an array
+  const students = studentsData?.users || studentsData?.students || []; // Ensure it's an array
 
   const [counseling, setCounseling] = useState({
     student: "", //store student ID
@@ -51,9 +53,10 @@ const StudentCounseling = () => {
   const submitHandler = (e) => {
     e.preventDefault();
     createCounseling(counseling);
-  };
+  }; 
 
   if (isLoading) return <Loader />;
+
   return (
     <AdminLayout>
       <MetaData title={"Students Counseling"} />
@@ -62,12 +65,7 @@ const StudentCounseling = () => {
           <h2 className="text-2xl font-semibold mb-6">{t('Student Counseling')}</h2>
           <form onSubmit={submitHandler}>
             <div className="mb-4">
-              <label
-                htmlFor="student_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                {t('Student Name')}
-              </label>
+              <label className="block text-sm font-medium text-gray-700">{t('Student Name')}</label>
               <select
                 id="student_field"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -81,7 +79,7 @@ const StudentCounseling = () => {
                 {!studentLoading &&
                   students?.map((s) => (
                     <option key={s._id} value={s._id}>
-                      {s.studentName} - {s?.grade?.gradeName}
+                      {s.name} - {s?.grade?.gradeName}
                     </option>
                   ))}
               </select>
