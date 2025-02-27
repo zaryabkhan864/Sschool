@@ -38,6 +38,7 @@ const AdminLayout = ({ children }) => {
     { name: "Students", url: "/admin/students", icon: "fas fa-users", roles: ["admin"] },
     { name: "Student Counseling", url: "/admin/counseling/new", icon: "fas fa-comments", roles: ["admin", "counsellor"] },
     { name: "Counselings", url: "/admin/counselings", icon: "fas fa-comments", roles: ["admin"] },
+    { name: "New Attendance", url: "/admin/attendance/new", icon: "fas fa-question-circle", roles: ["admin", "teacher"] },
     { name: "New Quiz", url: "/admin/quiz/new", icon: "fas fa-question-circle", roles: ["admin", "teacher"] },
     { name: "New Exam", url: "/admin/exam", icon: "fas fa-file-alt", roles: ["admin", "teacher"] },
     { name: "New Event", url: "/admin/event/new", icon: "fas fa-plus-circle", roles: ["admin"] },

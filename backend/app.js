@@ -58,6 +58,7 @@ import counselingRoutes from "./routes/counseling.js";
 import courseRoutes from "./routes/course.js";
 import eventRoutes from "./routes/event.js";
 import examRoutes from "./routes/exam.js";
+import attendanceRoutes from "./routes/attendance.js"
 import gradeRoutes from "./routes/grade.js";
 import quizRoutes from "./routes/quiz.js";
 import studentRoutes from "./routes/students.js";
@@ -76,6 +77,7 @@ app.use("/api/v1", authRoutes);
 app.use("/api/v1", eventRoutes);
 app.use("/api/v1", quizRoutes);
 app.use("/api/v1", examRoutes);
+app.use("/api/v1",attendanceRoutes);
 app.use("/api/v1", counselingRoutes);
 app.use("/api/v1", announcementRoutes);
 app.use("/api/v1", commentRoutes);

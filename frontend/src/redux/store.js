@@ -20,6 +20,7 @@ import { userApi } from "./api/userApi";
 import { commentApi } from "./api/commentApi";
 import { fileApi } from "./api/fileApi";
 import { revenueApi } from "./api/revenueApi";
+import { attendanceApi } from "./api/attendanceApi";
 
 
 export const store = configureStore({
@@ -30,6 +31,7 @@ export const store = configureStore({
     [expensesApi.reducerPath]: expensesApi.reducer,
     [revenueApi.reducerPath]: revenueApi.reducer,
     [quizApi.reducerPath]: quizApi.reducer,
+    [attendanceApi.reducerPath]: attendanceApi.reducer,
     [examApi.reducerPath]: examApi.reducer,
     [studentApi.reducerPath]: studentApi.reducer,
     [gradeApi.reducerPath]: gradeApi.reducer,
@@ -52,6 +54,7 @@ export const store = configureStore({
       revenueApi.middleware,
       quizApi.middleware,
       examApi.middleware,
+      attendanceApi.middleware,
       studentApi.middleware,
       gradeApi.middleware,
       courseApi.middleware,
