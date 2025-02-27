@@ -5,5 +5,5 @@ import {getAttendanceDetails,updateAttendance} from "../controllers/attendanceCo
 const router = express.Router();
 
 router.route("/attendance/new").post(getAttendanceDetails);
-router.route("/attendance/:id").put(updateAttendance);
+router.route("/attendance").put(updateAttendance);
 export default router;

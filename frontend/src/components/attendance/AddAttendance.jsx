@@ -42,8 +42,6 @@ const AddAttendance = () => {
     const [sendUserRoleAndID] = useGetGradeByUserIdAndRoleMutation();
     const [updateAttendance, { isLoading: updateAttendanceLoading }] = useUpdateAttendanceMutation();
     const [getAttendance, { isLoading: attendanceLoading }] = useGetAttendanceMutation();
-    console.log("What is get Attendance",getAttendance);
-    console.log("What is update attendance",updateAttendance)
 
     useEffect(() => {
         if (userDetails.userId && userDetails.userRole) {
@@ -63,8 +61,8 @@ const AddAttendance = () => {
                 setAttendanceDetails(response.attendance);
 
                 const initialAttendance = {};
-                response.attendance.records.forEach(record => {
-                    initialAttendance[record.student] = record;
+                response.attendance.forEach(record => {
+                    initialAttendance[record._id] = record;
                 });
                 setAttendance(initialAttendance);
             } catch (err) {
@@ -75,7 +73,9 @@ const AddAttendance = () => {
 
     useEffect(() => {
         fetchAttendanceDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [formValues, selectedDate]);
+
 
     const handleDropdownChange = (event) => {
         const { name, value } = event.target;
@@ -91,7 +91,7 @@ const AddAttendance = () => {
                 attendanceId: attendanceDetails._id,
                 records: Object.values(attendance),
             };
-            await updateAttendance({ id: attendanceDetails._id, body: payload });
+            await updateAttendance(payload);
             toast.success('Attendance submitted successfully!');
         } catch (err) {
             console.error('Error submitting attendance:', err);

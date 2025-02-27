@@ -6,9 +6,9 @@ export const attendanceApi = createApi({
   tagTypes: ["Student", "AdminStudents", "Attendance"],
   endpoints: (builder) => ({
     updateAttendance: builder.mutation({
-      query({ id, body }) {
+      query(body) {
         return {
-          url: `/attendance/${id}`,
+          url: `/attendance`,
           method: "PUT",
           body,
         };
