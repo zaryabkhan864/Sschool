@@ -10,6 +10,7 @@ import useFinanceRoutes from "./components/routes/financeRoutes";
 import useStudentRoutes from "./components/routes/studentRoutes";
 import useCounselorRoutes from "./components/routes/counsellorRoutes";
 import usePrincipleRoutes from "./components/routes/principleRoutes";
+import useReportsRoutes from "./components/routes/reportsRoutes"
 
 function App() {
   const userRoutes = useUserRoutes();
@@ -19,6 +20,7 @@ function App() {
   const studentRoutes = useStudentRoutes();
   const counselorRoutes = useCounselorRoutes();
   const principleRoutes = usePrincipleRoutes();
+  const reportsRoutes = useReportsRoutes();
   return (
     <div className="h-screen flex flex-col">
       <Router>
@@ -35,6 +37,7 @@ function App() {
             {studentRoutes}
             {counselorRoutes}
             {principleRoutes}
+            {reportsRoutes}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
