@@ -100,6 +100,7 @@ const ListEvents = () => {
             <Table.Head>
               <Table.HeadCell>{t('ID')}</Table.HeadCell>
               <Table.HeadCell>{t('Event Name')}</Table.HeadCell>
+              <Table.HeadCell>{t('Campus')}</Table.HeadCell>
               <Table.HeadCell>{t('Date')}</Table.HeadCell>
               <Table.HeadCell>{t('Paid')}</Table.HeadCell>
               <Table.HeadCell>{t('actions')}</Table.HeadCell>
@@ -112,6 +113,7 @@ const ListEvents = () => {
                 >
                   <Table.Cell>{event?._id}</Table.Cell>
                   <Table.Cell>{event?.eventName}</Table.Cell>
+                  <Table.Cell>{event?.campus?.name || 'N/A'}</Table.Cell>
                   <Table.Cell>{dayjs(event?.date).format('DD/MM/YYYY hh:mm:ss A')}</Table.Cell>
                   <Table.Cell>{!!event?.isPaid?'Yes': 'No'}</Table.Cell>
                   <Table.Cell>

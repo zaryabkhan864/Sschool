@@ -34,6 +34,10 @@ import TeacherDetails from "../teacher/TeacherDetails";
 import UpdateTeacher from "../teacher/UpdateTeacher";
 import NewTeacherLeave from "../teacherLeave/NewTeacherLeave";
 import AddAttendance from "../attendance/AddAttendance";
+import CampusDetails from "../campus/CampusDetails";
+import ListCampus from "../campus/ListCampus";
+import NewCampus from "../campus/NewCampus";
+import UpdateCampus from "../campus/UpdateCampus";
 
 const adminRoutes = () => {
   return (
@@ -303,6 +307,38 @@ const adminRoutes = () => {
         element={
           <ProtectedRoute admin={true}>
             <StudentReviews />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/campus/new"
+        element={
+          <ProtectedRoute admin={true}>
+            <NewCampus />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/campuses"
+        element={
+          <ProtectedRoute admin={true}>
+            <ListCampus />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/campus/:id"
+        element={
+          <ProtectedRoute admin={true}>
+            <UpdateCampus />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/campus/:id/details"
+        element={
+          <ProtectedRoute admin={true}>
+            <CampusDetails />
           </ProtectedRoute>
         }
       />

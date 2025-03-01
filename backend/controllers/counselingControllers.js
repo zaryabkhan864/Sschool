@@ -1,5 +1,6 @@
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import Counseling from "../models/counseling.js";
+import Student from "../models/user.js";
 import APIFilters from "../utils/apiFilters.js";
 import ErrorHandler from "../utils/errorHandler.js";
 //CRUD operations for courses
@@ -8,10 +9,16 @@ import ErrorHandler from "../utils/errorHandler.js";
 export const newCounseling = catchAsyncErrors(async (req, res, next) => {
   const { student, complain, comment } = req.body;
   // const studentId = student === "" ? null : student;
+    const studentDetail = await Student.findById(student)
+    if (!studentDetail) {
+      return next(new ErrorHandler("student not found", 404));
+    }
+
   const counseling = await Counseling.create({
     student,
     complain,
     comment,
+    campus: studentDetail.campus
   });
 
   res.status(200).json({
@@ -21,7 +28,7 @@ export const newCounseling = catchAsyncErrors(async (req, res, next) => {
 //Create get all counseling => /api/v1/counselings
 export const getCounselings = catchAsyncErrors(async (req, res, next) => {
   const resPerPage = 8;
-  const apiFilters = new APIFilters(Counseling, req.query).search().filters();
+  const apiFilters = new APIFilters(Counseling, req.query).search().filters().populate('campus');
 
   let counselings = await apiFilters.query;
   const filteredCounselingsCount = counselings.length;

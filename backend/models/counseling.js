@@ -7,6 +7,10 @@ const counselingSchema = new mongoose.Schema(
       ref: "Student",
       required: true,
     },
+    campus:{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Campus",
+    },
     complain: {
       type: String,
       required: true,

@@ -2,13 +2,26 @@ import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import Course from "../models/course.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import Grade from "../models/grade.js";
+import Teacher from "../models/user.js";
 import APIFilters from "../utils/apiFilters.js";
 
 //CRUD operations for courses
 
 // Create new course => /api/v1/courses
 export const newCourse = catchAsyncErrors(async (req, res, next) => {
-  const { courseName, description, code, year, teacher } = req.body;
+  const { courseName, description, code, year, teacher, campus } = req.body;
+  let teacherDetail, selectedCampus
+
+  if(teacher){
+    teacherDetail = await Teacher.findById(teacher)
+    if (!teacherDetail) {
+      return next(new ErrorHandler("Teacher not found", 404));
+    }
+    selectedCampus = teacherDetail.campus
+  }
+  else{
+    selectedCampus = campus
+  }
   const teacherId = teacher === "" ? null : teacher;
   const course = await Course.create({
     courseName,
@@ -16,6 +29,7 @@ export const newCourse = catchAsyncErrors(async (req, res, next) => {
     code,
     year,
     teacher: teacherId,
+    campus: selectedCampus,
   });
 
   res.status(200).json({
@@ -26,7 +40,8 @@ export const newCourse = catchAsyncErrors(async (req, res, next) => {
 //Create get all course => /api/v1/courses
 export const getCourses = catchAsyncErrors(async (req, res, next) => {
   const resPerPage = 8;
-  const apiFilters = new APIFilters(Course, req.query).search().filters();
+  const apiFilters = new APIFilters(Course, req.query).search().filters().populate('campus', 'name'
+  );
 
   let courses = await apiFilters.query;
   const filteredCoursesCount = courses.length;
@@ -50,9 +65,20 @@ export const updateCourse = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Course not found", 404));
   }
 
-  const { courseName, description, code, year, teacher } = req.body;
+  const { courseName, description, code, year, teacher, campus } = req.body;
 
   const teacherId = teacher === "" ? null : teacher;
+
+  if(teacher){
+    teacherDetail = await Teacher.findById(teacher)
+    if (!teacherDetail) {
+      return next(new ErrorHandler("Teacher not found", 404));
+    }
+    selectedCampus = teacherDetail.campus
+  }
+  else{
+    selectedCampus = campus
+  }
   course = await Course.findByIdAndUpdate(
     req?.params?.id,
     { courseName, description, code, year, teacher: teacherId },

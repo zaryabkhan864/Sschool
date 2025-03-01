@@ -6,7 +6,11 @@ export const ExpenseSchema = new mongoose.Schema({
     amount: { type: Number, required: true },
     date: { type: Date, default: Date.now },
     description: { type: String },
-    vendor: { type: String }
+    vendor: { type: String },
+    campus:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Campus",
+    },
 });
 
 

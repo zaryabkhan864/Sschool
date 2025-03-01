@@ -7,6 +7,11 @@ const announcementSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    campus:{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Campus",
+      required: true,
+    },
     message: {
       type: String,
       required: true,

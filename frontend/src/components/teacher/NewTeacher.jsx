@@ -7,6 +7,8 @@ import { useRegisterMutation } from "../../redux/api/authApi";
 
 import { useGetUserByTypeQuery } from "../../redux/api/userApi";
 
+import { useGetCampusQuery } from "../../redux/api/campusApi";
+
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 import { useTranslation } from "react-i18next";
@@ -16,6 +18,9 @@ const NewTeacher = () => {
   const navigate = useNavigate();
   const { countries } = useCountries();
   const { refetch } = useGetUserByTypeQuery('teacher');
+
+  const { data: campusData, isLoading: campusLoading } = useGetCampusQuery({paginate: false});
+
 
   const [teacher, setTeacher] = useState({
     role: 'teacher',
@@ -28,6 +33,7 @@ const NewTeacher = () => {
     email: "",
     password: "",
     avatar: "", // Add avatar field
+    campus:""
   });
   const [avatarPreview, setAvatarPreview] = useState("");
 
@@ -40,6 +46,7 @@ const NewTeacher = () => {
     secondaryPhoneNumber,
     email,
     password,
+    campus
   } = teacher;
 
   const [register, { isLoading, error, isSuccess }] =
@@ -93,6 +100,32 @@ const NewTeacher = () => {
         <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">{t('New Teacher')}</h2>
           <form onSubmit={submitHandler}>
+          <div className="mb-4">
+                <label
+                  htmlFor="campus_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  {t('Campus')}
+                </label>
+                <select
+                  type="text"
+                  id="campus_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="campus"
+                  value={campus}
+                  onChange={onChange}
+                  disabled={campusLoading}
+                >
+                  <option value="">
+                    Select {t('Campus')}                    
+                  </option>
+                  {campusData?.campus?.map(({ name, _id }) => (
+                    <option key={name} value={_id}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label

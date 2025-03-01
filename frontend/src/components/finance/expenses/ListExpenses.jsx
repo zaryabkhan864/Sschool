@@ -105,6 +105,7 @@ const ListExpenses = () => {
                         <Table.Head>
                             <Table.HeadCell>{t('Category')}</Table.HeadCell>
                             <Table.HeadCell>{t('Amount')}</Table.HeadCell>
+                            <Table.HeadCell>{t('Campus')}</Table.HeadCell>
                             <Table.HeadCell>{t('Date')}</Table.HeadCell>
                             <Table.HeadCell>{t('Description')}</Table.HeadCell>
                             <Table.HeadCell>{t('Vendor')}</Table.HeadCell>
@@ -115,6 +116,7 @@ const ListExpenses = () => {
                                 <Table.Row key={expense?._id} className="bg-white dark:bg-gray-800">
                                     <Table.Cell>{expense?.category}</Table.Cell>
                                     <Table.Cell>{expense?.amount}</Table.Cell>
+                                    <Table.Cell>{expense?.campus?.name || 'N/A'}</Table.Cell>
                                     <Table.Cell>{new Date(expense?.date).toLocaleDateString()}</Table.Cell>
                                     <Table.Cell>{expense?.description}</Table.Cell>
                                     <Table.Cell>{expense?.vendor}</Table.Cell>

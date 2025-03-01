@@ -49,13 +49,9 @@ const eventSchema = new mongoose.Schema(
       ref: "User", // Assuming a teacher organizes the event
       required: false,
     },
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
-    updatedAt: {
-      type: Date,
-      default: Date.now,
+    campus:{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Campus",
     },
   },
   { timestamps: true } // Automatically handle createdAt and updatedAt

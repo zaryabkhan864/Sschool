@@ -17,6 +17,10 @@ const examSchema = new mongoose.Schema(
       ref: "Course",
       required: [true, "Please specify the associated course"],
     },
+    campus:{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Campus",
+    },
     grade: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Grade",

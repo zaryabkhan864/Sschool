@@ -8,10 +8,27 @@ import sendEmail from "../utils/sendEmail.js";
 import sendToken from "../utils/sendToken.js";
 import APIFilters from "../utils/apiFilters.js";
 import _ from "lodash";
+import mongoose from "mongoose";
 
 // Register user   =>  /api/v1/register
 export const registerUser = catchAsyncErrors(async (req, res, next) => {
-  const { name, email, password, avatar, role, age, gender, nationality, passportNumber, siblings, phoneNumber, secondaryPhoneNumber, address, grade } = req.body;
+  const { 
+    name,
+    email,
+    password,
+    avatar,
+    role,
+    age,
+    gender,
+    nationality,
+    passportNumber,
+    siblings,
+    phoneNumber,
+    secondaryPhoneNumber,
+    address,
+    grade,
+    campus,
+  } = req.body;
 
   const user = await User.create({
     name,
@@ -28,6 +45,7 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
     secondaryPhoneNumber,
     address,
     grade,
+    campus
   });
   res.status(201).json({
     success: true,
@@ -217,6 +235,7 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
     secondaryPhoneNumber: req.body.secondaryPhoneNumber,
     address: req.body.address,
     grade: req.body.grade,
+    campus: req.body.campus,
   };
 
   const user = await User.findByIdAndUpdate(req.user._id, newUserData, {
@@ -274,7 +293,8 @@ export const updateUser = catchAsyncErrors(async (req, res, next) => {
     secondaryPhoneNumber: req.body.secondaryPhoneNumber,
     address: req.body.address,
     avatar:req.body.avatar,
-    grade:  req.body.grade
+    grade:  req.body.grade,
+    campus: req.body.campus,
   };
 
   const user = await User.findByIdAndUpdate(req.params.id, newUserData, {
@@ -313,17 +333,23 @@ export const deleteUser = catchAsyncErrors(async (req, res, next) => {
 export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
   let users= []
   let sortedStudents =[]
+  const { campus } = req.query
+  const match =  {}
+  if(campus){
+    match.campus = new mongoose.Types.ObjectId(campus)
+  }
+
   if(req.params.type === 'student'){
     req.query.role= "student"
-    const apiFilters = new APIFilters(User, req.query).search().filters().populate('grade', 'gradeName');
+    const apiFilters = new APIFilters(User, req.query).search().filters().populate('grade', 'gradeName').populate('campus', 'name');
     const students = await apiFilters.query;
     sortedStudents = _.sortBy(students,[(item) => item.grade?.gradeName?.toLowerCase()],(item) => item?.name?.toLowerCase())
   }
   if(req.params.type === 'employee'){
-    users = await User.find({ role: { $ne: 'student' } });
+    users = await User.find({...match, role: { $ne: 'student' }});
   }
   else{
-    users = await User.find({ role: req.params.type });
+    users = await User.find({...match, role: req.params.type}).populate('campus', 'name');
   }
 
   res.status(200).json({

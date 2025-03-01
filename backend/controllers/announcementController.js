@@ -10,12 +10,13 @@ import APIFilters from "../utils/apiFilters.js";
 
 export const createAnnouncement = catchAsyncErrors(async (req, res) => {
     // Extract data from request body
-    const { message, attachments, userId } = req.body;
+    const { message, attachments, userId, campus } = req.body;
 
   const announcement = await Announcement.create({
     message,
     attachments,
-    userId
+    userId, 
+    campus
   });
 
   res.status(200).json({
@@ -26,18 +27,20 @@ export const createAnnouncement = catchAsyncErrors(async (req, res) => {
 
 /* get all announcements */
 export const getAnnouncements = catchAsyncErrors(async (req, res) => {
-  const {role:userRole, grade: userGrade} = req.user
+  const {role:userRole, grade: userGrade, campus: userCampus} = req.user
   if(userRole === 'student'){
     const result = await Grade.aggregate([
       // 1. Match the grade by ID
       { $match: { _id: new mongoose.Types.ObjectId(userGrade) } },
       
-      // 2. Lookup courses in the grade
+      // 2. Lookup courses in the grade where campus matches req.user campus
       {
         $lookup: {
-          from: "courses",        // Collection name (case-sensitive)
-          localField: "courses",  // Array of course IDs in Grade
-          foreignField: "_id",    // Match course _id in Courses collection
+          from: "courses",
+          let: { campusId: userCampus },
+          pipeline: [
+            { $match: { $expr: { $eq: ["$campus", "$$campusId"] } } },
+          ],
           as: "courseDetails"
         }
       },

@@ -3,51 +3,39 @@ import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
-
-import { useDeleteUserMutation, useGetUserByTypeQuery } from "../../redux/api/userApi";
-
-
+import { useTranslation } from 'react-i18next';
+import {
+  useGetCampusQuery,
+} from "../../redux/api/campusApi";
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
-import { useTranslation } from "react-i18next";
 
-const ListStudents = () => {
+const ListCampus = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { data, isLoading, error, refetch } = useGetUserByTypeQuery("student");
-  const { user } = useSelector((state) => state.auth);
+  const { data, isLoading, error } = useGetCampusQuery();
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [userRole, setUserRole] = useState("");
-
-  const [
-    deleteUser,
-    { isLoading: isDeleteLoading, error: deleteError, isSuccess },
-  ] = useDeleteUserMutation();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
 
   useEffect(() => {
-    if (error) toast.error(error?.data?.message);
-    if (deleteError) toast.error(deleteError?.data?.message);
-    if (isSuccess) {
-      toast.success("Student Deleted");
-      refetch();
+    if (error) {
+      toast.error(error?.data?.message);
     }
     if (user?.role === "admin") setUserRole(user?.role);
-  }, [error, deleteError, isSuccess, navigate, refetch, user]);
+  }, [error, navigate, user, t]);
 
-  const deleteStudentHandler = (id) => {
-    deleteUser(id);
-  };
-
-  const filteredStudents = data?.users?.filter((student) =>
-    student?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter and paginate the campus
+  const filteredCampus = data?.campus?.filter((campus) =>
+    campus?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalPages = Math.ceil((filteredStudents?.length || 0) / itemsPerPage);
-  const paginatedStudents = filteredStudents?.slice(
+  const totalPages = Math.ceil((filteredCampus?.length || 0) / itemsPerPage);
+  const paginatedCampus = filteredCampus?.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -56,15 +44,16 @@ const ListStudents = () => {
 
   return (
     <AdminLayout>
-      <MetaData title={t("allStudents")} />
+      <MetaData title={t("allCampus")} />
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">
-            {data?.users?.length} {t("Students")}
+            {data?.campus?.length} {t("Campus")}
           </h2>
 
           {/* Controls Section */}
           <div className="flex flex-col md:flex-row justify-between items-center mb-4">
+            {/* Search Bar */}
             <input
               type="text"
               placeholder={t("search")}
@@ -72,6 +61,8 @@ const ListStudents = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+
+            {/* Records per Page Dropdown */}
             <div className="flex items-center mt-2 md:mt-0">
               <label
                 htmlFor="itemsPerPage"
@@ -93,52 +84,41 @@ const ListStudents = () => {
             </div>
           </div>
 
-          {/* Students Table */}
+          {/* Campus Table */}
           <Table hoverable={true} className="w-full">
             <Table.Head>
               <Table.HeadCell>{t("id")}</Table.HeadCell>
-              <Table.HeadCell>{t("studentName")}</Table.HeadCell>
-              <Table.HeadCell>{t("Campus")}</Table.HeadCell>
-              <Table.HeadCell>{t('age')}</Table.HeadCell>
-              <Table.HeadCell>{t('grade')}</Table.HeadCell>
+              <Table.HeadCell>{t("Campus")} {t("Name")}</Table.HeadCell>
+              <Table.HeadCell>{t("Campus")} {t("Address")}</Table.HeadCell>
+              <Table.HeadCell>{t("Campus")} {t("Phone Number")}</Table.HeadCell>
               <Table.HeadCell>{t("actions")}</Table.HeadCell>
             </Table.Head>
             <Table.Body>
-              {paginatedStudents?.map((student) => (
+              {paginatedCampus?.map((campus) => (
                 <Table.Row
-                  key={student?._id}
+                  key={campus?._id}
                   className="bg-white dark:bg-gray-800"
                 >
-                  <Table.Cell>{student?._id}</Table.Cell>
-                  <Table.Cell>{student?.name}</Table.Cell>
-                  <Table.Cell>{student?.campus?.name || 'N/A'}</Table.Cell>
-                  <Table.Cell>{student?.age}</Table.Cell>
-                  <Table.Cell>{student?.grade?.gradeName || 'N/A'}</Table.Cell>
+                  <Table.Cell>{campus?._id}</Table.Cell>
+                  <Table.Cell>{campus?.name}</Table.Cell>
+                  <Table.Cell>{campus?.location}</Table.Cell>
+                  <Table.Cell>{campus?.contactNumber}</Table.Cell>
                   <Table.Cell>
                     <div className="flex space-x-2">
                       {userRole === "admin" && (
                         <Link
-                          to={`/admin/students/${student?._id}`}
+                          to={`/admin/campus/${campus?._id}`}
                           className="px-3 py-2 text-blue-600 border border-blue-600 rounded hover:bg-blue-600 hover:text-white focus:outline-none"
                         >
                           <i className="fa fa-pencil"></i>
                         </Link>
                       )}
                       <Link
-                        to={`/admin/student/${student?._id}/details`}
+                        to={`/admin/campus/${campus?._id}/details`}
                         className="px-3 py-2 text-green-600 border border-green-600 rounded hover:bg-green-600 hover:text-white focus:outline-none"
                       >
                         <i className="fa fa-eye"></i>
                       </Link>
-                      {userRole === "admin" && (
-                        <button
-                          className="px-3 py-2 text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white focus:outline-none"
-                          onClick={() => deleteStudentHandler(student?._id)}
-                          disabled={isDeleteLoading}
-                        >
-                          <i className="fa fa-trash"></i>
-                        </button>
-                      )}
                     </div>
                   </Table.Cell>
                 </Table.Row>
@@ -162,4 +142,4 @@ const ListStudents = () => {
   );
 };
 
-export default ListStudents;
+export default ListCampus;

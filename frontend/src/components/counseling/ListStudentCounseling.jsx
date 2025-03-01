@@ -114,6 +114,7 @@ const ListStudentCounselings = () => {
             <Table.Head>
               <Table.HeadCell>{t('ID')}</Table.HeadCell>
               <Table.HeadCell>{t('Student Name')}</Table.HeadCell>
+              <Table.HeadCell>{t('Campus')}</Table.HeadCell>
               <Table.HeadCell>{t('Complain')}</Table.HeadCell>
             </Table.Head>
             <Table.Body>
@@ -124,6 +125,7 @@ const ListStudentCounselings = () => {
                 >
                   <Table.Cell>{counseling?._id}</Table.Cell>
                   <Table.Cell>{counseling?.student}</Table.Cell>
+                  <Table.Cell>{counseling?.campus?.name || 'N/A'}</Table.Cell>
                   <Table.Cell>{counseling?.complain}</Table.Cell>
                   <Table.Cell>
                     <div className="flex space-x-2">

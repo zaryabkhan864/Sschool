@@ -165,11 +165,9 @@
      "Emp Salary": "Emp Salary",
      "Emp Salary List": "Emp Salary List",
      "Expense List": "Expense List",
-     "New Teacher Leave": "New Teacher Leave"
-  
-  
-  
-  
-  
- 
+  "New Teacher Leave": "New Teacher Leave",
+  "Campus": "Campus",
+  "New": "New",
+  "Update": "Update",
+  "Details": "Details"
 }

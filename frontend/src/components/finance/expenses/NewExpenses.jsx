@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useCreateExpenseMutation } from "../../../redux/api/expensesApi";
+import { useGetCampusQuery } from "../../../redux/api/campusApi";
+
 import AdminLayout from "../../layout/AdminLayout";
 import MetaData from "../../layout/MetaData";
 import { useTranslation } from "react-i18next";
@@ -11,15 +13,19 @@ const NewExpenses = () => {
     const navigate = useNavigate();
     const [createExpense, { isLoading, error, isSuccess }] = useCreateExpenseMutation();
 
+  const { data: campusData, isLoading: campusLoading } = useGetCampusQuery({paginate: false});
+
+
     const [expenseData, setExpenseData] = useState({
         category: "",
         amount: "",
         date: new Date().toISOString().split("T")[0], // Default to today's date
         description: "",
         vendor: "",
+        campus:"",
     });
 
-    const { category, amount, date, description, vendor } = expenseData;
+    const { category, amount, date, description, vendor, campus } = expenseData;
 
     useEffect(() => {
         if (error) {
@@ -48,6 +54,33 @@ const NewExpenses = () => {
                 <div className="w-full max-w-7xl">
                     <h2 className="text-2xl font-semibold mb-6">{t('New Expense')}</h2>
                     <form onSubmit={submitHandler}>
+                    <div className="mb-4">
+                <label
+                  htmlFor="campus_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  {t('Campus')}
+                </label>
+                <select
+                  type="text"
+                  id="campus_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="campus"
+                  value={campus}
+                  onChange={onChange}
+                  disabled={campusLoading}
+
+                >
+                  <option value="">
+                    Select {t('Campus')}                    
+                  </option>
+                  {campusData?.campus?.map(({ name, _id }) => (
+                    <option key={name} value={_id}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
                         <div className="mb-4">
                             <label className="block text-sm font-medium text-gray-700">{t('Category')}</label>
                             <select

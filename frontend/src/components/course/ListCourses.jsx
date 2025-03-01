@@ -108,6 +108,7 @@ const ListCourses = () => {
             <Table.Head>
               <Table.HeadCell>{t("id")}</Table.HeadCell>
               <Table.HeadCell>{t("courseName")}</Table.HeadCell>
+              <Table.HeadCell>{t("Campus")}</Table.HeadCell>
               <Table.HeadCell>{t("code")}</Table.HeadCell>
               <Table.HeadCell>{t("year")}</Table.HeadCell>
               <Table.HeadCell>{t("actions")}</Table.HeadCell>
@@ -120,6 +121,7 @@ const ListCourses = () => {
                 >
                   <Table.Cell>{course?._id}</Table.Cell>
                   <Table.Cell>{course?.courseName}</Table.Cell>
+                  <Table.Cell>{course?.campus?.name || 'N/A'}</Table.Cell>
                   <Table.Cell>{course?.code}</Table.Cell>
                   <Table.Cell>{course?.year}</Table.Cell>
                   <Table.Cell>

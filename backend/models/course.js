@@ -27,6 +27,10 @@ const courseSchema = new mongoose.Schema(
       required: false,
       default: null,
     }, //Assigned teacher
+    campus:{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Campus",
+    },
   },
   { timestamps: false }
 );

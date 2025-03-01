@@ -32,6 +32,10 @@ const quizSchema = new mongoose.Schema(
       ref: "User",
       required: [true, "Please specify the teacher responsible for this quiz"],
     },
+    campus:{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Campus",
+    },
     marks: [
       {
         student: {

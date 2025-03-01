@@ -15,7 +15,7 @@ export const newEvent = catchAsyncErrors(async (req, res) => {
 
 // Get all events => /api/v1/events
 export const getEvents = catchAsyncErrors(async (req, res) => {
-    const apiFilters = new APIFilters(Event, req.query).search().filters();
+    const apiFilters = new APIFilters(Event, req.query).search().filters().populate('campus');
 
     let events = await apiFilters.query;
     let filteredEventsCount = events.length;

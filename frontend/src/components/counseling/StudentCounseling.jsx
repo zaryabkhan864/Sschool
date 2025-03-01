@@ -5,7 +5,6 @@ import {
   useCreateCounselingMutation,
   useGetCounselingsQuery,
 } from "../../redux/api/counselingApi";
-import { useGetStudentsWithGradesQuery } from "../../redux/api/studentsApi";
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";

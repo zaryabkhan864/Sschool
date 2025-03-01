@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 
+import { useGetCampusQuery } from "../../redux/api/campusApi";
+
 import {
   useCreateCourseMutation,
   useGetCoursesQuery,
@@ -23,9 +25,12 @@ const NewCourse = () => {
     code: "",
     year: "",
     teacher: "", // Store teacher ID
+    campus: ""
   });
 
-  const { courseName, description, code, year, teacher } = course;
+  const { data: campusData, isLoading: campusLoading } = useGetCampusQuery({paginate: false});
+
+  const { courseName, description, code, year, teacher, campus } = course;
 
   const [createCourse, { isLoading, error, isSuccess }] =
     useCreateCourseMutation();
@@ -140,6 +145,32 @@ const NewCourse = () => {
                 />
               </div>
             </div>
+            <div className="mb-4">
+                <label
+                  htmlFor="campus_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  {t('Campus')}
+                </label>
+                <select
+                  type="text"
+                  id="campus_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="campus"
+                  value={campus}
+                  onChange={onChange}
+                  disabled={campusLoading}
+                >
+                  <option value="">
+                    Select {t('Campus')}                    
+                  </option>
+                  {campusData?.campus?.map(({ name, _id }) => (
+                    <option key={name} value={_id}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             {/* Teacher Dropdown */}
             <div className="mb-4">
               <label

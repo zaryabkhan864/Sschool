@@ -66,6 +66,11 @@ const userSchema = new mongoose.Schema(
     address: {
       type: String,
     },
+    campus:{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Campus",
+      required: false,
+    },
     grade: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Grade",

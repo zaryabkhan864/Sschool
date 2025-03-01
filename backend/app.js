@@ -66,6 +66,7 @@ import teacherLeaveRoutes from "./routes/teacherLeave.js";
 import teacherRoutes from "./routes/teachers.js";
 import attendanceRoute from "./routes/attendance.js"
 import fileRoutes from "./routes/file.js";
+import campusRoutes from "./routes/campus.js";
 
 import { fileURLToPath } from "url";
 
@@ -88,6 +89,7 @@ app.use("/api/v1", salariesRoutes);
 app.use("/api/v1", expense);
 app.use("/api/v1", teacherLeaveRoutes);
 app.use("/api/v1", fileRoutes);
+app.use("/api/v1", campusRoutes);
 
 if (process.env.NODE_ENV === "PRODUCTION") {
   app.use(express.static(path.join(__dirname, "../frontend/build")));
