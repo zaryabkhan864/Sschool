@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import User from "../models/user.js";
+import Campus from "../models/campus.js";
 import { delete_file, upload_file } from "../utils/cloudinary.js";
 import { getResetPasswordTemplate } from "../utils/emailTemplates.js";
 import ErrorHandler from "../utils/errorHandler.js";
@@ -74,6 +75,11 @@ export const loginUser = catchAsyncErrors(async (req, res, next) => {
 
   if (!isPasswordMatched) {
     return next(new ErrorHandler("Invalid email or password", 401));
+  }
+
+  if(user.role === 'admin'){
+    const campus = await Campus.findOne()
+    user.campus = campus?._id
   }
 
   sendToken(user, 200, res);
@@ -189,6 +195,11 @@ export const resetPassword = catchAsyncErrors(async (req, res, next) => {
 
   await user.save();
 
+  if(user.role === 'admin'){
+    const campus = await Campus.findOne()
+    user.campus = campus?._id
+  }
+  
   sendToken(user, 200, res);
 });
 

@@ -1,5 +1,4 @@
-import React, { useState, useRef } from "react";
-import Search from "./Search";
+import React, { useState, useRef, useEffect } from "react";
 import { useGetMeQuery } from "../../redux/api/userApi";
 import { useSelector } from "react-redux";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -9,16 +8,37 @@ import LanguageSwitcher from "../LanguageSwitcher";
 import { useGetCampusQuery } from "../../redux/api/campusApi";
 
 const Header = () => {
+  const getCookie = (name) => {
+    const cookieString = document.cookie;
+    const cookies = cookieString.split('; ');
+
+    for (let cookie of cookies) {
+      const [cookieName, cookieValue] = cookie.split('=');
+      if (cookieName === name) {
+        return decodeURIComponent(cookieValue);
+      }
+    }
+    return null;
+  };
+
+  const setCookie = (name, value) => {
+    const date = new Date();
+    date.setTime(date.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const expires = `expires=${date.toUTCString()}`;
+    document.cookie = `${name}=${encodeURIComponent(value)}; ${expires}`;
+  };
+
   const navigate = useNavigate();
   const location = useLocation();
   const { isLoading } = useGetMeQuery();
   const { data: CampusData, isLoading: CampusLoading, error } = useGetCampusQuery();
-  console.log("CampusData", CampusData);
   const [logout] = useLazyLogoutQuery();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [selectedCampus, setSelectedCampus] = useState("Main Campus");
+  const [selectedCampus, setSelectedCampus] = useState(getCookie('campus'));
+  const [selectedCampusName, setSelectedCampusName] = useState('');
+
   const dropdownTimeoutRef = useRef(null);
 
   const handleMouseEnter = () => {
@@ -32,6 +52,8 @@ const Header = () => {
     }, 300);
   };
 
+  
+
   const logoutHandler = () => {
     logout()
       .then(() => {
@@ -43,6 +65,13 @@ const Header = () => {
         console.error("Logout failed:", error);
       });
   };
+
+  useEffect(() => {
+    if(selectedCampus){
+     const campus =  CampusData?.campus.find((item)=> String(item._id) === String(selectedCampus))
+     setSelectedCampusName(campus?.name)
+    }
+  }, [CampusData?.campus, selectedCampus]);
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
@@ -94,7 +123,9 @@ const Header = () => {
                 <select
                   className="border p-2 rounded-md text-gray-700"
                   value={selectedCampus}
-                  onChange={(e) => setSelectedCampus(e.target.value)}
+                  onChange={(e) => {
+                    setCookie('campus', String(e.target.value))
+                    setSelectedCampus(e.target.value)}}
                 >
                   {CampusLoading ? (
                     <option disabled>Loading Campuses...</option>
@@ -102,7 +133,7 @@ const Header = () => {
                     <option disabled>Error loading campuses</option>
                   ) : CampusData?.campus?.length > 0 ? (
                     CampusData.campus.map((campus) => (
-                      <option key={campus._id} value={campus.name}>
+                      <option key={campus._id} value={campus._id}>
                         {campus.name}
                       </option>
                     ))
@@ -111,7 +142,7 @@ const Header = () => {
                   )}
                 </select>
               ) : (
-                <span className="text-gray-800 font-medium">{selectedCampus}</span>
+                <span className="text-gray-800 font-medium">{selectedCampusName}</span>
               )}
             </div>
             <div
