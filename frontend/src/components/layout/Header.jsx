@@ -6,13 +6,16 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useLazyLogoutQuery } from "../../redux/api/authApi";
 import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 import LanguageSwitcher from "../LanguageSwitcher";
+import { useGetCampusQuery } from "../../redux/api/campusApi";
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isLoading } = useGetMeQuery();
+  const { data: CampusData, isLoading: CampusLoading, error } = useGetCampusQuery();
+  console.log("CampusData", CampusData);
   const [logout] = useLazyLogoutQuery();
-  const { isAuthenticated, user, loading } = useSelector((state) => state.auth);
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedCampus, setSelectedCampus] = useState("Main Campus");
@@ -45,8 +48,6 @@ const Header = () => {
     setMenuOpen(!menuOpen);
   };
 
-  const campuses = ["Main Campus", "City Campus", "North Campus"];
-
   if (location.pathname === "/") {
     return null;
   }
@@ -55,20 +56,13 @@ const Header = () => {
     <nav className="flex items-center justify-between px-4 shadow-lg relative py-3">
       {isAuthenticated ? (
         <>
-          <button
-            className="md:hidden text-gray-700 px-4 py-2"
-            onClick={toggleMenu}
-          >
+          <button className="md:hidden text-gray-700 px-4 py-2" onClick={toggleMenu}>
             {menuOpen ? "✖" : "☰"}
           </button>
 
           <div className="flex items-center">
             <Link to="/">
-              <img
-                src="/images/Logo.png"
-                alt="School Logo"
-                className="w-14 md:w-18"
-              />
+              <img src="/images/Logo.png" alt="School Logo" className="w-14 md:w-18" />
             </Link>
             <h2>School Management System</h2>
           </div>
@@ -102,11 +96,19 @@ const Header = () => {
                   value={selectedCampus}
                   onChange={(e) => setSelectedCampus(e.target.value)}
                 >
-                  {campuses.map((campus) => (
-                    <option key={campus} value={campus}>
-                      {campus}
-                    </option>
-                  ))}
+                  {CampusLoading ? (
+                    <option disabled>Loading Campuses...</option>
+                  ) : error ? (
+                    <option disabled>Error loading campuses</option>
+                  ) : CampusData?.campus?.length > 0 ? (
+                    CampusData.campus.map((campus) => (
+                      <option key={campus._id} value={campus.name}>
+                        {campus.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option disabled>No campuses available</option>
+                  )}
                 </select>
               ) : (
                 <span className="text-gray-800 font-medium">{selectedCampus}</span>
