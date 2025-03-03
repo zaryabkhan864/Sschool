@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import Search from "./Search";
 import { useGetMeQuery } from "../../redux/api/userApi";
 import { useSelector } from "react-redux";
@@ -12,10 +12,10 @@ const Header = () => {
   const location = useLocation();
   const { isLoading } = useGetMeQuery();
   const [logout] = useLazyLogoutQuery();
-  const { user } = useSelector((state) => state.auth);
+  const { isAuthenticated, user, loading } = useSelector((state) => state.auth);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [timer, setTimer] = useState(0);
+  const [selectedCampus, setSelectedCampus] = useState("Main Campus");
   const dropdownTimeoutRef = useRef(null);
 
   const handleMouseEnter = () => {
@@ -45,39 +45,15 @@ const Header = () => {
     setMenuOpen(!menuOpen);
   };
 
-  useEffect(() => {
-    if (user) {
-      const timerInterval = setInterval(() => {
-        setTimer((prev) => prev + 1);
-      }, 1000);
-
-      return () => clearInterval(timerInterval);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (timer > 0) {
-      localStorage.setItem("timer", timer);
-    }
-  }, [timer]);
-
-  useEffect(() => {
-    const savedTimer = localStorage.getItem("timer");
-    if (savedTimer) {
-      setTimer(Number(savedTimer));
-    }
-  }, []);
-
-  const minutes = Math.floor(timer / 60);
-  const seconds = timer % 60;
+  const campuses = ["Main Campus", "City Campus", "North Campus"];
 
   if (location.pathname === "/") {
     return null;
   }
 
   return (
-    <nav className="flex items-center justify-between px-4  shadow-lg relative py-3">
-      {user ? (
+    <nav className="flex items-center justify-between px-4 shadow-lg relative py-3">
+      {isAuthenticated ? (
         <>
           <button
             className="md:hidden text-gray-700 px-4 py-2"
@@ -94,7 +70,7 @@ const Header = () => {
                 className="w-14 md:w-18"
               />
             </Link>
-            <h2>School Managment System</h2>
+            <h2>School Management System</h2>
           </div>
 
           {menuOpen && (
@@ -109,10 +85,7 @@ const Header = () => {
                   </li>
                 )}
                 <li className="w-full px-4 py-2 hover:bg-gray-200">
-                  <button
-                    className="text-red-600"
-                    onClick={logoutHandler}
-                  >
+                  <button className="text-red-600" onClick={logoutHandler}>
                     Logout
                   </button>
                 </li>
@@ -121,8 +94,24 @@ const Header = () => {
           )}
 
           <div className="flex items-center">
-            <LanguageSwitcher/>
-            <div className="text-xl text-gray-800 mx-4">{`Login Time: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`}</div>
+            <LanguageSwitcher />
+            <div className="relative mx-4">
+              {user?.role === "admin" ? (
+                <select
+                  className="border p-2 rounded-md text-gray-700"
+                  value={selectedCampus}
+                  onChange={(e) => setSelectedCampus(e.target.value)}
+                >
+                  {campuses.map((campus) => (
+                    <option key={campus} value={campus}>
+                      {campus}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span className="text-gray-800 font-medium">{selectedCampus}</span>
+              )}
+            </div>
             <div
               className="hidden md:flex relative items-center"
               onMouseEnter={handleMouseEnter}
@@ -171,19 +160,18 @@ const Header = () => {
               )}
             </div>
           </div>
-
         </>
       ) : (
         !isLoading && (
           <div className="flex justify-center w-full">
             <>
-            <LanguageSwitcher/>
-            <Link
-              to="/"
-              className="px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-300"
-            >
-              Login
-            </Link>
+              <LanguageSwitcher />
+              <Link
+                to="/"
+                className="px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-300"
+              >
+                Login
+              </Link>
             </>
           </div>
         )
