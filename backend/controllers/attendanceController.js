@@ -36,7 +36,9 @@ export const updateAttendance = catchAsyncErrors(async (req, res, next) => {
 });
 
 export const getAttendanceDetails = catchAsyncErrors(async (req, res, next) => {
-    const { grade, date, campus } = req.body;
+    const { grade, date } = req.body;
+
+    const { campus } = req.cookies
 
     // Fetch students by grade
     const students = await Student.find({ grade: new mongoose.Types.ObjectId(grade), campus : new mongoose.Types.ObjectId(campus) });

@@ -9,8 +9,10 @@ import APIFilters from "../utils/apiFilters.js";
 
 
 export const createAnnouncement = catchAsyncErrors(async (req, res) => {
-    // Extract data from request body
-    const { message, attachments, userId, campus } = req.body;
+  const { campus } = req.cookies
+
+   // Extract data from request body
+  const { message, attachments, userId } = req.body;
 
   const announcement = await Announcement.create({
     message,
@@ -27,17 +29,18 @@ export const createAnnouncement = catchAsyncErrors(async (req, res) => {
 
 /* get all announcements */
 export const getAnnouncements = catchAsyncErrors(async (req, res) => {
+  const { campus } = req.cookies
+  
   const {role:userRole, grade: userGrade, campus: userCampus} = req.user
   if(userRole === 'student'){
     const result = await Grade.aggregate([
       // 1. Match the grade by ID
-      { $match: { _id: new mongoose.Types.ObjectId(userGrade) } },
-      
+      { $match: { _id: new mongoose.Types.ObjectId(userGrade), } },
       // 2. Lookup courses in the grade where campus matches req.user campus
       {
         $lookup: {
           from: "courses",
-          let: { campusId: userCampus },
+          let: { campusId:  new mongoose.Types.ObjectId(campus) },
           pipeline: [
             { $match: { $expr: { $eq: ["$campus", "$$campusId"] } } },
           ],
@@ -61,6 +64,8 @@ export const getAnnouncements = catchAsyncErrors(async (req, res) => {
 
     req.query.userId = result[0].teacherIds
   }
+  req.query.campus = campus
+
   const resPerPage = 8;
   const apiFilters = new APIFilters(Announcement, req.query).search().filters().sort("createdAt" , -1);
 
