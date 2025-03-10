@@ -4,8 +4,15 @@ const counselingSchema = new mongoose.Schema(
   {
     student: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Student",
+      ref: "User",
       required: true,
+      validate: {
+        validator: async function (studentId) {
+            const user = await mongoose.model("User").findById(studentId);
+            return user && user.role === "student";
+        },
+        message: "The referenced user must be a student."
+    }
     },
     campus:{
       type: mongoose.Schema.Types.ObjectId,

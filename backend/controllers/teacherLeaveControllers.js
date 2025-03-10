@@ -1,5 +1,5 @@
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
-import Teacher from "../models/teacher.js";
+import Teacher from "../models/user.js";
 import TeacherLeave from "../models/teacherLeave.js";
 import APIFilters from "../utils/apiFilters.js";
 import ErrorHandler from "../utils/errorHandler.js";

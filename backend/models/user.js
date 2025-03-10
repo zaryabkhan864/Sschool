@@ -50,7 +50,14 @@ const userSchema = new mongoose.Schema(
     siblings: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Student", // Referencing other students
+        ref: "User", // Referencing other students
+        validate: {
+          validator: async function (studentId) {
+              const user = await mongoose.model("User").findById(studentId);
+              return user && user.role === "student";
+          },
+          message: "The referenced user must be a student."
+      }
       },
     ],
     phoneNumber: {

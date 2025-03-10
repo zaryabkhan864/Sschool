@@ -61,9 +61,7 @@ import examRoutes from "./routes/exam.js";
 import attendanceRoutes from "./routes/attendance.js"
 import gradeRoutes from "./routes/grade.js";
 import quizRoutes from "./routes/quiz.js";
-import studentRoutes from "./routes/students.js";
 import teacherLeaveRoutes from "./routes/teacherLeave.js";
-import teacherRoutes from "./routes/teachers.js";
 import attendanceRoute from "./routes/attendance.js"
 import fileRoutes from "./routes/file.js";
 import campusRoutes from "./routes/campus.js";
@@ -71,8 +69,6 @@ import campusRoutes from "./routes/campus.js";
 import { fileURLToPath } from "url";
 
 app.use("/api/v1", courseRoutes);
-app.use("/api/v1", studentRoutes);
-app.use("/api/v1", teacherRoutes);
 app.use("/api/v1", gradeRoutes);
 app.use("/api/v1", authRoutes);
 app.use("/api/v1", eventRoutes);

@@ -3,7 +3,7 @@ import mongoose  from "mongoose";
 import Announcement from "../models/announcement.js";
 import Comment from "../models/comment.js"
 import Grade from "../models/grade.js"
-import { upload_file, delete_file } from "../utils/cloudinary.js";
+import { delete_file } from "../utils/cloudinary.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import APIFilters from "../utils/apiFilters.js";
 

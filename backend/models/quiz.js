@@ -31,6 +31,13 @@ const quizSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: [true, "Please specify the teacher responsible for this quiz"],
+      validate: {
+        validator: async function (teacherId) {
+            const user = await mongoose.model("User").findById(teacherId);
+            return user && user.role === "teacher";
+        },
+        message: "The referenced user must be a teacher."
+    }
     },
     campus:{
       type: mongoose.Schema.Types.ObjectId,
@@ -42,6 +49,13 @@ const quizSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           required: true,
           ref: "User",
+          validate: {
+            validator: async function (studentId) {
+                const user = await mongoose.model("User").findById(studentId);
+                return user && user.role === "student";
+            },
+            message: "The referenced user must be a student."
+        }
         },
         question1: {
           type: Number,

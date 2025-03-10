@@ -6,6 +6,13 @@ const TeacherLeaveSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      validate: {
+        validator: async function (teacherId) {
+            const user = await mongoose.model("User").findById(teacherId);
+            return user && user.role === "teacher";
+        },
+        message: "The referenced user must be a teacher."
+    }
     },
     leaveType: {
       type: String,
@@ -27,7 +34,7 @@ const TeacherLeaveSchema = new mongoose.Schema(
     },
     approvedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Admin",
+      ref: "User",
     }, // If approved, store the admin ID
   },
   { timestamps: false }
