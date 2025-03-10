@@ -9,18 +9,16 @@ import APIFilters from "../utils/apiFilters.js";
 
 // Create new course => /api/v1/courses
 export const newCourse = catchAsyncErrors(async (req, res, next) => {
-  const { courseName, description, code, year, teacher, campus } = req.body;
-  let teacherDetail, selectedCampus
+  const { campus } = req.cookies
+
+  const { courseName, description, code, year, teacher } = req.body;
+  let teacherDetail
 
   if(teacher){
     teacherDetail = await Teacher.findById(teacher)
     if (!teacherDetail) {
       return next(new ErrorHandler("Teacher not found", 404));
     }
-    selectedCampus = teacherDetail.campus
-  }
-  else{
-    selectedCampus = campus
   }
   const teacherId = teacher === "" ? null : teacher;
   const course = await Course.create({
@@ -29,7 +27,7 @@ export const newCourse = catchAsyncErrors(async (req, res, next) => {
     code,
     year,
     teacher: teacherId,
-    campus: selectedCampus,
+    campus,
   });
 
   res.status(200).json({
@@ -39,6 +37,10 @@ export const newCourse = catchAsyncErrors(async (req, res, next) => {
 
 //Create get all course => /api/v1/courses
 export const getCourses = catchAsyncErrors(async (req, res, next) => {
+  const { campus } = req.cookies
+  
+  req.query.campus = campus
+  
   const resPerPage = 8;
   const apiFilters = new APIFilters(Course, req.query).search().filters().populate('campus', 'name'
   );
@@ -121,10 +123,11 @@ export const getCourseDetails = catchAsyncErrors(async (req, res) => {
 
 // Get all courses for a grade of teacher => /api/v1/courses/grade/teacher/:id
 export const getCoursesByGradeAndTeacherID = catchAsyncErrors(async (req, res) => {
+  const { campus } = req.cookies
   const { gradeId, teacherId , userRole} = req.body; // Ensure gradeId and teacherId are passed in the body
  
   // Step 1: Find the grade
-  const grade = await Grade.findById(gradeId).populate("courses"); // Populate courses array from Grade
+  const grade = await Grade.findOne({_id: new mongoose.Types.ObjectId(gradeId), campus:new mongoose.Types.ObjectId(campus)}).populate("courses"); // Populate courses array from Grade
 
   if (!grade) {
     return res.status(404).json({

@@ -13,6 +13,7 @@ import mongoose from "mongoose";
 
 // Register user   =>  /api/v1/register
 export const registerUser = catchAsyncErrors(async (req, res, next) => {
+  const { campus } = req.cookies
   const { 
     name,
     email,
@@ -28,7 +29,6 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
     secondaryPhoneNumber,
     address,
     grade,
-    campus,
   } = req.body;
 
   const user = await User.create({
@@ -90,6 +90,10 @@ export const logout = catchAsyncErrors(async (req, res, next) => {
   res.cookie("token", null, {
     expires: new Date(Date.now()),
     httpOnly: true,
+  });
+
+  res.cookie("campus", null, {
+    expires: new Date(Date.now()),
   });
 
   // Disable caching
@@ -260,7 +264,9 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
 
 // Get all Users - ADMIN  =>  /api/v1/admin/users
 export const allUsers = catchAsyncErrors(async (req, res, next) => {
-  const users = await User.find();
+  const { campus } = req.cookies
+  
+  const users = await User.find({campus: new mongoose.Types.ObjectId(campus)});
 
   res.status(200).json({
     users,

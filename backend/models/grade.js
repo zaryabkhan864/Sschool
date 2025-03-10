@@ -23,6 +23,10 @@ const gradeSchema = new mongoose.Schema(
     courses: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: false },
     ], // Courses offered in this grade
+    campus:{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Campus",
+    },
   },
   { timestamps: false }
 );
