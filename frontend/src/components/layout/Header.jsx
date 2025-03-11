@@ -36,7 +36,7 @@ const Header = () => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [selectedCampus, setSelectedCampus] = useState(getCookie('campus'));
+  const [selectedCampus, setSelectedCampus] = useState(user?.campus || getCookie('campus'));
   const [selectedCampusName, setSelectedCampusName] = useState('');
 
   const dropdownTimeoutRef = useRef(null);
@@ -65,6 +65,21 @@ const Header = () => {
         console.error("Logout failed:", error);
       });
   };
+
+  useEffect(() => {
+    if (selectedCampus && CampusData?.campus) {
+      const campus = CampusData.campus.find((item) => String(item._id) === String(selectedCampus));
+      setSelectedCampusName(campus?.name);
+      console.log("Selected Campus +++",selectedCampus);
+      console.log("Cookie value",getCookie('campus'))
+      // Check if the selected campus is different before reloading
+      if (String(getCookie('campus')) !== String(selectedCampus)) {
+        console.log("Selected Campus",selectedCampus)
+        setCookie('campus', selectedCampus);
+        window.location.reload();
+      }
+    }
+  }, [CampusData?.campus, selectedCampus]);
 
   useEffect(() => {
     if (selectedCampus && CampusData?.campus) {
