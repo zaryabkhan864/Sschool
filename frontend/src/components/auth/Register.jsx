@@ -7,13 +7,15 @@ import MetaData from "../layout/MetaData";
 import AdminLayout from "../layout/AdminLayout";
 import { useGetAdminUsersQuery } from "../../redux/api/userApi";
 import { useTranslation } from "react-i18next";
+import { useGetCampusQuery } from "../../redux/api/campusApi";
 
 const Register = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { refetch } = useGetAdminUsersQuery();
   const { countries } = useCountries();
-
+  const { data: CampusData, isLoading: CampusLoading, error: CampusError } = useGetCampusQuery();
+  console.log("campus data",CampusData)
   const [user, setUser] = useState({
     name: "",
     email: "",
@@ -26,7 +28,11 @@ const Register = () => {
     phoneNumber: "",
     secondaryPhoneNumber: "",
     address: "",
+    campus: "",
+    avatar: ""
   });
+
+  const [avatarPreview, setAvatarPreview] = useState("");
 
   const {
     name,
@@ -40,6 +46,8 @@ const Register = () => {
     phoneNumber,
     secondaryPhoneNumber,
     address,
+    campus,
+    avatar
   } = user;
 
   const [register, { isLoading, error, isSuccess }] = useRegisterMutation();
@@ -57,11 +65,26 @@ const Register = () => {
   }, [error, isSuccess, navigate, refetch]);
 
   const onChange = (e) => {
-    setUser({ ...user, [e.target.name]: e.target.value });
+    if (e.target.name === "avatar") {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        if (reader.readyState === 2) {
+          setAvatarPreview(reader.result);
+          setUser({ ...user, avatar: reader.result });
+        }
+      };
+
+      reader.readAsDataURL(file);
+    } else {
+      setUser({ ...user, [e.target.name]: e.target.value });
+    }
   };
 
   const submitHandler = (e) => {
     e.preventDefault();
+    console.log("user user",user)
     register(user);
   };
 
@@ -324,6 +347,57 @@ const Register = () => {
                 onChange={onChange}
                 required
               />
+            </div>
+
+            <div className="mb-4">
+              <label
+                htmlFor="campus_field"
+                className="block text-sm font-medium text-gray-700"
+              >
+                {t('Campus')}
+              </label>
+              <select
+                type="text"
+                id="campus_field"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                name="campus"
+                value={campus}
+                onChange={onChange}
+                disabled={CampusLoading}
+              >
+                <option value="">
+                  Select {t('Campus')}                    
+                </option>
+                {CampusData?.campus?.map(({ name, _id }) => (
+                  <option key={name} value={_id}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label
+                htmlFor="avatar_field"
+                className="block text-sm font-medium text-gray-700"
+              >
+                {t('Avatar')} 
+              </label>
+              <input
+                type="file"
+                id="avatar_field"
+                accept="image/*"
+                onChange={onChange}
+                name="avatar"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+              />
+              {avatarPreview && (
+                <img
+                  src={avatarPreview}
+                  alt="Avatar Preview"
+                  className="mt-2 h-20 w-20 rounded-full object-cover"
+                />
+              )}
             </div>
 
             <button

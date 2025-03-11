@@ -67,9 +67,17 @@ const Header = () => {
   };
 
   useEffect(() => {
-    if(selectedCampus){
-     const campus =  CampusData?.campus.find((item)=> String(item._id) === String(selectedCampus))
-     setSelectedCampusName(campus?.name)
+    if (selectedCampus && CampusData?.campus) {
+      const campus = CampusData.campus.find((item) => String(item._id) === String(selectedCampus));
+      setSelectedCampusName(campus?.name);
+      console.log("Selected Campus +++",selectedCampus);
+      console.log("Cookie value",getCookie('campus'))
+      // Check if the selected campus is different before reloading
+      if (String(getCookie('campus')) !== String(selectedCampus)) {
+        console.log("Selected Campus",selectedCampus)
+        setCookie('campus', selectedCampus);
+        window.location.reload();
+      }
     }
   }, [CampusData?.campus, selectedCampus]);
 
@@ -124,7 +132,7 @@ const Header = () => {
                   className="border p-2 rounded-md text-gray-700"
                   value={selectedCampus}
                   onChange={(e) => {
-                    setCookie('campus', String(e.target.value))
+                    // setCookie('campus', String(e.target.value))
                     setSelectedCampus(e.target.value)}}
                 >
                   {CampusLoading ? (
