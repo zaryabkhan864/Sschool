@@ -8,6 +8,19 @@ import LanguageSwitcher from "../LanguageSwitcher";
 import { useGetCampusQuery, useSetCampusTokenMutation } from "../../redux/api/campusApi";
 
 const Header = () => {
+  const getCookie = (name) => {
+    const cookieString = document.cookie;
+    const cookies = cookieString.split('; ');
+
+    for (let cookie of cookies) {
+      const [cookieName, cookieValue] = cookie.split('=');
+      if (cookieName === name) {
+        return decodeURIComponent(cookieValue);
+      }
+    }
+    return null;
+  };
+
   const navigate = useNavigate();
   const location = useLocation();
   const { isLoading } = useGetMeQuery();
@@ -17,8 +30,8 @@ const Header = () => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [selectedCampus, setSelectedCampus] = useState(user?.campus || null);
-  const [selectedCampusName, setSelectedCampusName] = useState('');
+  const [selectedCampus, setSelectedCampus] = useState(user?.role === "admin" ? getCookie('campus'): user?.campus);
+  const [selectedCampusName, setSelectedCampusName] = useState(user?.campusName);
 
   const dropdownTimeoutRef = useRef(null);
 
@@ -32,6 +45,26 @@ const Header = () => {
       setIsDropdownOpen(false);
     }, 300);
   };
+  
+  const handleChange = (value) => {
+    setSelectedCampus(value);
+    const campus = CampusData?.campus?.find((item) => String(item._id) === String(value));
+    setSelectedCampusName(campus?.name);
+
+    // Use the mutation to set the campus token in the backend
+    setCampusToken(value)
+    .unwrap()
+    .then((response) => {
+      if (response.success) {
+        console.log("Campus ID updated in cookie:", response.campusID);
+        window.location.reload();
+      }
+    })
+    .catch((error) => {
+      console.error("Failed to set campus token:", error);
+    });
+
+  };
 
   const logoutHandler = () => {
     logout()
@@ -44,27 +77,6 @@ const Header = () => {
         console.error("Logout failed:", error);
       });
   };
-
-  useEffect(() => {
-    if (selectedCampus && CampusData?.campus) {
-      const campus = CampusData.campus.find((item) => String(item._id) === String(selectedCampus));
-      setSelectedCampusName(campus?.name);
-
-      // Use the mutation to set the campus token in the backend
-      console.log("hey campus",selectedCampus)
-      setCampusToken(selectedCampus)
-      .unwrap()
-      .then((response) => {
-        if (response.success) {
-          console.log("Campus ID updated in cookie:", response.campusID);
-          window.location.reload();
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to set campus token:", error);
-      });
-    }
-  }, [CampusData?.campus, selectedCampus, setCampusToken]);
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
@@ -117,7 +129,7 @@ const Header = () => {
                   className="border p-2 rounded-md text-gray-700"
                   value={selectedCampus}
                   onChange={(e) => {
-                    setSelectedCampus(e.target.value);
+                    handleChange(e.target.value)
                   }}
                 >
                   {CampusLoading ? (
@@ -135,7 +147,7 @@ const Header = () => {
                   )}
                 </select>
               ) : (
-                <span className="text-gray-800 font-medium">{selectedCampusName}</span>
+                <span className="text-gray-800 font-medium">{selectedCampus}</span>
               )}
             </div>
 
