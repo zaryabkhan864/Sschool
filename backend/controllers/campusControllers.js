@@ -2,6 +2,8 @@ import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import Campus from "../models/campus.js";
 import APIFilters from "../utils/apiFilters.js";
 import ErrorHandler from "../utils/errorHandler.js";
+import sendCampusIDToken from "../utils/sendCampusIDToken.js";
+
 
 // Create new campus => /api/v1/campus
 export const newCampus = catchAsyncErrors(async (req, res, next) => {
@@ -75,4 +77,18 @@ export const getCampusDetails = catchAsyncErrors(async (req, res) => {
   res.status(200).json({
     campus,
   });
+});
+
+
+// Set campus ID in the token and update cookie
+export const setCampusIDinToken = catchAsyncErrors(async (req, res, next) => {
+  console.log("i am hit",req.params.id)
+  const campusID = await Campus.findById(req?.params?.id);
+console.log("Campus id ",campusID)
+  if (!campusID) {
+    return next(new ErrorHandler("Campus not found", 404));
+  }
+
+  // Call the utility function and pass status code 200
+  sendCampusIDToken(campusID, 200, res);
 });

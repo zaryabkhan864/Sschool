@@ -5,6 +5,7 @@ import {
   getCampus,
   newCampus,
   updateCampus,
+  setCampusIDinToken,
 } from "../controllers/campusControllers.js";
 import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 
@@ -21,5 +22,8 @@ router
   .put(isAuthenticatedUser, authorizeRoles("admin"), updateCampus)
 
 router.route("/campus/:id").get(getCampusDetails);
+router
+  .route("/campus/token/:id")
+  .get(isAuthenticatedUser, setCampusIDinToken)
 
 export default router;

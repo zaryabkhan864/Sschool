@@ -39,6 +39,13 @@ export const campusApi = createApi({
       },
       invalidatesTags: ["Campus", "AdminCampus"],
     }),
+    setCampusToken: builder.mutation({
+      query: (id) => ({
+        url: `/campus/token/${id}`,
+        method: "GET",
+      }),
+      invalidatesTags: ["Campus"], // Agar campus ka data refresh karna ho
+    }),
   }),
 });
 
@@ -47,4 +54,5 @@ export const {
   useGetCampusDetailsQuery,
   useCreateCampusMutation,
   useUpdateCampusMutation,
+  useSetCampusTokenMutation,
 } = campusApi;

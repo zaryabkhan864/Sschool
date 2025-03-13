@@ -5,38 +5,19 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useLazyLogoutQuery } from "../../redux/api/authApi";
 import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 import LanguageSwitcher from "../LanguageSwitcher";
-import { useGetCampusQuery } from "../../redux/api/campusApi";
+import { useGetCampusQuery, useSetCampusTokenMutation } from "../../redux/api/campusApi";
 
 const Header = () => {
-  const getCookie = (name) => {
-    const cookieString = document.cookie;
-    const cookies = cookieString.split('; ');
-
-    for (let cookie of cookies) {
-      const [cookieName, cookieValue] = cookie.split('=');
-      if (cookieName === name) {
-        return decodeURIComponent(cookieValue);
-      }
-    }
-    return null;
-  };
-
-  const setCookie = (name, value) => {
-    const date = new Date();
-    date.setTime(date.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const expires = `expires=${date.toUTCString()}`;
-    document.cookie = `${name}=${encodeURIComponent(value)}; ${expires}`;
-  };
-
   const navigate = useNavigate();
   const location = useLocation();
   const { isLoading } = useGetMeQuery();
   const { data: CampusData, isLoading: CampusLoading, error } = useGetCampusQuery();
+  const [setCampusToken] = useSetCampusTokenMutation();
   const [logout] = useLazyLogoutQuery();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [selectedCampus, setSelectedCampus] = useState(user?.campus || getCookie('campus'));
+  const [selectedCampus, setSelectedCampus] = useState(user?.campus || null);
   const [selectedCampusName, setSelectedCampusName] = useState('');
 
   const dropdownTimeoutRef = useRef(null);
@@ -51,8 +32,6 @@ const Header = () => {
       setIsDropdownOpen(false);
     }, 300);
   };
-
-  
 
   const logoutHandler = () => {
     logout()
@@ -70,31 +49,22 @@ const Header = () => {
     if (selectedCampus && CampusData?.campus) {
       const campus = CampusData.campus.find((item) => String(item._id) === String(selectedCampus));
       setSelectedCampusName(campus?.name);
-      console.log("Selected Campus +++",selectedCampus);
-      console.log("Cookie value",getCookie('campus'))
-      // Check if the selected campus is different before reloading
-      if (String(getCookie('campus')) !== String(selectedCampus)) {
-        console.log("Selected Campus",selectedCampus)
-        setCookie('campus', selectedCampus);
-        window.location.reload();
-      }
-    }
-  }, [CampusData?.campus, selectedCampus]);
 
-  useEffect(() => {
-    if (selectedCampus && CampusData?.campus) {
-      const campus = CampusData.campus.find((item) => String(item._id) === String(selectedCampus));
-      setSelectedCampusName(campus?.name);
-      console.log("Selected Campus +++",selectedCampus);
-      console.log("Cookie value",getCookie('campus'))
-      // Check if the selected campus is different before reloading
-      if (String(getCookie('campus')) !== String(selectedCampus)) {
-        console.log("Selected Campus",selectedCampus)
-        setCookie('campus', selectedCampus);
-        window.location.reload();
-      }
+      // Use the mutation to set the campus token in the backend
+      console.log("hey campus",selectedCampus)
+      setCampusToken(selectedCampus)
+      .unwrap()
+      .then((response) => {
+        if (response.success) {
+          console.log("Campus ID updated in cookie:", response.campusID);
+          window.location.reload();
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to set campus token:", error);
+      });
     }
-  }, [CampusData?.campus, selectedCampus]);
+  }, [CampusData?.campus, selectedCampus, setCampusToken]);
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
@@ -147,8 +117,8 @@ const Header = () => {
                   className="border p-2 rounded-md text-gray-700"
                   value={selectedCampus}
                   onChange={(e) => {
-                    // setCookie('campus', String(e.target.value))
-                    setSelectedCampus(e.target.value)}}
+                    setSelectedCampus(e.target.value);
+                  }}
                 >
                   {CampusLoading ? (
                     <option disabled>Loading Campuses...</option>
@@ -168,6 +138,7 @@ const Header = () => {
                 <span className="text-gray-800 font-medium">{selectedCampusName}</span>
               )}
             </div>
+
             <div
               className="hidden md:flex relative items-center"
               onMouseEnter={handleMouseEnter}
@@ -220,15 +191,13 @@ const Header = () => {
       ) : (
         !isLoading && (
           <div className="flex justify-center w-full">
-            <>
-              <LanguageSwitcher />
-              <Link
-                to="/"
-                className="px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-300"
-              >
-                Login
-              </Link>
-            </>
+            <LanguageSwitcher />
+            <Link
+              to="/"
+              className="px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-300"
+            >
+              Login
+            </Link>
           </div>
         )
       )}
