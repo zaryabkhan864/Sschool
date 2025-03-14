@@ -209,7 +209,7 @@ export const resetPassword = catchAsyncErrors(async (req, res, next) => {
 
 // Get current user profile  =>  /api/v1/me
 export const getUserProfile = catchAsyncErrors(async (req, res, next) => {
-  const user = await User.findById(req?.user?._id);
+  const user = await User.findById(req?.user?._id).populate('campus');
 
   res.status(200).json({
     user,

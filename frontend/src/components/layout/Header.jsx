@@ -30,8 +30,8 @@ const Header = () => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [selectedCampus, setSelectedCampus] = useState(user?.role === "admin" ? getCookie('campus'): user?.campus);
-  const [selectedCampusName, setSelectedCampusName] = useState(user?.campusName);
+  const [selectedCampus, setSelectedCampus] = useState(getCookie('campus'));
+  const [selectedCampusName, setSelectedCampusName] = useState(user?.campus?.name || 'N/A');
 
   const dropdownTimeoutRef = useRef(null);
 
@@ -45,7 +45,12 @@ const Header = () => {
       setIsDropdownOpen(false);
     }, 300);
   };
-  
+
+  useEffect(() => {
+    if(user?.role !== 'admin')
+    setSelectedCampusName(user?.campus?.name || 'N/A');
+  }, [user?.campus?.name, user?.role]);
+
   const handleChange = (value) => {
     setSelectedCampus(value);
     const campus = CampusData?.campus?.find((item) => String(item._id) === String(value));
@@ -147,7 +152,7 @@ const Header = () => {
                   )}
                 </select>
               ) : (
-                <span className="text-gray-800 font-medium">{selectedCampus}</span>
+                <span className="text-gray-800 font-medium">{selectedCampusName}</span>
               )}
             </div>
 
