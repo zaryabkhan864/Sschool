@@ -83,6 +83,23 @@ const userSchema = new mongoose.Schema(
       ref: "Grade",
       required: false,
     },
+    gradeDetails: [
+      {
+        gardeId: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: true,
+          ref: "Grade",
+        },
+        yearFrom: {
+          type: Number,
+          required: true,
+        },
+        yearTo: {
+          type: Number,
+          required: true,
+        },
+      },
+    ],
     resetPasswordToken: String,
     resetPasswordExpire: Date,
   },
