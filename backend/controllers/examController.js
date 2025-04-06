@@ -70,7 +70,7 @@ export const getExamDetails = catchAsyncErrors(async (req, res, next) => {
       },
       {
         $match: {
-          "currentGrade.gradeId": mongoose.Types.ObjectId(grade)
+          "currentGrade.gradeId": new mongoose.Types.ObjectId(grade)
         }
       }
     ]);

@@ -4,6 +4,7 @@ import ErrorHandler from "../utils/errorHandler.js";
 import Grade from "../models/grade.js";
 import Teacher from "../models/user.js";
 import APIFilters from "../utils/apiFilters.js";
+import mongoose from "mongoose";
 
 //CRUD operations for courses
 
