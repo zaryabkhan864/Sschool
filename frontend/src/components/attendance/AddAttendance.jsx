@@ -66,6 +66,8 @@ const AddAttendance = () => {
                 });
                 setAttendance(initialAttendance);
             } catch (err) {
+                setAttendanceDetails(null);
+                setAttendance({})
                 console.error('Error fetching attendance details:', err);
             }
         }
