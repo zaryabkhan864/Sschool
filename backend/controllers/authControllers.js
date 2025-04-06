@@ -29,7 +29,19 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
     secondaryPhoneNumber,
     address,
     grade,
+    yearFrom,
+    yearTo,
   } = req.body;
+
+  let gradeDetails= []
+
+  if(grade && yearFrom && yearTo){
+    gradeDetails.push({
+      gradeId: grade,
+      yearFrom,
+      yearTo
+    })
+  }
 
   const user = await User.create({
     name,
@@ -45,7 +57,7 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
     phoneNumber,
     secondaryPhoneNumber,
     address,
-    grade,
+    grade: gradeDetails,
     campus
   });
   res.status(201).json({
