@@ -9,9 +9,9 @@ import ErrorHandler from "../utils/errorHandler.js";
 
 // Create new grade => /api/v1/grades
 export const newGrade = catchAsyncErrors(async (req, res) => {
-  req.body.user = req.user._id;
+  const { campus } = req.cookies
 
-  const grade = await Grade.create(req.body);
+  const grade = await Grade.create({...req.body, campus});
 
   res.status(200).json({
     grade,
@@ -20,6 +20,9 @@ export const newGrade = catchAsyncErrors(async (req, res) => {
 
 //Create get all grades => /api/v1/grades
 export const getGrades = catchAsyncErrors(async (req, res, next) => {
+  const { campus } = req.cookies
+
+  req.query.campus = campus
   const apiFilters = new APIFilters(Grade, req.query).search().filters();
 
   let grades = await apiFilters.query;
