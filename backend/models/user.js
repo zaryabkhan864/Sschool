@@ -81,22 +81,14 @@ const userSchema = new mongoose.Schema(
     grade: [
       {
         gradeId: {
-          type: [{
-            gradeId: {
-              type: mongoose.Schema.Types.ObjectId,
-              ref: 'Grade'
-            }
-          }],
-          default: [],
-          sort: { $natural: -1 } 
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Grade'
         },
         yearFrom: {
           type: Number,
-          required: true,
         },
         yearTo: {
           type: Number,
-          required: true,
         },
       },
     ],
