@@ -17,6 +17,7 @@ export const newQuiz = catchAsyncErrors(async (req, res) => {
 export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => {
     const { grade, course, semester, quarter, quizNumber, user } = req.body;
   
+    const { campus } = req.cookies
   
     // Step 1: Check if a quiz exists with the given details
     let existingQuiz = await Quiz.findOne({
@@ -26,6 +27,7 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
       quarter,
       quizNumber,
       user,
+      campus,
     }).populate({
       path: "marks.student",
       select: "name", // Populate student names
@@ -52,19 +54,25 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
   
     // Step 4: If no quiz exists, fetch students by grade
      // fetch students by grade
+     // fetch students by grade
      const students = await Student.aggregate([
-        {
-          $addFields: {
-            currentGrade: { 
-              $arrayElemAt: ["$grade", -1]
-            }
-          }
-        },
-        {
-          $match: {
-            "currentGrade.gradeId": new mongoose.Types.ObjectId(grade)
+      {
+        $match: {
+          "campus": new mongoose.Types.ObjectId(campus)
+        }
+      },
+      {
+        $addFields: {
+          currentGrade: { 
+            $arrayElemAt: ["$grade", -1]
           }
         }
+      },
+      {
+        $match: {
+          "currentGrade.gradeId": new mongoose.Types.ObjectId(grade)
+        }
+      }
     ]);
   
     if (!students || students.length === 0) {
@@ -88,6 +96,7 @@ export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => 
       course,
       grade,
       user,
+      campus,
       marks: initialMarks, // Initialize marks with student data
     });
   

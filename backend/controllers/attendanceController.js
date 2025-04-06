@@ -41,7 +41,27 @@ export const getAttendanceDetails = catchAsyncErrors(async (req, res, next) => {
     const { campus } = req.cookies
 
     // Fetch students by grade
-    const students = await Student.find({ grade: new mongoose.Types.ObjectId(grade), campus : new mongoose.Types.ObjectId(campus) });
+
+     // fetch students by grade
+     const students = await Student.aggregate([
+        {
+          $match: {
+            "campus": new mongoose.Types.ObjectId(campus)
+          }
+        },
+        {
+          $addFields: {
+            currentGrade: { 
+              $arrayElemAt: ["$grade", -1]
+            }
+          }
+        },
+        {
+          $match: {
+            "currentGrade.gradeId": new mongoose.Types.ObjectId(grade)
+          }
+        }
+      ]);
     
 
     if (!students || students.length === 0) {

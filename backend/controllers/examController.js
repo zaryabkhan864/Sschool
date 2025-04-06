@@ -27,6 +27,9 @@ export const updateExam = catchAsyncErrors(async (req, res) => {
 
 export const getExamDetails = catchAsyncErrors(async (req, res, next) => {
     const { grade, course, semester, quarter, user } = req.body;
+
+    const { campus } = req.cookies
+
     
     // Check if a exam exists with the given details
     let existingExam = await Exam.findOne({
@@ -35,6 +38,7 @@ export const getExamDetails = catchAsyncErrors(async (req, res, next) => {
       semester,
       quarter,
       user,
+      campus
     }).populate({
       path: "marks.student",
       select: "name", // Populate student names
@@ -54,13 +58,18 @@ export const getExamDetails = catchAsyncErrors(async (req, res, next) => {
     /* Return the updated exam data with student names */
       return res.status(200).json({
         success: true,
-        message: "Exam dataretrieved successfully.",
+        message: "Exam data retrieved successfully.",
         exam: examWithStudentNames,
       });
     }
   
     // fetch students by grade
     const students = await Student.aggregate([
+      {
+        $match: {
+          "campus": new mongoose.Types.ObjectId(campus)
+        }
+      },
       {
         $addFields: {
           currentGrade: { 
@@ -100,6 +109,7 @@ export const getExamDetails = catchAsyncErrors(async (req, res, next) => {
       course,
       grade,
       user,
+      campus,
       marks: initialMarks, // Initialize marks with student data
     });
   
