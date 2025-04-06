@@ -110,7 +110,7 @@ const ListCourses = () => {
               <Table.HeadCell>{t("courseName")}</Table.HeadCell>
               <Table.HeadCell>{t("Campus")}</Table.HeadCell>
               <Table.HeadCell>{t("code")}</Table.HeadCell>
-              <Table.HeadCell>{t("year")}</Table.HeadCell>
+       
               <Table.HeadCell>{t("actions")}</Table.HeadCell>
             </Table.Head>
             <Table.Body>
@@ -123,7 +123,7 @@ const ListCourses = () => {
                   <Table.Cell>{course?.courseName}</Table.Cell>
                   <Table.Cell>{course?.campus?.name || 'N/A'}</Table.Cell>
                   <Table.Cell>{course?.code}</Table.Cell>
-                  <Table.Cell>{course?.year}</Table.Cell>
+              
                   <Table.Cell>
                     <div className="flex space-x-2">
                       {userRole === "admin" && (

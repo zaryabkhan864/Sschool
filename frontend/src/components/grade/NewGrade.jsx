@@ -19,12 +19,10 @@ const NewGrade = () => {
   const [grade, setGrade] = useState({
     gradeName: "",
     description: "",
-    yearFrom: "",
-    yearTo: "",
     courses: [],
   });
 
-  const { gradeName, description, yearFrom, yearTo, courses } = grade;
+  const { gradeName, description, courses } = grade;
 
   const [createGrade, { isLoading, error, isSuccess }] =
     useCreateGradeMutation();
@@ -72,8 +70,6 @@ const NewGrade = () => {
     const formattedGrade = {
       gradeName,
       description,
-      yearFrom,
-      yearTo,
       courses, // Send array of course IDs
     };
     createGrade(formattedGrade);
@@ -122,43 +118,7 @@ const NewGrade = () => {
               ></textarea>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="mb-4">
-                <label
-                  htmlFor="yearFrom_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Year From')}
 
-                </label>
-                <input
-                  type="number"
-                  id="yearFrom_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="yearFrom"
-                  value={yearFrom}
-                  onChange={onChange}
-                />
-              </div>
-
-              <div className="mb-4">
-                <label
-                  htmlFor="yearTo_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Year To')}
-
-                </label>
-                <input
-                  type="number"
-                  id="yearTo_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="yearTo"
-                  value={yearTo}
-                  onChange={onChange}
-                />
-              </div>
-            </div>
             {/* Courses Dropdown */}
             <div className="mb-4">
               <label

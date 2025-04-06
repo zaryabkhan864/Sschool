@@ -41,7 +41,7 @@ export const getCourses = catchAsyncErrors(async (req, res, next) => {
   req.query.campus = campus
   
   const resPerPage = 8;
-  const apiFilters = new APIFilters(Course, req.query).search().filters().populate('campus', 'name'
+  const apiFilters = new APIFilters(Course, req.query).search().filters().populate('campus'
   );
 
   let courses = await apiFilters.query;

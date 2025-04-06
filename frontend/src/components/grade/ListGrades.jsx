@@ -98,8 +98,7 @@ const ListGrades = () => {
             <Table.Head>
               <Table.HeadCell>{t("id")}</Table.HeadCell>
               <Table.HeadCell>{t("gradeName")}</Table.HeadCell>
-              <Table.HeadCell>{t("yearFrom")}</Table.HeadCell>
-              <Table.HeadCell>{t("yearTo")}</Table.HeadCell>
+              <Table.HeadCell>{t("description")}</Table.HeadCell>
               <Table.HeadCell>{t("actions")}</Table.HeadCell>
             </Table.Head>
             <Table.Body>
@@ -110,8 +109,8 @@ const ListGrades = () => {
                 >
                   <Table.Cell>{grade?._id}</Table.Cell>
                   <Table.Cell>{grade?.gradeName}</Table.Cell>
-                  <Table.Cell>{grade?.yearFrom}</Table.Cell>
-                  <Table.Cell>{grade?.yearTo}</Table.Cell>
+                  <Table.Cell>{grade?.description}</Table.Cell>
+               
                   <Table.Cell>
                     <div className="flex space-x-2">
                       {userRole === "admin" && (

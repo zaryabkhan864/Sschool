@@ -23,14 +23,14 @@ const NewCourse = () => {
     courseName: "",
     description: "",
     code: "",
-    year: "",
+
     teacher: "", // Store teacher ID
     campus: ""
   });
 
   const { data: campusData, isLoading: campusLoading } = useGetCampusQuery({paginate: false});
 
-  const { courseName, description, code, year, teacher, campus } = course;
+  const { courseName, description, code,  teacher, campus } = course;
 
   const [createCourse, { isLoading, error, isSuccess }] =
     useCreateCourseMutation();
@@ -128,22 +128,7 @@ const NewCourse = () => {
                 />
               </div>
 
-              <div className="mb-4">
-                <label
-                  htmlFor="year_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                 {t('Year')} 
-                </label>
-                <input
-                  type="number"
-                  id="year_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="year"
-                  value={year}
-                  onChange={onChange}
-                />
-              </div>
+
             </div>
             <div className="mb-4">
                 <label

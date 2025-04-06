@@ -35,7 +35,9 @@ const NewStudent = () => {
     email: "",
     password: "",
     avatar: "",
-    campus: ""
+    campus: "",
+    yearFrom: "",
+    yearTo: "",
   });
   const [avatarPreview, setAvatarPreview] = useState("");
 
@@ -51,7 +53,9 @@ const NewStudent = () => {
     grade,
     email,
     password,
-    campus
+    campus,
+    yearFrom,
+    yearTo,
   } = student;
 
   const { data: campusData, isLoading: campusLoading } = useGetCampusQuery({paginate: false});
@@ -290,7 +294,38 @@ const NewStudent = () => {
                 </select>
               </div>
             </div>
-
+            <div className="mb-4">
+                <label
+                  htmlFor="yearFrom_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  {t('Year From')}
+                </label>
+                <input
+                  type="number"
+                  id="yearFrom_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="yearFrom"
+                  value={yearFrom}
+                  onChange={onChange}
+                />
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="yearTo_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  {t('Year To')}
+                </label>
+                <input
+                  type="number"
+                  id="yearTo_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="yearTo"
+                  value={yearTo}
+                  onChange={onChange}
+                />
+              </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label
