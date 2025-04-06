@@ -11,7 +11,7 @@ import APIFilters from "../utils/apiFilters.js";
 export const newCourse = catchAsyncErrors(async (req, res, next) => {
   const { campus } = req.cookies
 
-  const { courseName, description, code, year, teacher } = req.body;
+  const { courseName, description, code, teacher } = req.body;
   let teacherDetail
 
   if(teacher){
@@ -25,7 +25,6 @@ export const newCourse = catchAsyncErrors(async (req, res, next) => {
     courseName,
     description,
     code,
-    year,
     teacher: teacherId,
     campus,
   });
@@ -67,7 +66,7 @@ export const updateCourse = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Course not found", 404));
   }
 
-  const { courseName, description, code, year, teacher, campus } = req.body;
+  const { courseName, description, code, teacher, campus } = req.body;
 
   const teacherId = teacher === "" ? null : teacher;
 
@@ -83,7 +82,7 @@ export const updateCourse = catchAsyncErrors(async (req, res, next) => {
   }
   course = await Course.findByIdAndUpdate(
     req?.params?.id,
-    { courseName, description, code, year, teacher: teacherId },
+    { courseName, description, code, teacher: teacherId },
     {
       new: true,
     }

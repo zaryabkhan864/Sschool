@@ -78,17 +78,17 @@ const userSchema = new mongoose.Schema(
       ref: "Campus",
       required: false,
     },
-    grade: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Grade",
-      required: false,
-    },
-    gradeDetails: [
+    grade: [
       {
-        gardeId: {
-          type: mongoose.Schema.Types.ObjectId,
-          required: true,
-          ref: "Grade",
+        gradeId: {
+          type: [{
+            gradeId: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: 'Grade'
+            }
+          }],
+          default: [],
+          sort: { $natural: -1 } 
         },
         yearFrom: {
           type: Number,

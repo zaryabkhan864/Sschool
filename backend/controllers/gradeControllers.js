@@ -1,6 +1,7 @@
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import Course from "../models/course.js";
 import Grade from "../models/grade.js";
+import user from "../models/user.js";
 import APIFilters from "../utils/apiFilters.js";
 import ErrorHandler from "../utils/errorHandler.js";
 
@@ -124,4 +125,38 @@ export const deleteCourseInGrade = catchAsyncErrors(async (req, res, next) => {
   await grade.save();
 
   res.status(200).json({ message: "Course removed from grade" });
+});
+
+export const getCoursesAndGradeByRole = catchAsyncErrors(async (req, res, next) => {
+  const { userId, userRole } = req.body;
+
+  if (!userId || !userRole) {
+    return next(new ErrorHandler("User ID and role are required", 400));
+  }
+
+  let courses, grades;
+
+  if (userRole === "admin") {
+    // Fetch all courses and grades for admin
+    courses = await Course.find().populate("teacher");
+    grades = await Grade.find().populate("courses");
+  } else if (userRole === "teacher") {
+    const teacher = await user.findById(userId);
+
+    if (!teacher) {
+      return next(new ErrorHandler("Teacher not found", 404));
+    }
+
+    // Fetch courses and grades associated with the teacher
+    courses = await Course.find({ teacher: teacher._id }).populate("teacher");
+    grades = await Grade.find({ courses: { $in: courses.map(c => c._id) } }).populate("courses");
+  } else {
+    return next(new ErrorHandler("Access denied for the provided role", 403));
+  }
+
+  res.status(200).json({
+    success: true,
+    courses,
+    grades,
+  });
 });

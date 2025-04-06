@@ -50,7 +50,7 @@ export const gradeApi = createApi({
     }),
     getGradeByUserIdAndRole: builder.mutation({
       query: (body) => ({
-        url: `/teacher/grade-by-role`,
+        url: `/grade/grade-by-role`,
         method: "POST",
         body,
       }),

@@ -3,6 +3,7 @@ import Student from "../models/user.js";
 
 import ErrorHandler from "../utils/errorHandler.js";
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
+import mongoose from "mongoose";
 
 
 export const updateExam = catchAsyncErrors(async (req, res) => {
@@ -59,7 +60,20 @@ export const getExamDetails = catchAsyncErrors(async (req, res, next) => {
     }
   
     // fetch students by grade
-    const students = await Student.find({ grade })
+    const students = await Student.aggregate([
+      {
+        $addFields: {
+          currentGrade: { 
+            $arrayElemAt: ["$grade", -1]
+          }
+        }
+      },
+      {
+        $match: {
+          "currentGrade.gradeId": mongoose.Types.ObjectId(grade)
+        }
+      }
+    ]);
   
     if (!students || students.length === 0) {
       return next(new ErrorHandler("Students not found", 404));

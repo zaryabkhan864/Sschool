@@ -350,17 +350,54 @@ export const deleteUser = catchAsyncErrors(async (req, res, next) => {
 export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
   let users= []
   let sortedStudents =[]
-  const { campus } = req.query
+  const { campus } = req.cookies
   const match =  {}
   if(campus){
     match.campus = new mongoose.Types.ObjectId(campus)
   }
 
   if(req.params.type === 'student'){
-    req.query.role= "student"
-    const apiFilters = new APIFilters(User, req.query).search().filters().populate('grade', 'gradeName').populate('campus', 'name');
-    const students = await apiFilters.query;
-    sortedStudents = _.sortBy(students,[(item) => item.grade?.gradeName?.toLowerCase()],(item) => item?.name?.toLowerCase())
+    match.role = "student"
+    const users = await User
+      .aggregate([
+        {$match: match,},
+        {
+          $lookup: {
+            from: 'grades',
+            localField: 'grade.gradeId',
+            foreignField: '_id',
+            as: 'populatedGrades'
+          }
+        },
+        {
+          $lookup: {
+            from: 'campus',
+            localField: 'campus',
+            foreignField: '_id',
+            as: 'campus'
+          }
+        },
+        {
+          $addFields: {
+            'grade': {
+              $slice: ['$populatedGrades', -1]
+            }
+          }
+        },
+        {
+          $unwind: {
+            path: '$campus',
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        {
+          $unwind: {
+            path: '$grade',
+            preserveNullAndEmptyArrays: true
+          }
+        }
+      ]);
+    sortedStudents = _.sortBy(users,[(item) => item.grade?.gradeName?.toLowerCase()],(item) => item?.name?.toLowerCase())
   }
   if(req.params.type === 'employee'){
     users = await User.find({...match, role: { $ne: 'student' }});

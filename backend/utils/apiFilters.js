@@ -33,9 +33,16 @@ class APIFilters {
     return this;
   }
 
-  populate(field) {
-    if (field) {
+  populate(field, options={}) {
+    if (field && !options) {
       this.query = this.query.populate(field);
+    }
+    if(field && options){
+      console.log(options)
+      this.query = this.query.populate({
+      path: field,
+      options,
+    })
     }
     return this;
   }
@@ -51,9 +58,12 @@ class APIFilters {
     }
     return this;
   }
-
   sort(sortBy, sortOrder) {
     this.query = this.query.sort({ [sortBy]: sortOrder })
+    return this;
+  }
+  slice(field, option){
+    this.query = this.query.slice({ [field]: option })
     return this;
   }
 

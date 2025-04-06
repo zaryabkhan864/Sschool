@@ -15,7 +15,6 @@ export const newCampus = catchAsyncErrors(async (req, res, next) => {
 
 //Create get all campus => /api/v1/campus
 export const getCampus = catchAsyncErrors(async (req, res, next) => {
-  console.log(req.query)
   if(req.query.paginate === 'false' ||req.query.paginate === false){
     const campus =await Campus.find()
     return res.status(200).json({
@@ -82,9 +81,7 @@ export const getCampusDetails = catchAsyncErrors(async (req, res) => {
 
 // Set campus ID in the token and update cookie
 export const setCampusIDinToken = catchAsyncErrors(async (req, res, next) => {
-  console.log("i am hit",req.params.id)
   const campusID = await Campus.findById(req?.params?.id);
-console.log("Campus id ",campusID)
   if (!campusID) {
     return next(new ErrorHandler("Campus not found", 404));
   }
