@@ -7,8 +7,8 @@ import { getResetPasswordTemplate } from "../utils/emailTemplates.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import sendEmail from "../utils/sendEmail.js";
 import sendToken from "../utils/sendToken.js";
-import APIFilters from "../utils/apiFilters.js";
 import _ from "lodash";
+import { nanoid } from 'nanoid';
 import mongoose from "mongoose";
 
 // Register user   =>  /api/v1/register
@@ -58,7 +58,8 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
     secondaryPhoneNumber,
     address,
     grade: gradeDetails,
-    campus
+    campus,
+    userId: nanoid(10)
   });
   res.status(201).json({
     success: true,

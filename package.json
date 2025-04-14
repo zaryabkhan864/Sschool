@@ -23,6 +23,7 @@
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
     "mongoose": "^7.5.2",
+    "nanoid": "^5.1.5",
     "nodemailer": "^6.9.5",
     "react-i18next": "^15.4.0",
     "stripe": "^13.8.0"
