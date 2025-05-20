@@ -12,7 +12,7 @@ import mongoose from "mongoose";
 export const newCourse = catchAsyncErrors(async (req, res, next) => {
   const { campus } = req.cookies
 
-  const { courseName, description, code, teacher } = req.body;
+  const { courseName, description, code, teacher ,year} = req.body;
   let teacherDetail
 
   if(teacher){
@@ -28,6 +28,7 @@ export const newCourse = catchAsyncErrors(async (req, res, next) => {
     code,
     teacher: teacherId,
     campus,
+    year
   });
 
   res.status(200).json({

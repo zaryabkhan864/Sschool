@@ -27,6 +27,10 @@ const courseSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Campus",
     },
+    year:{
+      type: Number,
+      required: [true, "Please enter course year"],
+    }
   },
   { timestamps: false }
 );

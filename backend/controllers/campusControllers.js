@@ -7,6 +7,7 @@ import sendCampusIDToken from "../utils/sendCampusIDToken.js";
 
 // Create new campus => /api/v1/campus
 export const newCampus = catchAsyncErrors(async (req, res, next) => {
+  console.log("what is request body",req.body)
   const campus = await Campus.create( req.body);
   res.status(200).json({
     campus,

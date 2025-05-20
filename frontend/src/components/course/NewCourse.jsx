@@ -5,8 +5,6 @@ import { useNavigate } from "react-router-dom";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 
-import { useGetCampusQuery } from "../../redux/api/campusApi";
-
 import {
   useCreateCourseMutation,
   useGetCoursesQuery,
@@ -23,14 +21,12 @@ const NewCourse = () => {
     courseName: "",
     description: "",
     code: "",
-
+    year:"",
     teacher: "", // Store teacher ID
-    campus: ""
   });
 
-  const { data: campusData, isLoading: campusLoading } = useGetCampusQuery({paginate: false});
 
-  const { courseName, description, code,  teacher, campus } = course;
+  const { courseName, description, code, year,  teacher} = course;
 
   const [createCourse, { isLoading, error, isSuccess }] =
     useCreateCourseMutation();
@@ -127,35 +123,36 @@ const NewCourse = () => {
                   onChange={onChange}
                 />
               </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="year_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  {t('Year')}
+                </label>
+                <input
+                  type="text"
+                  id="year_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="year"
+                  value={year}
+                  maxLength={4}
+                  minLength={4}
+                  // pattern="\d{8}"
+                  required
+                  onInvalid={(e) =>
+                    e.target.setCustomValidity("Year must be exactly 4 digits")
+                  }
+                  onInput={(e) => {
+                    e.target.setCustomValidity("");
+                  }}
+                  onChange={onChange}
+                />
+              </div>
 
 
             </div>
-            <div className="mb-4">
-                <label
-                  htmlFor="campus_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Campus')}
-                </label>
-                <select
-                  type="text"
-                  id="campus_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="campus"
-                  value={campus}
-                  onChange={onChange}
-                  disabled={campusLoading}
-                >
-                  <option value="">
-                    Select {t('Campus')}                    
-                  </option>
-                  {campusData?.campus?.map(({ name, _id }) => (
-                    <option key={name} value={_id}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+
             {/* Teacher Dropdown */}
             <div className="mb-4">
               <label

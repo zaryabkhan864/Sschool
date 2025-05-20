@@ -14,7 +14,8 @@ import mongoose from "mongoose";
 // Register user   =>  /api/v1/register
 export const registerUser = catchAsyncErrors(async (req, res, next) => {
   const { campus } = req.cookies
-  const { 
+  
+  const {
     name,
     email,
     password,
@@ -22,6 +23,8 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
     role,
     age,
     gender,
+    year,
+    status,
     nationality,
     passportNumber,
     siblings,
@@ -33,9 +36,9 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
     yearTo,
   } = req.body;
 
-  let gradeDetails= []
+  let gradeDetails = []
 
-  if(grade && yearFrom && yearTo){
+  if (grade && yearFrom && yearTo) {
     gradeDetails.push({
       gradeId: grade,
       yearFrom,
@@ -51,6 +54,8 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
     role, // Explicitly passing role from req.body
     age,
     gender,
+    year,
+    status,
     nationality,
     passportNumber,
     siblings,
@@ -90,7 +95,7 @@ export const loginUser = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Invalid email or password", 401));
   }
 
-  if(user.role === 'admin'){
+  if (user.role === 'admin') {
     const campus = await Campus.findOne()
     user.campus = campus?._id
   }
@@ -212,11 +217,11 @@ export const resetPassword = catchAsyncErrors(async (req, res, next) => {
 
   await user.save();
 
-  if(user.role === 'admin'){
+  if (user.role === 'admin') {
     const campus = await Campus.findOne()
     user.campus = campus?._id
   }
-  
+
   sendToken(user, 200, res);
 });
 
@@ -250,7 +255,6 @@ export const updatePassword = catchAsyncErrors(async (req, res, next) => {
 
 // Update User Profile  =>  /api/v1/me/update
 export const updateProfile = catchAsyncErrors(async (req, res, next) => {
-
   const newUserData = {
     name: req.body.name,
     email: req.body.email,
@@ -258,19 +262,21 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
     gender: req.body.gender,
     nationality: req.body.nationality,
     passportNumber: req.body.passportNumber,
-    siblings: req.body.siblings,
     phoneNumber: req.body.phoneNumber,
     secondaryPhoneNumber: req.body.secondaryPhoneNumber,
-    address: req.body.address,
-    grade: req.body.grade,
-    campus: req.body.campus,
+    year: req.body.year,
+    status: req.body.status,
+    avatar: req.body.avatar,
   };
 
   const user = await User.findByIdAndUpdate(req.user._id, newUserData, {
     new: true,
+    runValidators: true,
+    useFindAndModify: false,
   });
 
   res.status(200).json({
+    success: true,
     user,
   });
 });
@@ -278,8 +284,8 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
 // Get all Users - ADMIN  =>  /api/v1/admin/users
 export const allUsers = catchAsyncErrors(async (req, res, next) => {
   const { campus } = req.cookies
-  
-  const users = await User.find({campus: new mongoose.Types.ObjectId(campus)});
+
+  const users = await User.find({ campus: new mongoose.Types.ObjectId(campus) });
 
   res.status(200).json({
     users,
@@ -303,9 +309,9 @@ export const getUserDetails = catchAsyncErrors(async (req, res, next) => {
 
 // Update User Details - ADMIN  =>  /api/v1/admin/users/:id
 export const updateUser = catchAsyncErrors(async (req, res, next) => {
-  if(_.isString(req.body?.avatar)){ 
-   const avatar = await upload_file(req.body.avatar, "shopit/avatars");
-    if(avatar.url){
+  if (_.isString(req.body?.avatar)) {
+    const avatar = await upload_file(req.body.avatar, "shopit/avatars");
+    if (avatar.url) {
       req.body.avatar = avatar
     }
   }
@@ -322,8 +328,8 @@ export const updateUser = catchAsyncErrors(async (req, res, next) => {
     phoneNumber: req.body.phoneNumber,
     secondaryPhoneNumber: req.body.secondaryPhoneNumber,
     address: req.body.address,
-    avatar:req.body.avatar,
-    grade:  req.body.grade,
+    avatar: req.body.avatar,
+    grade: req.body.grade,
     campus: req.body.campus,
   };
 
@@ -361,19 +367,19 @@ export const deleteUser = catchAsyncErrors(async (req, res, next) => {
 
 // Get all Users -  /api/v1/users
 export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
-  let users= []
-  let sortedStudents =[]
+  let users = []
+  let sortedStudents = []
   const { campus } = req.cookies
-  const match =  {}
-  if(campus){
+  const match = {}
+  if (campus) {
     match.campus = new mongoose.Types.ObjectId(campus)
   }
 
-  if(req.params.type === 'student'){
+  if (req.params.type === 'student') {
     match.role = "student"
     const users = await User
       .aggregate([
-        {$match: match,},
+        { $match: match, },
         {
           $lookup: {
             from: 'grades',
@@ -410,16 +416,16 @@ export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
           }
         }
       ]);
-    sortedStudents = _.sortBy(users,[(item) => item.grade?.gradeName?.toLowerCase()],(item) => item?.name?.toLowerCase())
+    sortedStudents = _.sortBy(users, [(item) => item.grade?.gradeName?.toLowerCase()], (item) => item?.name?.toLowerCase())
   }
-  if(req.params.type === 'employee'){
-    users = await User.find({...match, role: { $ne: 'student' }});
+  if (req.params.type === 'employee') {
+    users = await User.find({ ...match, role: { $ne: 'student' } });
   }
-  else{
-    users = await User.find({...match, role: req.params.type}).populate('campus', 'name');
+  else {
+    users = await User.find({ ...match, role: req.params.type }).populate('campus', 'name');
   }
 
   res.status(200).json({
-    users: req.params.type === 'student'? sortedStudents: users ,
+    users: req.params.type === 'student' ? sortedStudents : users,
   });
 });

@@ -2,16 +2,14 @@ import React, { useEffect, useState } from "react";
 import { useCountries } from "react-countries";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-
 import { useRegisterMutation } from "../../redux/api/authApi";
-
 import { useGetUserByTypeQuery } from "../../redux/api/userApi";
-
-import { useGetCampusQuery } from "../../redux/api/campusApi";
-
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 import { useTranslation } from "react-i18next";
+
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 
 const NewTeacher = () => {
   const { t } = useTranslation();
@@ -19,7 +17,7 @@ const NewTeacher = () => {
   const { countries } = useCountries();
   const { refetch } = useGetUserByTypeQuery('teacher');
 
-  const { data: campusData, isLoading: campusLoading } = useGetCampusQuery({paginate: false});
+
 
 
   const [teacher, setTeacher] = useState({
@@ -27,13 +25,16 @@ const NewTeacher = () => {
     name: "",
     age: "",
     gender: "",
+    passportNumber: "",
     nationality: "",
     phoneNumber: "",
     secondaryPhoneNumber: "",
+    year: "",
+    status: "",
     email: "",
     password: "",
     avatar: "", // Add avatar field
-    campus:""
+
   });
   const [avatarPreview, setAvatarPreview] = useState("");
 
@@ -41,12 +42,14 @@ const NewTeacher = () => {
     name,
     age,
     gender,
+    passportNumber,
     nationality,
     phoneNumber,
     secondaryPhoneNumber,
+    year,
+    status,
     email,
     password,
-    campus
   } = teacher;
 
   const [register, { isLoading, error, isSuccess }] =
@@ -81,7 +84,13 @@ const NewTeacher = () => {
       setTeacher({ ...teacher, [e.target.name]: e.target.value });
     }
   };
+  const handlePrimaryPhoneChange = (value) => {
+    setTeacher({ ...teacher, phoneNumber: value });
+  };
 
+  const handleSecondaryPhoneChange = (value) => {
+    setTeacher({ ...teacher, secondaryPhoneNumber: value });
+  };
   const submitHandler = (e) => {
     e.preventDefault();
 
@@ -100,32 +109,7 @@ const NewTeacher = () => {
         <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">{t('New Teacher')}</h2>
           <form onSubmit={submitHandler}>
-          <div className="mb-4">
-                <label
-                  htmlFor="campus_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Campus')}
-                </label>
-                <select
-                  type="text"
-                  id="campus_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="campus"
-                  value={campus}
-                  onChange={onChange}
-                  disabled={campusLoading}
-                >
-                  <option value="">
-                    Select {t('Campus')}                    
-                  </option>
-                  {campusData?.campus?.map(({ name, _id }) => (
-                    <option key={name} value={_id}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label
@@ -161,7 +145,7 @@ const NewTeacher = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="mb-4">
                 <label
                   htmlFor="nationality_field"
@@ -184,11 +168,40 @@ const NewTeacher = () => {
                   ))}
                 </select>
               </div>
+
+              <div className="mb-4">
+                <label
+                  htmlFor="passportNumber_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  {t('Passport No')}
+                </label>
+                <input
+                  type="text"
+                  id="passportNumber_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="passportNumber"
+                  value={passportNumber}
+                  maxLength={14}
+                  minLength={8}
+                  pattern="[a-zA-z0-9]{8,14}"
+                  required
+                  onInvalid={(e) =>
+                    e.target.setCustomValidity(
+                      "Passport number must be 8 to 14 characters"
+                    )
+                  }
+                  onInput={(e) => {
+                    e.target.setCustomValidity("");
+                  }}
+                  onChange={onChange}
+                />
+              </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">
                   {t('Gender')}
                 </label>
-                <div className="flex items-center space-x-4 mt-1">
+                <div className="flex items-center space-x-4 mt-3">
                   <div className="flex items-center">
                     <input
                       type="radio"
@@ -229,25 +242,64 @@ const NewTeacher = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
+                <label htmlFor="phoneNumber_field" className="block text-sm font-medium text-gray-700">
+                  {t('Contact No')}
+                </label>
+                <div className="mt-1">
+                  <PhoneInput
+                    country={"tr"}
+                    value={phoneNumber}
+                    onChange={handlePrimaryPhoneChange}
+                    inputProps={{
+                      name: "phoneNumber_field",
+                      required: true,
+                    }}
+                    containerClass="w-full"
+                    inputClass="!w-full !h-[42px] !pl-14 !pr-3 !py-2 !border !border-gray-300 !rounded-md focus:!outline-none focus:!ring-2 focus:!ring-blue-500"
+                    buttonClass="!border-none !bg-transparent"
+                  />
+                </div>
+              </div>
+              <div className="mb-4">
+                <label htmlFor="secondaryPhoneNumber_field" className="block text-sm font-medium text-gray-700">
+                  {t('Contact No 2')}
+                </label>
+                <div className="mt-1">
+                  <PhoneInput
+                    country={"tr"}
+                    value={secondaryPhoneNumber}
+                    onChange={handleSecondaryPhoneChange}
+                    inputProps={{
+                      name: "secondaryPhoneNumber_field",
+                      required: true,
+                    }}
+                    containerClass="w-full"
+                    inputClass="!w-full !h-[42px] !pl-14 !pr-3 !py-2 !border !border-gray-300 !rounded-md focus:!outline-none focus:!ring-2 focus:!ring-blue-500"
+                    buttonClass="!border-none !bg-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="mb-4">
                 <label
-                  htmlFor="phoneNumber_field"
+                  htmlFor="year_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  {t('Contact No')}
+                  {t('Year')}
                 </label>
                 <input
                   type="text"
-                  id="phoneNumber_field"
+                  id="year_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="phoneNumber"
-                  value={phoneNumber}
-                  maxLength={10}
-                  minLength={10}
-                  pattern="\d{10}"
+                  name="year"
+                  value={year}
+                  maxLength={4}
+                  minLength={4}
                   required
                   onInvalid={(e) =>
                     e.target.setCustomValidity(
-                      "Phone number must be exactly 10 digits"
+                      "Year"
                     )
                   }
                   onInput={(e) => {
@@ -257,32 +309,43 @@ const NewTeacher = () => {
                 />
               </div>
               <div className="mb-4">
-                <label
-                  htmlFor="secondaryPhoneNumber_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Contact No 2')}
+                <label className="block text-sm font-medium text-gray-700">
+                  {t('Status')}
                 </label>
-                <input
-                  type="text"
-                  id="secondaryPhoneNumber_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="secondaryPhoneNumber"
-                  value={secondaryPhoneNumber}
-                  maxLength={10}
-                  minLength={10}
-                  pattern="\d{10}"
-                  required
-                  onInvalid={(e) =>
-                    e.target.setCustomValidity(
-                      "Phone number must be exactly 10 digits"
-                    )
-                  }
-                  onInput={(e) => {
-                    e.target.setCustomValidity("");
-                  }}
-                  onChange={onChange}
-                />
+                <div className="flex items-center space-x-4 mt-3">
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="active"
+                      name="status"
+                      value={true}
+                      checked={status === true || status === "true"}
+                      onChange={(e) =>
+                        setTeacher({ ...teacher, status: true })
+                      }
+                      className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500"
+                    />
+                    <label htmlFor="active" className="ml-2 text-sm text-gray-700">
+                      {t('Active')}
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="inactive"
+                      name="status"
+                      value={false}
+                      checked={status === false || status === "false"}
+                      onChange={(e) =>
+                        setTeacher({ ...teacher, status: false })
+                      }
+                      className="h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500"
+                    />
+                    <label htmlFor="inactive" className="ml-2 text-sm text-gray-700">
+                      {t('Inactive')}
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
             {/* add email and password */}
@@ -292,7 +355,7 @@ const NewTeacher = () => {
                   htmlFor="email_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  {t('Email')} 
+                  {t('Email')}
                 </label>
                 <input
                   type="email"
@@ -325,7 +388,7 @@ const NewTeacher = () => {
                 htmlFor="avatar_field"
                 className="block text-sm font-medium text-gray-700"
               >
-                {t('Avatar')} 
+                {t('Avatar')}
               </label>
               <input
                 type="file"

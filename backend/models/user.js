@@ -66,14 +66,14 @@ const userSchema = new mongoose.Schema(
       },
     ],
     phoneNumber: {
-      type: Number,
+      type: String,
       required: [true, "Please enter the phone number"],
-      maxLength: [10, "Contact number should be 10 digits"],
+      maxLength: [12, "Contact number should be 10 digits"],
     },
     secondaryPhoneNumber: {
-      type: Number,
+      type: String,
       required: [true, "Please enter the phone number"],
-      maxLength: [10, "Contact number should be 10 digits"],
+      maxLength: [12, "Contact number should be 10 digits"],
     },
     address: {
       type: String,
@@ -82,6 +82,14 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Campus",
       required: false,
+    },
+    year:{
+      type:Date,
+      required:true
+    },
+    status:{
+      type:Boolean,
+      required:true
     },
     grade: [
       {

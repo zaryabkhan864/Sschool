@@ -20,9 +20,10 @@ const NewGrade = () => {
     gradeName: "",
     description: "",
     courses: [],
+    year:""
   });
 
-  const { gradeName, description, courses } = grade;
+  const { gradeName, description, courses ,year} = grade;
 
   const [createGrade, { isLoading, error, isSuccess }] =
     useCreateGradeMutation();
@@ -71,6 +72,7 @@ const NewGrade = () => {
       gradeName,
       description,
       courses, // Send array of course IDs
+      year,
     };
     createGrade(formattedGrade);
   };
@@ -82,7 +84,8 @@ const NewGrade = () => {
         <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">{t('New Grade')}</h2>
           <form onSubmit={submitHandler}>
-            <div className="mb-4">
+          <div className="grid grid-cols-2 gap-4">
+          <div className="mb-4">
               <label
                 htmlFor="gradeName_field"
                 className="block text-sm font-medium text-gray-700"
@@ -99,6 +102,34 @@ const NewGrade = () => {
                 onChange={onChange}
               />
             </div>
+            <div className="mb-4">
+                <label
+                  htmlFor="year_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  {t('Year')}
+                </label>
+                <input
+                  type="text"
+                  id="year_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="year"
+                  value={year}
+                  maxLength={4}
+                  minLength={4}
+                  // pattern="\d{8}"
+                  required
+                  onInvalid={(e) =>
+                    e.target.setCustomValidity("Year must be exactly 4 digits")
+                  }
+                  onInput={(e) => {
+                    e.target.setCustomValidity("");
+                  }}
+                  onChange={onChange}
+                />
+              </div>
+            </div>
+
 
             <div className="mb-4">
               <label
