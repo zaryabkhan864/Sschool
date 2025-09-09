@@ -29,7 +29,8 @@ export const createAnnouncement = catchAsyncErrors(async (req, res) => {
 
 /* get all announcements */
 export const getAnnouncements = catchAsyncErrors(async (req, res) => {
-  const { campus } = req.cookies
+  const { campus,selectedYear } = req.cookies
+  console.log("selectedYear",selectedYear)
   
   const {role:userRole, grade: userGrade, campus: userCampus} = req.user
   if(userRole === 'student'){

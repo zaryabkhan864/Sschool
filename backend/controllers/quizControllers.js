@@ -17,7 +17,8 @@ export const newQuiz = catchAsyncErrors(async (req, res) => {
 export const getStudentsQuizRecord = catchAsyncErrors(async (req, res, next) => {
     const { grade, course, semester, quarter, quizNumber, user } = req.body;
   
-    const { campus } = req.cookies
+    const { campus, selectedYear } = req.cookies;
+    console.log("campus", campus, "selectedYear", selectedYear);
   
     // Step 1: Check if a quiz exists with the given details
     let existingQuiz = await Quiz.findOne({

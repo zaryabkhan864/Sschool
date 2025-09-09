@@ -11,6 +11,7 @@ import {
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
+import ConfirmationModal from "../GUI/ConfirmationModal";
 
 const ListCourses = () => {
   const { t } = useTranslation();
@@ -19,14 +20,18 @@ const ListCourses = () => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [userRole, setUserRole] = useState("");
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+
   const [
     deleteCourse,
     { isLoading: isDeleteLoading, error: deleteError, isSuccess },
   ] = useDeleteCourseMutation();
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  // For delete confirmation modal
+  const [showModal, setShowModal] = useState(false);
+  const [selectedCourseId, setSelectedCourseId] = useState(null);
 
   useEffect(() => {
     if (error) {
@@ -40,18 +45,30 @@ const ListCourses = () => {
     if (isSuccess) {
       toast.success(t("courseDeleted"));
       refetch();
+      setShowModal(false);
+      setSelectedCourseId(null);
     }
+
     if (user?.role === "admin") setUserRole(user?.role);
   }, [error, deleteError, isSuccess, navigate, refetch, user, t]);
 
-  const deleteCourseHandler = (id) => {
-    deleteCourse(id);
-  };
-
   // Filter and paginate the courses
   const filteredCourses = data?.courses?.filter((course) =>
-    course?.courseName?.toLowerCase().includes(searchTerm.toLowerCase())
+    course?.courseName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    course?.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    course?.campus?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleDeleteClick = (id) => {
+    setSelectedCourseId(id);
+    setShowModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedCourseId) {
+      deleteCourse(selectedCourseId);
+    }
+  };
 
   const totalPages = Math.ceil((filteredCourses?.length || 0) / itemsPerPage);
   const paginatedCourses = filteredCourses?.slice(
@@ -67,7 +84,7 @@ const ListCourses = () => {
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">
-            {data?.courses?.length} {t("courses")}
+            {data?.courses?.length} {t("Courses")}
           </h2>
 
           {/* Controls Section */}
@@ -107,10 +124,10 @@ const ListCourses = () => {
           <Table hoverable={true} className="w-full">
             <Table.Head>
               <Table.HeadCell>{t("id")}</Table.HeadCell>
-              <Table.HeadCell>{t("courseName")}</Table.HeadCell>
+              <Table.HeadCell>{t("Course")} {t("Name")}</Table.HeadCell>
               <Table.HeadCell>{t("Campus")}</Table.HeadCell>
-              <Table.HeadCell>{t("code")}</Table.HeadCell>
-       
+              <Table.HeadCell>{t("Code")}</Table.HeadCell>
+              <Table.HeadCell>{t("Teacher")}</Table.HeadCell>
               <Table.HeadCell>{t("actions")}</Table.HeadCell>
             </Table.Head>
             <Table.Body>
@@ -123,7 +140,7 @@ const ListCourses = () => {
                   <Table.Cell>{course?.courseName}</Table.Cell>
                   <Table.Cell>{course?.campus?.name || 'N/A'}</Table.Cell>
                   <Table.Cell>{course?.code}</Table.Cell>
-              
+                  <Table.Cell>{course?.teacher?.name || 'N/A'}</Table.Cell>
                   <Table.Cell>
                     <div className="flex space-x-2">
                       {userRole === "admin" && (
@@ -143,7 +160,7 @@ const ListCourses = () => {
                       {userRole === "admin" && (
                         <button
                           className="px-3 py-2 text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white focus:outline-none"
-                          onClick={() => deleteCourseHandler(course?._id)}
+                          onClick={() => handleDeleteClick(course?._id)}
                           disabled={isDeleteLoading}
                         >
                           <i className="fa fa-trash"></i>
@@ -168,6 +185,15 @@ const ListCourses = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        confirmDelete={confirmDelete}
+        isDeleteLoading={isDeleteLoading}
+        message={t("Do you want to delete this course?")}
+      />
     </AdminLayout>
   );
 };

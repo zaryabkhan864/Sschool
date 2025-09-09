@@ -1,32 +1,41 @@
+// src/components/admin/ListTeachers.jsx
 import React, { useEffect, useState } from "react";
-import { toast } from "react-hot-toast";
-import { Link, useNavigate } from "react-router-dom";
-import Loader from "../layout/Loader";
-import MetaData from "../layout/MetaData";
-
 import { Pagination, Table } from "flowbite-react";
+import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
-import {useDeleteUserMutation, useGetUserByTypeQuery } from "../../redux/api/userApi";
-
-import AdminLayout from "../layout/AdminLayout";
-
+import { Link, useLocation } from "react-router-dom"; 
 import { useTranslation } from "react-i18next";
 
+import {
+  useDeleteUserMutation,
+  useGetUserByTypeQuery,
+} from "../../redux/api/userApi";
+
+import AdminLayout from "../layout/AdminLayout";
+import Loader from "../layout/Loader";
+import MetaData from "../layout/MetaData";
+import ConfirmationModal from "../GUI/ConfirmationModal";
+
 const ListTeachers = () => {
-    const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const location = useLocation(); // Get location to access state
+
   const { data, isLoading, error, refetch } = useGetUserByTypeQuery("teacher");
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [userRole, setUserRole] = useState("");
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   const [
     deleteUser,
     { isLoading: isDeleteLoading, error: deleteError, isSuccess },
   ] = useDeleteUserMutation();
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  // For delete confirmation modal
+  const [showModal, setShowModal] = useState(false);
+  const [selectedTeacherId, setSelectedTeacherId] = useState(null);
 
   useEffect(() => {
     if (error) {
@@ -37,21 +46,37 @@ const ListTeachers = () => {
       toast.error(deleteError?.data?.message);
     }
 
-    if (isSuccess) {
-      toast.success("Teacher Deleted");
-      refetch();
+    if (location.state?.shouldRefetch) {
+      refetch(); // Force refetch of data
+      // Clear the state to prevent endless refetching
+      window.history.replaceState({}, document.title);
     }
-    if (user?.role === "admin") setUserRole(user?.role);
-  }, [error, deleteError, isSuccess, navigate, refetch, user]);
 
-  const deleteTeacherHandler = (id) => {
-    deleteUser(id);
-  };
+    if (isSuccess) {
+      toast.success(t("teacherDeleted"));
+      refetch();
+      setShowModal(false);
+      setSelectedTeacherId(null);
+    }
+
+    if (user?.role === "admin") setUserRole(user?.role);
+  }, [error, deleteError, isSuccess, user, t, refetch, location.state]); 
 
   // Filter and paginate the teachers
   const filteredTeachers = data?.users?.filter((teacher) =>
     teacher?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleDeleteClick = (id) => {
+    setSelectedTeacherId(id);
+    setShowModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedTeacherId) {
+      deleteUser(selectedTeacherId);
+    }
+  };
 
   const totalPages = Math.ceil((filteredTeachers?.length || 0) / itemsPerPage);
   const paginatedTeachers = filteredTeachers?.slice(
@@ -83,7 +108,10 @@ const ListTeachers = () => {
 
             {/* Records per Page Dropdown */}
             <div className="flex items-center mt-2 md:mt-0">
-              <label htmlFor="itemsPerPage" className="mr-2 text-sm font-medium">
+              <label
+                htmlFor="itemsPerPage"
+                className="mr-2 text-sm font-medium"
+              >
                 {t("entriesPerPage")}:
               </label>
               <select
@@ -113,61 +141,70 @@ const ListTeachers = () => {
             </Table.Head>
             <Table.Body>
               {paginatedTeachers?.map((teacher) => (
-                <Table.Row key={teacher?._id} className="bg-white dark:bg-gray-800">
+                <Table.Row
+                  key={teacher?._id}
+                  className="bg-white dark:bg-gray-800"
+                >
                   <Table.Cell>{teacher?._id}</Table.Cell>
                   <Table.Cell>{teacher?.name}</Table.Cell>
-                  <Table.Cell>{teacher?.campus?.name || 'N/A'}</Table.Cell>
-                  <Table.Cell>{teacher?.age}</Table.Cell>
-                  <Table.Cell>{teacher?.gender}</Table.Cell>
-                  <Table.Cell>{teacher?.nationality}</Table.Cell>
+                  <Table.Cell>{teacher?.campus?.name || "N/A"}</Table.Cell>
+                  <Table.Cell>{teacher?.age || "-"}</Table.Cell>
+                  <Table.Cell>{teacher?.gender || "-"}</Table.Cell>
+                  <Table.Cell>{teacher?.nationality || "-"}</Table.Cell>
                   <Table.Cell>
                     <div className="flex space-x-2">
                       {userRole === "admin" && (
                         <Link
                           to={`/admin/teachers/${teacher?._id}`}
-                      className="px-3 py-2 text-blue-600 border border-blue-600 rounded hover:bg-blue-600 hover:text-white focus:outline-none"
-                    >
-                      <i className="fa fa-pencil"></i>
-                    </Link>
-                  )}
+                          className="px-3 py-2 text-blue-600 border border-blue-600 rounded hover:bg-blue-600 hover:text-white focus:outline-none"
+                        >
+                          <i className="fa fa-pencil"></i>
+                        </Link>
+                      )}
+                      <Link
+                        to={`/admin/teacher/${teacher?._id}/details`}
+                        className="px-3 py-2 text-green-600 border border-green-600 rounded hover:bg-green-600 hover:text-white focus:outline-none"
+                      >
+                        <i className="fa fa-eye"></i>
+                      </Link>
+                      {userRole === "admin" && (
+                        <button
+                          className="px-3 py-2 text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white focus:outline-none"
+                          onClick={() => handleDeleteClick(teacher?._id)}
+                          disabled={isDeleteLoading}
+                        >
+                          <i className="fa fa-trash"></i>
+                        </button>
+                      )}
+                    </div>
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table>
 
-                    <Link
-                      to={`/admin/teacher/${teacher?._id}/details`}
-                    className="px-3 py-2 text-green-600 border border-green-600 rounded hover:bg-green-600 hover:text-white focus:outline-none"
-                  >
-                    <i className="fa fa-eye"></i>
-                  </Link>
-
-                  {userRole === "admin" && (
-                    <button
-                      className="px-3 py-2 text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white focus:outline-none"
-                      onClick={() => deleteTeacherHandler(teacher?._id)}
-                      disabled={isDeleteLoading}
-                    >
-                      <i className="fa fa-trash"></i>
-                    </button>
-                  )}
-                </div>
-              </Table.Cell>
-          </Table.Row>
-          ))}
-        </Table.Body>
-      </Table>
-
-      {/* Pagination */}
-      <div className="flex justify-center mt-4">
-        <Pagination
-          currentPage={currentPage}
-          layout="navigation"
-          onPageChange={(page) => setCurrentPage(page)}
-          showIcons={true}
-          totalPages={totalPages}
-        />
+          {/* Pagination */}
+          <div className="flex justify-center mt-4">
+            <Pagination
+              currentPage={currentPage}
+              layout="navigation"
+              onPageChange={(page) => setCurrentPage(page)}
+              showIcons={true}
+              totalPages={totalPages}
+            />
+          </div>
+        </div>
       </div>
-    </div>
-  </div >
-</AdminLayout >
 
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        confirmDelete={confirmDelete}
+        isDeleteLoading={isDeleteLoading}
+        message={t("Do you want to delete this teacher?")}
+      />
+    </AdminLayout>
   );
 };
 

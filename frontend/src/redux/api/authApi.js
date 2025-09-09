@@ -7,6 +7,7 @@ export const authApi = createApi({
   endpoints: (builder) => ({
     register: builder.mutation({
       query(body) {
+        console.log(body);
         return {
           url: "/register",
           method: "POST",

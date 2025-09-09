@@ -1,26 +1,28 @@
 import React, { useEffect, useState } from "react";
-import { useRegisterMutation } from "../../redux/api/authApi";
-import toast from "react-hot-toast";
+import { toast } from "react-hot-toast";
+
 import { useCountries } from "react-countries";
 import { useNavigate } from "react-router-dom";
-import MetaData from "../layout/MetaData";
-import AdminLayout from "../layout/AdminLayout";
-import { useGetAdminUsersQuery } from "../../redux/api/userApi";
-import { useTranslation } from "react-i18next";
-import { useGetCampusQuery } from "../../redux/api/campusApi";
+import { useGetGradesQuery } from "../../redux/api/gradesApi";
 
-const Register = () => {
+import { useRegisterMutation } from "../../redux/api/authApi";
+import { useGetAdminUsersQuery } from "../../redux/api/userApi";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
+
+import AdminLayout from "../layout/AdminLayout";
+import MetaData from "../layout/MetaData";
+import { useTranslation } from "react-i18next";
+
+const Register  = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { refetch } = useGetAdminUsersQuery();
   const { countries } = useCountries();
-  const { data: CampusData, isLoading: CampusLoading, error: CampusError } = useGetCampusQuery();
-  console.log("campus data",CampusData)
+  const { refetch } = useGetAdminUsersQuery();
+
   const [user, setUser] = useState({
+    role: "",
     name: "",
-    email: "",
-    password: "",
-    role: "user",
     age: "",
     gender: "",
     nationality: "",
@@ -28,17 +30,19 @@ const Register = () => {
     phoneNumber: "",
     secondaryPhoneNumber: "",
     address: "",
-    campus: "",
-    avatar: ""
-  });
+    grade: "",
+    year: "",
+    status: "",
+    email: "",
+    password: "",
+    avatar: "",
 
+  });
   const [avatarPreview, setAvatarPreview] = useState("");
 
   const {
-    name,
-    email,
-    password,
     role,
+    name,
     age,
     gender,
     nationality,
@@ -46,11 +50,20 @@ const Register = () => {
     phoneNumber,
     secondaryPhoneNumber,
     address,
-    campus,
-    avatar
+    grade,
+    year,
+    status,
+    email,
+    password,
+
   } = user;
 
+
+
   const [register, { isLoading, error, isSuccess }] = useRegisterMutation();
+
+  const { data: gradesData, isLoading: gradeLoading } = useGetGradesQuery();
+  const grades = gradesData?.grades || []; // Ensure it's an array
 
   useEffect(() => {
     if (error) {
@@ -58,9 +71,9 @@ const Register = () => {
     }
 
     if (isSuccess) {
-      toast.success("User registered successfully");
+      toast.success("User created");
       navigate("/admin/users");
-      refetch();
+      refetch()
     }
   }, [error, isSuccess, navigate, refetch]);
 
@@ -81,27 +94,37 @@ const Register = () => {
       setUser({ ...user, [e.target.name]: e.target.value });
     }
   };
+  const handlePrimaryPhoneChange = (value) => {
+    setUser((prev) => ({ ...prev, phoneNumber: value }));
+  };
 
+  const handleSecondaryPhoneChange = (value) => {
+    setUser((prev) => ({ ...prev, secondaryPhoneNumber: value }));
+  };
   const submitHandler = (e) => {
     e.preventDefault();
-    console.log("user user",user)
-    register(user);
+    // Payload with avatar and other user details
+    const payload = {
+      ...user,
+    };
+    register(payload);
   };
 
   return (
     <AdminLayout>
-      <MetaData title={"Register New User"} />
+      <MetaData title={"Create New User"} />
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">{t('Register New User')}</h2>
+          <h2 className="text-2xl font-semibold mb-6">{t('New User')}</h2>
           <form onSubmit={submitHandler}>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label
                   htmlFor="name_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  {t('Name')}
+                  {t('User Name')}
                 </label>
                 <input
                   type="text"
@@ -112,67 +135,6 @@ const Register = () => {
                   onChange={onChange}
                 />
               </div>
-              <div className="mb-4">
-                <label
-                  htmlFor="email_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Email')}
-                </label>
-                <input
-                  type="email"
-                  id="email_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="email"
-                  value={email}
-                  onChange={onChange}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="mb-4">
-                <label
-                  htmlFor="password_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Password')}
-                </label>
-                <input
-                  type="password"
-                  id="password_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="password"
-                  value={password}
-                  onChange={onChange}
-                />
-              </div>
-              <div className="mb-4">
-                <label
-                  htmlFor="role_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Role')}
-                </label>
-                <select
-                  id="role_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="role"
-                  value={role}
-                  onChange={onChange}
-                >
-                  <option value="user">{t('User')}</option>
-                  <option value="admin">{t('Admin')}</option>
-                  <option value="teacher">{t('Teacher')}</option>
-                  <option value="student">{t('Student')}</option>
-                  <option value="finance">{t('Finance')}</option>
-                  <option value="principle">{t('Principle')}</option>
-                  <option value="counsellor">{t('Counsellor')}</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label
                   htmlFor="age_field"
@@ -187,73 +149,11 @@ const Register = () => {
                   name="age"
                   value={age}
                   onChange={onChange}
-                  required
                 />
               </div>
-              <div className="mb-4">
-                <label
-                  htmlFor="gender_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Gender')}
-                </label>
-                <div className="flex items-center space-x-4 mt-1">
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      id="male"
-                      name="gender"
-                      value="male"
-                      checked={gender === "male"}
-                      onChange={onChange}
-                      className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                    />
-                    <label
-                      htmlFor="male"
-                      className="ml-2 text-sm text-gray-700"
-                    >
-                      {t('Male')}
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      id="female"
-                      name="gender"
-                      value="female"
-                      checked={gender === "female"}
-                      onChange={onChange}
-                      className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                    />
-                    <label
-                      htmlFor="female"
-                      className="ml-2 text-sm text-gray-700"
-                    >
-                      {t('Female')}
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      id="other"
-                      name="gender"
-                      value="other"
-                      checked={gender === "other"}
-                      onChange={onChange}
-                      className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                    />
-                    <label
-                      htmlFor="other"
-                      className="ml-2 text-sm text-gray-700"
-                    >
-                      {t('Other')}
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            </div>
+            <div className="grid grid-cols-3 gap-4">
               <div className="mb-4">
                 <label
                   htmlFor="nationality_field"
@@ -278,58 +178,235 @@ const Register = () => {
               </div>
               <div className="mb-4">
                 <label
-                  htmlFor="passport_field"
+                  htmlFor="passportNumber_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  {t('Passport Number')}
+                  {t('Passport No')}
                 </label>
                 <input
                   type="text"
-                  id="passport_field"
+                  id="passportNumber_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   name="passportNumber"
                   value={passportNumber}
+                  maxLength={14}
+                  minLength={8}
+                  pattern="[a-zA-z0-9]{8,14}"
+                  required
+                  onInvalid={(e) =>
+                    e.target.setCustomValidity(
+                      "Passport number must be 8 to 14 characters"
+                    )
+                  }
+                  onInput={(e) => {
+                    e.target.setCustomValidity("");
+                  }}
                   onChange={onChange}
                 />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  {t('Gender')}
+                </label>
+                <div className="flex items-center space-x-4 mt-1">
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="male"
+                      name="gender"
+                      value="Male"
+                      checked={gender === "Male"}
+                      onChange={onChange}
+                      className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                    />
+                    <label
+                      htmlFor="male"
+                      className="ml-2 text-sm text-gray-700"
+                    >
+                      {t('Male')}
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="female"
+                      name="gender"
+                      value="Female"
+                      checked={gender === "Female"}
+                      onChange={onChange}
+                      className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                    />
+                    <label
+                      htmlFor="female"
+                      className="ml-2 text-sm text-gray-700"
+                    >
+                      {t('Female')}
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
-                <label
-                  htmlFor="phone_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Phone Number')}
+                <label htmlFor="phoneNumber_field" className="block text-sm font-medium text-gray-700">
+                  {t('Contact No')}
                 </label>
-                <input
-                  type="text"
-                  id="phone_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="phoneNumber"
-                  value={phoneNumber}
-                  onChange={onChange}
-                  required
-                />
+                <div className="mt-1">
+                  <PhoneInput
+                    country={"tr"}
+                    value={phoneNumber}
+                    onChange={handlePrimaryPhoneChange}
+                    inputProps={{
+                      name: "phoneNumber_field",
+                      required: true,
+                    }}
+                    containerClass="w-full"
+                    inputClass="!w-full !h-[42px] !pl-14 !pr-3 !py-2 !border !border-gray-300 !rounded-md focus:!outline-none focus:!ring-2 focus:!ring-blue-500"
+                    buttonClass="!border-none !bg-transparent"
+                  />
+                </div>
               </div>
               <div className="mb-4">
+                <label htmlFor="secondaryPhoneNumber_field" className="block text-sm font-medium text-gray-700">
+                  {t('Contact No 2')}
+                </label>
+                <div className="mt-1">
+                  <PhoneInput
+                    country={"tr"}
+                    value={secondaryPhoneNumber}
+                    onChange={handleSecondaryPhoneChange}
+                    inputProps={{
+                      name: "secondaryPhoneNumber_field",
+                      required: true,
+                    }}
+                    containerClass="w-full"
+                    inputClass="!w-full !h-[42px] !pl-14 !pr-3 !py-2 !border !border-gray-300 !rounded-md focus:!outline-none focus:!ring-2 focus:!ring-blue-500"
+                    buttonClass="!border-none !bg-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="mb-4">
                 <label
-                  htmlFor="secondary_phone_field"
+                  htmlFor="year_field"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  {t('Secondary Phone Number')}
+                  {t('Year')}
                 </label>
                 <input
                   type="text"
-                  id="secondary_phone_field"
+                  id="year_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="secondaryPhoneNumber"
-                  value={secondaryPhoneNumber}
-                  onChange={onChange}
+                  name="year"
+                  value={year}
+                  maxLength={4}
+                  minLength={4}
                   required
+                  onInvalid={(e) =>
+                    e.target.setCustomValidity(
+                      "Year"
+                    )
+                  }
+                  onInput={(e) => {
+                    e.target.setCustomValidity("");
+                  }}
+                  onChange={onChange}
                 />
               </div>
+              
+
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  {t("Role")}
+                </label>
+                <select
+                  name="role"
+                  value={role}
+                  onChange={onChange}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="user">{t("User")}</option>
+                  <option value="admin">{t("Admin")}</option>
+                  <option value="teacher">{t("Teacher")}</option>
+                  <option value="student">{t("Student")}</option>
+                  <option value="finance">{t("Finance")}</option>
+                  <option value="principle">{t("Principle")}</option>
+                  <option value="counsellor">{t("Counsellor")}</option>
+                </select>
+              </div>
+      
+
+
+              {/* <div className="mb-4">
+                <label
+                  htmlFor="grade_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  {t('Grade')}
+                </label>
+                <select
+                  id="grade_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="grade"
+                  value={grade}
+                  onChange={onChange}
+                >
+                  <option value="" disabled>
+                    {t('Select Grade')}
+                  </option>
+                  {!gradeLoading &&
+                    grades?.map((g) => (
+                      <option key={g._id} value={g._id}>
+                        {g.gradeName}
+                      </option>
+                    ))}
+                </select>
+              </div> */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  {t('Status')}
+                </label>
+                <div className="flex items-center space-x-4 mt-3">
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="active"
+                      name="status"
+                      value={true}
+                      checked={status === true || status === "true"}
+                      onChange={(e) =>
+                        setUser({ ...user, status: true })
+                      }
+                      className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500"
+                    />
+                    <label htmlFor="active" className="ml-2 text-sm text-gray-700">
+                      {t('Active')}
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="inactive"
+                      name="status"
+                      value={false}
+                      checked={status === false || status === "false"}
+                      onChange={(e) =>
+                        setUser({ ...user, status: false })
+                      }
+                      className="h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500"
+                    />
+                    <label htmlFor="inactive" className="ml-2 text-sm text-gray-700">
+                      {t('Inactive')}
+                    </label>
+                  </div>
+                </div>
+              </div>
+        
             </div>
+
 
             <div className="mb-4">
               <label
@@ -338,50 +415,56 @@ const Register = () => {
               >
                 {t('Address')}
               </label>
-              <input
-                type="text"
+              <textarea
                 id="address_field"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 name="address"
+                rows="2"
                 value={address}
                 onChange={onChange}
-                required
-              />
+              ></textarea>
             </div>
-
-            <div className="mb-4">
-              <label
-                htmlFor="campus_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                {t('Campus')}
-              </label>
-              <select
-                type="text"
-                id="campus_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="campus"
-                value={campus}
-                onChange={onChange}
-                disabled={CampusLoading}
-              >
-                <option value="">
-                  Select {t('Campus')}                    
-                </option>
-                {CampusData?.campus?.map(({ name, _id }) => (
-                  <option key={name} value={_id}>
-                    {name}
-                  </option>
-                ))}
-              </select>
+            {/* add email and password */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="mb-4">
+                <label
+                  htmlFor="email_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  {t('Email')}
+                </label>
+                <input
+                  type="email"
+                  id="email_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="email"
+                  value={email}
+                  onChange={onChange}
+                />
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="password_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  {t('Password')}
+                </label>
+                <input
+                  type="password"
+                  id="password_field"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="password"
+                  value={password}
+                  onChange={onChange}
+                />
+              </div>
             </div>
-
             <div className="mb-4">
               <label
                 htmlFor="avatar_field"
                 className="block text-sm font-medium text-gray-700"
               >
-                {t('Avatar')} 
+                {t('Avatar')}
               </label>
               <input
                 type="file"
@@ -402,11 +485,10 @@ const Register = () => {
 
             <button
               type="submit"
-              className={`w-full py-2 text-white font-semibold rounded-md ${isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-                } focus:outline-none focus:ring focus:ring-blue-300`}
+              className="w-full py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isLoading}
             >
-              {isLoading ? "Registering..." : "REGISTER"}
+              {isLoading ? "Creating..." : "CREATE"}
             </button>
           </form>
         </div>
@@ -415,4 +497,4 @@ const Register = () => {
   );
 };
 
-export default Register;
+export default Register ;

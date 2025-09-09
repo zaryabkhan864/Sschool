@@ -71,6 +71,7 @@ const StudentCounseling = () => {
                 name="student"
                 value={student}
                 onChange={onChange}
+                required
               >
                 <option value="" disabled>
                   {t('Select Student')}
@@ -78,7 +79,7 @@ const StudentCounseling = () => {
                 {!studentLoading &&
                   students?.map((s) => (
                     <option key={s._id} value={s._id}>
-                      {s.name} - {s?.grade?.gradeName}
+                      {s.name} - {s.currentGrade?.gradeName || s.gradeDetails?.[0]?.gradeName || "No Grade Assigned"}
                     </option>
                   ))}
               </select>
@@ -97,6 +98,7 @@ const StudentCounseling = () => {
                 rows="4"
                 value={complain}
                 onChange={onChange}
+                required
               ></textarea>
             </div>
             <div className="mb-4">
@@ -113,6 +115,7 @@ const StudentCounseling = () => {
                 rows="2"
                 value={comment}
                 onChange={onChange}
+                required
               ></textarea>
             </div>
             <button

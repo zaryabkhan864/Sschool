@@ -6,6 +6,7 @@ import {
   newCampus,
   updateCampus,
   setCampusIDinToken,
+  deleteCampus,
 } from "../controllers/campusControllers.js";
 import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 
@@ -25,5 +26,9 @@ router.route("/campus/:id").get(getCampusDetails);
 router
   .route("/campus/token/:id")
   .get(isAuthenticatedUser, setCampusIDinToken)
+
+  router
+  .route("/campus/:id")
+  .delete(isAuthenticatedUser, authorizeRoles("admin"), deleteCampus);
 
 export default router;

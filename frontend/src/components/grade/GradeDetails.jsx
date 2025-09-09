@@ -12,8 +12,7 @@ const GradeDetails = () => {
   const [grade, setGrade] = useState({
     gradeName: "",
     description: "",
-    yearFrom: "",
-    yearTo: "",
+
     courses: [],
   });
 
@@ -22,8 +21,7 @@ const GradeDetails = () => {
       setGrade({
         gradeName: data?.grade?.gradeName,
         description: data?.grade?.description,
-        yearFrom: data?.grade?.yearFrom,
-        yearTo: data?.grade?.yearTo,
+
         courses: data?.grade?.courses,
       });
     }
@@ -52,14 +50,6 @@ const GradeDetails = () => {
             <p className="text-lg text-gray-900">{grade.description}</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="mb-4">
-              <p className="text-sm font-medium text-gray-700">Year From:</p>
-              <p className="text-lg text-gray-900">{grade.yearFrom}</p>
-            </div>
-            <div className="mb-4">
-              <p className="text-sm font-medium text-gray-700">Year To:</p>
-              <p className="text-lg text-gray-900">{grade.yearTo}</p>
-            </div>
             <div className="mb-4">
               <p className="text-sm font-medium text-gray-700">Courses:</p>
               <ul>

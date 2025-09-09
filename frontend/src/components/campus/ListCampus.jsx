@@ -1,20 +1,22 @@
-import { Pagination, Table } from "flowbite-react";
+import { Pagination, Table, Modal, Button } from "flowbite-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from "react-i18next";
 import {
+  useDeleteCampusMutation,
   useGetCampusQuery,
 } from "../../redux/api/campusApi";
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
+import ConfirmationModal from "../GUI/ConfirmationModal";
 
 const ListCampus = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { data, isLoading, error } = useGetCampusQuery();
+
+  const { data, isLoading, error, refetch } = useGetCampusQuery();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [userRole, setUserRole] = useState("");
 
@@ -22,17 +24,49 @@ const ListCampus = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
 
+  const [
+    deleteCampus,
+    { isLoading: isDeleteLoading, error: deleteError, isSuccess },
+  ] = useDeleteCampusMutation();
+
+  // For delete confirmation modal
+  const [showModal, setShowModal] = useState(false);
+  const [selectedCampusId, setSelectedCampusId] = useState(null);
+
   useEffect(() => {
     if (error) {
       toast.error(error?.data?.message);
     }
+
+    if (deleteError) {
+      toast.error(deleteError?.data?.message);
+    }
+
+    if (isSuccess) {
+      toast.success(t("campusDeleted"));
+      refetch();
+      setShowModal(false);
+      setSelectedCampusId(null);
+    }
+
     if (user?.role === "admin") setUserRole(user?.role);
-  }, [error, navigate, user, t]);
+  }, [error, deleteError, isSuccess, user, t, refetch]);
 
   // Filter and paginate the campus
   const filteredCampus = data?.campus?.filter((campus) =>
     campus?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleDeleteClick = (id) => {
+    setSelectedCampusId(id);
+    setShowModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedCampusId) {
+      deleteCampus(selectedCampusId);
+    }
+  };
 
   const totalPages = Math.ceil((filteredCampus?.length || 0) / itemsPerPage);
   const paginatedCampus = filteredCampus?.slice(
@@ -119,6 +153,15 @@ const ListCampus = () => {
                       >
                         <i className="fa fa-eye"></i>
                       </Link>
+                      {userRole === "admin" && (
+                        <button
+                          className="px-3 py-2 text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white focus:outline-none"
+                          onClick={() => handleDeleteClick(campus?._id)}
+                          disabled={isDeleteLoading}
+                        >
+                          <i className="fa fa-trash"></i>
+                        </button>
+                      )}
                     </div>
                   </Table.Cell>
                 </Table.Row>
@@ -138,6 +181,15 @@ const ListCampus = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        confirmDelete={confirmDelete}
+        isDeleteLoading={isDeleteLoading}
+        message={t("Do you want to delete this campus?")}
+      />
     </AdminLayout>
   );
 };

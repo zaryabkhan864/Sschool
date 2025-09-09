@@ -14,10 +14,6 @@ const counselingSchema = new mongoose.Schema(
         message: "The referenced user must be a student."
     }
     },
-    campus:{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Campus",
-    },
     complain: {
       type: String,
       required: true,
@@ -26,6 +22,20 @@ const counselingSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    status: {
+      type: String,
+      enum: ["pending", "complete"],
+      default: "pending",
+    },
+    campus:{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Campus",
+    },
+    year:{
+      type: Number,
+      required: [true, "Please enter course year"],
+    },
+
   },
   { timestamps: true }
 );

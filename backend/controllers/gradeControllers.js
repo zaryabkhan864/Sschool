@@ -9,9 +9,14 @@ import ErrorHandler from "../utils/errorHandler.js";
 
 // Create new grade => /api/v1/grades
 export const newGrade = catchAsyncErrors(async (req, res) => {
-  const { campus } = req.cookies
+  const { campus } = req.cookies;
+  const { selectedYear } = req.cookies;
 
-  const grade = await Grade.create({...req.body, campus});
+  const grade = await Grade.create({
+    ...req.body, 
+    campus, // Campus from cookie
+    year: selectedYear // Year from cookie
+  });
 
   res.status(200).json({
     grade,
@@ -20,10 +25,17 @@ export const newGrade = catchAsyncErrors(async (req, res) => {
 
 //Create get all grades => /api/v1/grades
 export const getGrades = catchAsyncErrors(async (req, res, next) => {
-  const { campus } = req.cookies
+  const { campus, selectedYear } = req.cookies;
 
-  req.query.campus = campus
-  const apiFilters = new APIFilters(Grade, req.query).search().filters();
+  // Inject campus and year into query filters
+  req.query.campus = campus;
+  if (selectedYear) {
+    req.query.year = selectedYear; // Or 'session' depending on your schema
+  }
+
+  const apiFilters = new APIFilters(Grade, req.query)
+    .search()
+    .filters();
 
   let grades = await apiFilters.query;
   let filteredGradesCount = grades.length;
@@ -37,14 +49,23 @@ export const getGrades = catchAsyncErrors(async (req, res, next) => {
 
 // Update grade => /api/v1/grades/:id
 export const updateGrade = catchAsyncErrors(async (req, res, next) => {
+  const { campus, selectedYear } = req.cookies;
+  
   let grade = await Grade.findById(req?.params?.id);
 
-  //check if there is any grade with req id
+  // Check if there is any grade with req id
   if (!grade) {
     return next(new ErrorHandler("Grade not found", 404));
   }
 
-  grade = await Grade.findByIdAndUpdate(req.params.id, req.body, {
+  // Update with campus and year from cookies
+  const updateData = {
+    ...req.body,
+    campus: campus, // Campus from cookie
+    year: selectedYear // Year from cookie
+  };
+
+  grade = await Grade.findByIdAndUpdate(req.params.id, updateData, {
     new: true,
   });
 

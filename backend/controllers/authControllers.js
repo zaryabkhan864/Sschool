@@ -14,7 +14,9 @@ import mongoose from "mongoose";
 // Register user   =>  /api/v1/register
 export const registerUser = catchAsyncErrors(async (req, res, next) => {
   const { campus } = req.cookies
+  const {selectedYear} = req.cookies
   
+
   const {
     name,
     email,
@@ -23,11 +25,10 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
     role,
     age,
     gender,
-    year,
     status,
     nationality,
     passportNumber,
-    siblings,
+    siblings = [],
     phoneNumber,
     secondaryPhoneNumber,
     address,
@@ -45,7 +46,9 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
       yearTo
     })
   }
-
+  const cleanSiblings = siblings.filter(
+    (s) => s && mongoose.Types.ObjectId.isValid(s)
+  );
   const user = await User.create({
     name,
     email,
@@ -54,15 +57,16 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
     role, // Explicitly passing role from req.body
     age,
     gender,
-    year,
+    year:selectedYear,
     status,
     nationality,
     passportNumber,
-    siblings,
+    siblings: cleanSiblings,
     phoneNumber,
     secondaryPhoneNumber,
     address,
-    grade: gradeDetails,
+    // grade: gradeDetails,
+    grade: grade ? [{ gradeId: grade }] : [],
     campus,
     userId: nanoid(10)
   });
@@ -255,6 +259,9 @@ export const updatePassword = catchAsyncErrors(async (req, res, next) => {
 
 // Update User Profile  =>  /api/v1/me/update
 export const updateProfile = catchAsyncErrors(async (req, res, next) => {
+  const { campus } = req.cookies;
+  const { selectedYear } = req.cookies;
+  
   const newUserData = {
     name: req.body.name,
     email: req.body.email,
@@ -268,6 +275,15 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
     status: req.body.status,
     avatar: req.body.avatar,
   };
+
+  // Agar cookies se campus aur year values available hain, to unhe bhi include karo
+  if (campus) {
+    newUserData.campus = campus;
+  }
+  
+  if (selectedYear) {
+    newUserData.year = selectedYear;
+  }
 
   const user = await User.findByIdAndUpdate(req.user._id, newUserData, {
     new: true,
@@ -283,9 +299,19 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
 
 // Get all Users - ADMIN  =>  /api/v1/admin/users
 export const allUsers = catchAsyncErrors(async (req, res, next) => {
-  const { campus } = req.cookies
+  const { campus, selectedYear } = req.cookies;
 
-  const users = await User.find({ campus: new mongoose.Types.ObjectId(campus) });
+  const filter = {};
+
+  if (campus) {
+    filter.campus = new mongoose.Types.ObjectId(campus);
+  }
+
+  if (selectedYear) {
+    filter.year = selectedYear;  // Or filter['grade.session'] if it’s nested
+  }
+
+  const users = await User.find(filter).populate('campus', 'name');
 
   res.status(200).json({
     users,
@@ -308,39 +334,131 @@ export const getUserDetails = catchAsyncErrors(async (req, res, next) => {
 });
 
 // Update User Details - ADMIN  =>  /api/v1/admin/users/:id
+// export const updateUser = catchAsyncErrors(async (req, res, next) => {
+//   // Handle avatar upload if it's a string
+//   if (_.isString(req.body?.avatar)) {
+//     try {
+//       const avatar = await upload_file(req.body.avatar, "shopit/avatars");
+//       if (avatar.url) {
+//         req.body.avatar = avatar;
+//       }
+//     } catch (err) {
+//       console.error("Avatar upload failed:", err);
+//       return next(new ErrorHandler("Avatar upload failed", 500));
+//     }
+//   }
+
+//   // Find the user
+//   const user = await User.findById(req.params.id).select("+password");
+//   if (!user) {
+//     return next(new ErrorHandler(`User not found with id: ${req.params.id}`, 404));
+//   }
+
+//   // Update fields safely
+//   const fieldsToUpdate = [
+//     "name",
+//     "email",
+//     "role",
+//     "age",
+//     "gender",
+//     "nationality",
+//     "passportNumber",
+//     "siblings",
+//     "phoneNumber",
+//     "secondaryPhoneNumber",
+//     "address",
+//     "avatar",
+//     "grade",
+//     "campus",
+//     "status",
+//     "year",
+//   ];
+
+//   fieldsToUpdate.forEach((field) => {
+//     if (req.body[field] !== undefined) {
+//       user[field] = req.body[field];
+//     }
+//   });
+
+//   // Update password only if provided and not empty
+//   if (req.body.password && req.body.password.trim() !== "") {
+//     user.password = req.body.password; // triggers pre-save hook to hash
+//   }
+
+//   // Save user
+//   await user.save();
+
+//   res.status(200).json({
+//     success: true,
+//     user,
+//   });
+// });
 export const updateUser = catchAsyncErrors(async (req, res, next) => {
-  if (_.isString(req.body?.avatar)) {
-    const avatar = await upload_file(req.body.avatar, "shopit/avatars");
-    if (avatar.url) {
-      req.body.avatar = avatar
-    }
+  const { campus } = req.cookies;
+  const { selectedYear } = req.cookies;
+  
+  // Temporary: Skip avatar handling to avoid errors
+  if (req.body.avatar) {
+    delete req.body.avatar;
   }
 
-  const newUserData = {
-    name: req.body.name,
-    email: req.body.email,
-    role: req.body.role,
-    age: req.body.age,
-    gender: req.body.gender,
-    nationality: req.body.nationality,
-    passportNumber: req.body.passportNumber,
-    siblings: req.body.siblings,
-    phoneNumber: req.body.phoneNumber,
-    secondaryPhoneNumber: req.body.secondaryPhoneNumber,
-    address: req.body.address,
-    avatar: req.body.avatar,
-    grade: req.body.grade,
-    campus: req.body.campus,
-  };
+  // Find the user
+  const user = await User.findById(req.params.id).select("+password");
+  if (!user) {
+    return next(new ErrorHandler(`User not found with id: ${req.params.id}`, 404));
+  }
 
-  const user = await User.findByIdAndUpdate(req.params.id, newUserData, {
-    new: true,
+  // Update fields safely
+  const fieldsToUpdate = [
+    "name",
+    "email",
+    "role",
+    "age",
+    "gender",
+    "nationality",
+    "passportNumber",
+    "siblings",
+    "phoneNumber",
+    "secondaryPhoneNumber",
+    "address",
+    "grade",
+    "campus",
+    "status",
+    "year",
+  ];
+
+  fieldsToUpdate.forEach((field) => {
+    if (req.body[field] !== undefined) {
+      user[field] = req.body[field];
+    }
   });
 
+  // Agar cookies se campus aur year values available hain, to unhe bhi update karo
+  if (campus) {
+    user.campus = campus;
+  }
+  
+  if (selectedYear) {
+    user.year = selectedYear;
+  }
+
+  // Update password only if provided and not empty
+  if (req.body.password && req.body.password.trim() !== "") {
+    user.password = req.body.password;
+  }
+
+  // Save user
+  await user.save();
+
   res.status(200).json({
+    success: true,
     user,
   });
 });
+
+  
+
+
 
 // Delete User - ADMIN  =>  /api/v1/admin/users/:id
 export const deleteUser = catchAsyncErrors(async (req, res, next) => {
@@ -366,61 +484,176 @@ export const deleteUser = catchAsyncErrors(async (req, res, next) => {
 
 
 // Get all Users -  /api/v1/users
+// export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
+ 
+//   let users = [];
+//   let sortedStudents = [];
+//   const { campus, selectedYear } = req.cookies;
+
+//   const match = {};
+
+//   if (campus) {
+//     match.campus = new mongoose.Types.ObjectId(campus);
+//   }
+//   if (selectedYear) {
+//     // year tumhare model me Date hai => is wajah se direct string match nahi hoga
+//     // agar selectedYear format '2025' ya '2025-01-01' aa raha hai to accordingly cast karna padega
+//     match.year = new Date(selectedYear);
+//   }
+
+//   if (req.params.type === 'student') {
+//     match.role = 'student';
+
+//     const pipeline = [
+//       { $match: match },
+//       {
+//         $lookup: {
+//           from: 'grade',
+//           localField: 'grade.gradeId',
+//           foreignField: '_id',
+//           as: 'populatedGrades'
+//         }
+//       },
+//       {
+//         $lookup: {
+//           from: 'campus', // 🔹 table ka actual name check kar lo (zyada cases me plural hota hai)
+//           localField: 'campus',
+//           foreignField: '_id',
+//           as: 'campus'
+//         }
+//       },
+//       {
+//         $addFields: {
+//           grade: { $arrayElemAt: ['$populatedGrades', -1] } // last grade pick
+//         }
+//       },
+//       {
+//         $unwind: {
+//           path: '$campus',
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+//       {
+//         $unwind: {
+//           path: '$grade',
+//           preserveNullAndEmptyArrays: true
+//         }
+//       }
+//     ];
+
+//     const fetchedUsers = await User.aggregate(pipeline);
+
+//     sortedStudents = _.sortBy(
+//       fetchedUsers,
+//       [
+//         (item) => item.grade?.gradeName?.toLowerCase() || "",
+//         (item) => item?.name?.toLowerCase() || ""
+//       ]
+//     );
+//   } 
+//   else if (req.params.type === 'employee') {
+//     users = await User.find({ ...match, role: { $ne: 'student' } });
+//   } 
+//   else {
+//     users = await User.find({ ...match, role: req.params.type }).populate('campus', 'name');
+//   }
+
+//   res.status(200).json({
+//     users: req.params.type === 'student' ? sortedStudents : users,
+//   });
+// });
 export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
-  let users = []
-  let sortedStudents = []
-  const { campus } = req.cookies
-  const match = {}
+  let users = [];
+  let sortedStudents = [];
+  const { campus, selectedYear } = req.cookies;
+
+  const match = {};
+
   if (campus) {
-    match.campus = new mongoose.Types.ObjectId(campus)
+    match.campus = new mongoose.Types.ObjectId(campus);
+  }
+  if (selectedYear) {
+    match.year = new Date(selectedYear);
   }
 
   if (req.params.type === 'student') {
-    match.role = "student"
-    const users = await User
-      .aggregate([
-        { $match: match, },
-        {
-          $lookup: {
-            from: 'grades',
-            localField: 'grade.gradeId',
-            foreignField: '_id',
-            as: 'populatedGrades'
-          }
-        },
-        {
-          $lookup: {
-            from: 'campus',
-            localField: 'campus',
-            foreignField: '_id',
-            as: 'campus'
-          }
-        },
-        {
-          $addFields: {
-            'grade': {
-              $slice: ['$populatedGrades', -1]
+    match.role = 'student';
+
+    const pipeline = [
+      { $match: match },
+      {
+        $lookup: {
+          from: 'grades', // Ensure this matches your actual collection name
+          localField: 'grade.gradeId',
+          foreignField: '_id',
+          as: 'gradeDetails'
+        }
+      },
+      {
+        $lookup: {
+          from: 'campuses', // Ensure this matches your actual collection name
+          localField: 'campus',
+          foreignField: '_id',
+          as: 'campus'
+        }
+      },
+      {
+        $unwind: {
+          path: '$campus',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      // Add grade information to each grade entry
+      {
+        $addFields: {
+          grade: {
+            $map: {
+              input: "$grade",
+              as: "g",
+              in: {
+                $mergeObjects: [
+                  "$$g",
+                  {
+                    gradeDetails: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$gradeDetails",
+                            as: "gd",
+                            cond: { $eq: ["$$gd._id", "$$g.gradeId"] }
+                          }
+                        },
+                        0
+                      ]
+                    }
+                  }
+                ]
+              }
             }
           }
-        },
-        {
-          $unwind: {
-            path: '$campus',
-            preserveNullAndEmptyArrays: true
-          }
-        },
-        {
-          $unwind: {
-            path: '$grade',
-            preserveNullAndEmptyArrays: true
-          }
         }
-      ]);
-    sortedStudents = _.sortBy(users, [(item) => item.grade?.gradeName?.toLowerCase()], (item) => item?.name?.toLowerCase())
-  }
-  if (req.params.type === 'employee') {
+      },
+      // Add current grade for sorting
+      {
+        $addFields: {
+          currentGrade: { $arrayElemAt: ['$gradeDetails', -1] } // Last grade for sorting
+        }
+      }
+    ];
+
+    const fetchedUsers = await User.aggregate(pipeline);
+
+    sortedStudents = _.sortBy(
+      fetchedUsers,
+      [
+        (item) => item.currentGrade?.gradeName?.toLowerCase() || "",
+        (item) => item?.name?.toLowerCase() || ""
+      ]
+    );
+  } 
+  else if (req.params.type === 'employee') {
     users = await User.find({ ...match, role: { $ne: 'student' } });
-  }
+  } 
   else {
     users = await User.find({ ...match, role: req.params.type }).populate('campus', 'name');
   }

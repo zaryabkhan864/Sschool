@@ -46,6 +46,13 @@ export const campusApi = createApi({
       }),
       invalidatesTags: ["Campus"], // Agar campus ka data refresh karna ho
     }),
+    deleteCampus: builder.mutation({
+      query: (id) => ({
+        url: `/campus/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Campus"],
+    }),
   }),
 });
 
@@ -55,4 +62,5 @@ export const {
   useCreateCampusMutation,
   useUpdateCampusMutation,
   useSetCampusTokenMutation,
+  useDeleteCampusMutation,
 } = campusApi;

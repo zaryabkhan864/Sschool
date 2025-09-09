@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import { useGetCoursesQuery } from "../../redux/api/courseApi";
 import {
@@ -9,7 +10,8 @@ import {
 } from "../../redux/api/gradesApi";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
-import { useTranslation } from "react-i18next";
+import Loader from "../layout/Loader";
+import ConfirmationModal from "../GUI/ConfirmationModal";
 
 const UpdateGrade = () => {
   const { t } = useTranslation();
@@ -24,11 +26,13 @@ const UpdateGrade = () => {
   const [grade, setGrade] = useState({
     gradeName: "",
     description: "",
-    year: "",
     courses: [],
   });
 
-  const { gradeName, description, year, courses } = grade;
+  const { gradeName, description, courses } = grade;
+
+  // For update confirmation modal
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     if (data) {
@@ -36,21 +40,27 @@ const UpdateGrade = () => {
       setGrade({
         gradeName: data.grade.gradeName,
         description: data.grade.description,
-        year: data.grade.year,
         courses: selectedCourseIds,
       });
     }
-  }, [data]);
 
-  useEffect(() => {
+    if (gradeError) {
+      toast.error(gradeError?.data?.message || "Error loading grade details");
+    }
+
     if (updateError) {
       toast.error(updateError?.data?.message || "Error updating grade");
     }
+
     if (updateSuccess) {
       toast.success("Grade updated successfully");
       navigate("/admin/grades");
     }
-  }, [updateError, updateSuccess, navigate]);
+  }, [data, gradeError, updateError, updateSuccess, navigate]);
+
+  if (gradeLoading) {
+    return <Loader />;
+  }
 
   const onChange = (e) => {
     setGrade({ ...grade, [e.target.name]: e.target.value });
@@ -72,12 +82,15 @@ const UpdateGrade = () => {
     setGrade({ ...grade, courses: updatedCourses });
   };
 
-  const submitHandler = (e) => {
+  const handleSubmitClick = (e) => {
     e.preventDefault();
+    setShowModal(true);
+  };
+
+  const confirmUpdate = () => {
     const formattedGrade = {
       gradeName,
       description,
-      year,
       courses,
     };
     updateGrade({ id: params.id, body: formattedGrade });
@@ -90,12 +103,13 @@ const UpdateGrade = () => {
       <MetaData title={t("Update Grade")} />
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">{t("Update Grade")}</h2>
-          <form onSubmit={submitHandler}>
-            <div className="grid grid-cols-2 gap-4">
+          <h2 className="text-2xl font-semibold mb-6">{t("Update")} {t("Grade")}</h2>
+          <form onSubmit={handleSubmitClick}>
+            <div className="grid grid-cols-1 gap-4">
+              {/* Grade Name Field */}
               <div className="mb-4">
                 <label htmlFor="gradeName_field" className="block text-sm font-medium text-gray-700">
-                  {t("Grade Name")}
+                  {t("Grade")} {t("Name")}
                 </label>
                 <input
                   type="text"
@@ -104,28 +118,12 @@ const UpdateGrade = () => {
                   name="gradeName"
                   value={gradeName}
                   onChange={onChange}
-                />
-              </div>
-              <div className="mb-4">
-                <label htmlFor="year_field" className="block text-sm font-medium text-gray-700">
-                  {t("Year")}
-                </label>
-                <input
-                  type="text"
-                  id="year_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="year"
-                  value={year}
-                  maxLength={4}
-                  minLength={4}
                   required
-                  onInvalid={(e) => e.target.setCustomValidity(t("Year must be exactly 4 digits"))}
-                  onInput={(e) => e.target.setCustomValidity("")}
-                  onChange={onChange}
                 />
               </div>
             </div>
 
+            {/* Description Field */}
             <div className="mb-4">
               <label htmlFor="description_field" className="block text-sm font-medium text-gray-700">
                 {t("Description")}
@@ -140,6 +138,7 @@ const UpdateGrade = () => {
               ></textarea>
             </div>
 
+            {/* Courses Field */}
             <div className="mb-4">
               <label htmlFor="courses_field" className="block text-sm font-medium text-gray-700">
                 {t("Courses")}
@@ -150,6 +149,7 @@ const UpdateGrade = () => {
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={course}
                     onChange={(e) => updateCourse(index, e.target.value)}
+                    required
                   >
                     <option value="" disabled>
                       {t("Select a course")}
@@ -178,16 +178,28 @@ const UpdateGrade = () => {
               </button>
             </div>
 
+            {/* Submit Button */}
             <button
               type="submit"
-              className={`w-full py-2 text-white font-semibold rounded-md ${updateLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"} focus:outline-none focus:ring focus:ring-blue-300`}
+              className={`w-full py-2 text-white font-semibold rounded-md ${
+                updateLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+              } focus:outline-none focus:ring focus:ring-blue-300`}
               disabled={updateLoading}
             >
-              {updateLoading ? t("Updating...") : t("UPDATE")}
+              {updateLoading ? t("Updating...") : t("Update")}
             </button>
           </form>
         </div>
       </div>
+
+      {/* Update Confirmation Modal */}
+      <ConfirmationModal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        confirmDelete={confirmUpdate}
+        isDeleteLoading={updateLoading}
+        message={t("Do you want to update this grade?")}
+      />
     </AdminLayout>
   );
 };

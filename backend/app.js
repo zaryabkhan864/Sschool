@@ -6,6 +6,7 @@ import errorMiddleware from "./middlewares/errors.js";
 const app = express();
 
 import path from "path";
+import { fileURLToPath } from "url";
 // import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -66,7 +67,7 @@ import attendanceRoute from "./routes/attendance.js"
 import fileRoutes from "./routes/file.js";
 import campusRoutes from "./routes/campus.js";
 
-import { fileURLToPath } from "url";
+
 
 app.use("/api/v1", courseRoutes);
 app.use("/api/v1", gradeRoutes);

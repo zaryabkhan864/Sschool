@@ -21,12 +21,11 @@ const NewCourse = () => {
     courseName: "",
     description: "",
     code: "",
-    year:"",
     teacher: "", // Store teacher ID
   });
 
 
-  const { courseName, description, code, year,  teacher} = course;
+  const { courseName, description, code,  teacher} = course;
 
   const [createCourse, { isLoading, error, isSuccess }] =
     useCreateCourseMutation();
@@ -124,37 +123,6 @@ const NewCourse = () => {
                 />
               </div>
               <div className="mb-4">
-                <label
-                  htmlFor="year_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Year')}
-                </label>
-                <input
-                  type="text"
-                  id="year_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="year"
-                  value={year}
-                  maxLength={4}
-                  minLength={4}
-                  // pattern="\d{8}"
-                  required
-                  onInvalid={(e) =>
-                    e.target.setCustomValidity("Year must be exactly 4 digits")
-                  }
-                  onInput={(e) => {
-                    e.target.setCustomValidity("");
-                  }}
-                  onChange={onChange}
-                />
-              </div>
-
-
-            </div>
-
-            {/* Teacher Dropdown */}
-            <div className="mb-4">
               <label
                 htmlFor="teacher_field"
                 className="block text-sm font-medium text-gray-700"
@@ -179,6 +147,10 @@ const NewCourse = () => {
                   ))}
               </select>
             </div>
+            </div>
+
+            {/* Teacher Dropdown */}
+
 
             <button
               type="submit"

@@ -1,14 +1,20 @@
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCountries } from "react-countries";
 import { useGetGradesQuery } from "../../redux/api/gradesApi";
-import { useGetUserByTypeQuery, useGetUserDetailsQuery, useUpdateUserMutation } from "../../redux/api/userApi";
+import {
+  useGetUserByTypeQuery,
+  useGetUserDetailsQuery,
+  useUpdateUserMutation,
+} from "../../redux/api/userApi";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
-import { useTranslation } from "react-i18next";
+import ConfirmationModal from "../GUI/ConfirmationModal";
+import Loader from "../layout/Loader";
 
 const UpdateStudent = () => {
   const { t } = useTranslation();
@@ -17,15 +23,16 @@ const UpdateStudent = () => {
   const { countries } = useCountries();
   const { refetch } = useGetUserByTypeQuery("student");
 
-  const { data } = useGetUserDetailsQuery(params?.id);
+  const { data: userData, isLoading: detailsLoading } = useGetUserDetailsQuery(params?.id);
+  console.log("user daetails",userData)
+  const { data: studentsData } = useGetUserByTypeQuery("student");
+  const { data: gradesData, isLoading: gradeLoading } = useGetGradesQuery();
+  const grades = gradesData?.grades || [];
 
   const [
     updateUser,
     { isLoading: updateLoading, error: updateError, isSuccess: updateSuccess },
   ] = useUpdateUserMutation();
-
-  const { data: gradesData, isLoading: gradeLoading } = useGetGradesQuery();
-  const grades = gradesData?.grades || [];
 
   const [student, setStudent] = useState({
     name: "",
@@ -37,13 +44,14 @@ const UpdateStudent = () => {
     secondaryPhoneNumber: "",
     address: "",
     grade: "",
-    year: "",
     status: "",
     email: "",
     avatar: "",
+    siblings: [],
   });
 
   const [avatarPreview, setAvatarPreview] = useState("");
+  const [showModal, setShowModal] = useState(false);
 
   const {
     name,
@@ -55,31 +63,31 @@ const UpdateStudent = () => {
     secondaryPhoneNumber,
     address,
     grade,
-    year,
     status,
     email,
+    siblings,
   } = student;
 
   useEffect(() => {
-    if (data?.user) {
+    if (userData?.user) {
       setStudent({
-        name: data?.user?.name,
-        age: data?.user?.age,
-        gender: data?.user?.gender,
-        nationality: data?.user?.nationality,
-        passportNumber: data?.user?.passportNumber,
-        phoneNumber: data?.user?.phoneNumber,
-        secondaryPhoneNumber: data?.user?.secondaryPhoneNumber,
-        address: data?.user?.address,
-        grade: data?.user?.grade?._id || data?.user?.grade,
-        year: data?.user?.year,
-        status: data?.user?.status,
-        email: data?.user?.email,
-        avatar: data?.user?.avatar?.url,
+        name: userData?.user?.name || "",
+        age: userData?.user?.age || "",
+        gender: userData?.user?.gender || "",
+        nationality: userData?.user?.nationality || "",
+        passportNumber: userData?.user?.passportNumber || "",
+        phoneNumber: userData?.user?.phoneNumber || "",
+        secondaryPhoneNumber: userData?.user?.secondaryPhoneNumber || "",
+        address: userData?.user?.address || "",
+        grade: userData?.user?.grade?._id || userData?.user?.grade || "",
+        status: userData?.user?.status,
+        email: userData?.user?.email || "",
+        avatar: userData?.user?.avatar?.url || "",
+        siblings: userData?.user?.siblings || [],
       });
-      setAvatarPreview(data?.user?.avatar?.url);
+      setAvatarPreview(userData?.user?.avatar?.url);
     }
-  }, [data]);
+  }, [userData]);
 
   useEffect(() => {
     if (updateError) {
@@ -91,6 +99,10 @@ const UpdateStudent = () => {
       refetch();
     }
   }, [updateError, updateSuccess, navigate, refetch]);
+
+  if (detailsLoading) {
+    return <Loader />;
+  }
 
   const onChange = (e) => {
     if (e.target.name === "avatar") {
@@ -117,11 +129,30 @@ const UpdateStudent = () => {
     setStudent((prev) => ({ ...prev, secondaryPhoneNumber: value }));
   };
 
-  const submitHandler = (e) => {
+  // ✅ Siblings functions
+  const addSibling = () => {
+    setStudent((prev) => ({ ...prev, siblings: [...prev.siblings, ""] }));
+  };
+
+  const removeSibling = (index) => {
+    const updated = [...siblings];
+    updated.splice(index, 1);
+    setStudent((prev) => ({ ...prev, siblings: updated }));
+  };
+
+  const updateSibling = (index, value) => {
+    const updated = [...siblings];
+    updated[index] = value;
+    setStudent((prev) => ({ ...prev, siblings: updated }));
+  };
+
+  const handleSubmitClick = (e) => {
     e.preventDefault();
-    const formattedStudent = {
-      ...student,
-    };
+    setShowModal(true);
+  };
+
+  const confirmUpdate = () => {
+    const formattedStudent = { ...student };
     updateUser({ id: params.id, body: formattedStudent });
   };
 
@@ -130,15 +161,13 @@ const UpdateStudent = () => {
       <MetaData title={"Update Student"} />
       <div className="flex justify-center items-center pt-5 pb-10">
         <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">{t('Update Student')}</h2>
-          <form onSubmit={submitHandler}>
+          <h2 className="text-2xl font-semibold mb-6">{t("Update Student")}</h2>
+          <form onSubmit={handleSubmitClick}>
             <div className="grid grid-cols-2 gap-4">
+              {/* Name */}
               <div className="mb-4">
-                <label
-                  htmlFor="name_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Student Name')}
+                <label htmlFor="name_field" className="block text-sm font-medium text-gray-700">
+                  {t("Student Name")}
                 </label>
                 <input
                   type="text"
@@ -147,14 +176,13 @@ const UpdateStudent = () => {
                   name="name"
                   value={name}
                   onChange={onChange}
+                  required
                 />
               </div>
+              {/* Age */}
               <div className="mb-4">
-                <label
-                  htmlFor="age_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Age')}
+                <label htmlFor="age_field" className="block text-sm font-medium text-gray-700">
+                  {t("Age")}
                 </label>
                 <input
                   type="number"
@@ -163,25 +191,24 @@ const UpdateStudent = () => {
                   name="age"
                   value={age}
                   onChange={onChange}
+                  required
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
+              {/* Nationality */}
               <div className="mb-4">
-                <label
-                  htmlFor="nationality_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Nationality')}
+                <label htmlFor="nationality_field" className="block text-sm font-medium text-gray-700">
+                  {t("Nationality")}
                 </label>
                 <select
-                  type="text"
                   id="nationality_field"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   name="nationality"
                   value={nationality}
                   onChange={onChange}
+                  required
                 >
                   {countries?.map(({ name }) => (
                     <option key={name} value={name}>
@@ -190,12 +217,10 @@ const UpdateStudent = () => {
                   ))}
                 </select>
               </div>
+              {/* Passport */}
               <div className="mb-4">
-                <label
-                  htmlFor="passportNumber_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Passport No')}
+                <label htmlFor="passportNumber_field" className="block text-sm font-medium text-gray-700">
+                  {t("Passport No")}
                 </label>
                 <input
                   type="text"
@@ -208,20 +233,15 @@ const UpdateStudent = () => {
                   pattern="[a-zA-z0-9]{8,14}"
                   required
                   onInvalid={(e) =>
-                    e.target.setCustomValidity(
-                      "Passport number must be 8 to 14 characters"
-                    )
+                    e.target.setCustomValidity("Passport number must be 8 to 14 characters")
                   }
-                  onInput={(e) => {
-                    e.target.setCustomValidity("");
-                  }}
+                  onInput={(e) => e.target.setCustomValidity("")}
                   onChange={onChange}
                 />
               </div>
+              {/* Gender */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  {t('Gender')}
-                </label>
+                <label className="block text-sm font-medium text-gray-700">{t("Gender")}</label>
                 <div className="flex items-center space-x-4 mt-1">
                   <div className="flex items-center">
                     <input
@@ -232,12 +252,10 @@ const UpdateStudent = () => {
                       checked={gender === "Male"}
                       onChange={onChange}
                       className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                      required
                     />
-                    <label
-                      htmlFor="male"
-                      className="ml-2 text-sm text-gray-700"
-                    >
-                      {t('Male')}
+                    <label htmlFor="male" className="ml-2 text-sm text-gray-700">
+                      {t("Male")}
                     </label>
                   </div>
                   <div className="flex items-center">
@@ -250,11 +268,8 @@ const UpdateStudent = () => {
                       onChange={onChange}
                       className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
                     />
-                    <label
-                      htmlFor="female"
-                      className="ml-2 text-sm text-gray-700"
-                    >
-                      {t('Female')}
+                    <label htmlFor="female" className="ml-2 text-sm text-gray-700">
+                      {t("Female")}
                     </label>
                   </div>
                 </div>
@@ -262,9 +277,10 @@ const UpdateStudent = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
+              {/* Phone 1 */}
               <div className="mb-4">
                 <label htmlFor="phoneNumber_field" className="block text-sm font-medium text-gray-700">
-                  {t('Contact No')}
+                  {t("Contact No")}
                 </label>
                 <div className="mt-1">
                   <PhoneInput
@@ -281,9 +297,13 @@ const UpdateStudent = () => {
                   />
                 </div>
               </div>
+              {/* Phone 2 */}
               <div className="mb-4">
-                <label htmlFor="secondaryPhoneNumber_field" className="block text-sm font-medium text-gray-700">
-                  {t('Contact No 2')}
+                <label
+                  htmlFor="secondaryPhoneNumber_field"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  {t("Contact No 2")}
                 </label>
                 <div className="mt-1">
                   <PhoneInput
@@ -302,38 +322,11 @@ const UpdateStudent = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              {/* Grade */}
               <div className="mb-4">
-                <label
-                  htmlFor="year_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Year')}
-                </label>
-                <input
-                  type="text"
-                  id="year_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="year"
-                  value={year}
-                  maxLength={4}
-                  minLength={4}
-                  required
-                  onInvalid={(e) =>
-                    e.target.setCustomValidity("Year must be 4 digits")
-                  }
-                  onInput={(e) => {
-                    e.target.setCustomValidity("");
-                  }}
-                  onChange={onChange}
-                />
-              </div>
-              <div className="mb-4">
-                <label
-                  htmlFor="grade_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Grade')}
+                <label htmlFor="grade_field" className="block text-sm font-medium text-gray-700">
+                  {t("Grade")}
                 </label>
                 <select
                   id="grade_field"
@@ -341,9 +334,10 @@ const UpdateStudent = () => {
                   name="grade"
                   value={grade}
                   onChange={onChange}
+                  required
                 >
                   <option value="" disabled>
-                    {t('Select Grade')}
+                    {t("Select Grade")}
                   </option>
                   {!gradeLoading &&
                     grades?.map((g) => (
@@ -353,10 +347,9 @@ const UpdateStudent = () => {
                     ))}
                 </select>
               </div>
+              {/* Status */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  {t('Status')}
-                </label>
+                <label className="block text-sm font-medium text-gray-700">{t("Status")}</label>
                 <div className="flex items-center space-x-4 mt-3">
                   <div className="flex items-center">
                     <input
@@ -365,13 +358,12 @@ const UpdateStudent = () => {
                       name="status"
                       value={true}
                       checked={status === true || status === "true"}
-                      onChange={(e) =>
-                        setStudent({ ...student, status: true })
-                      }
+                      onChange={() => setStudent({ ...student, status: true })}
                       className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500"
+                      required
                     />
                     <label htmlFor="active" className="ml-2 text-sm text-gray-700">
-                      {t('Active')}
+                      {t("Active")}
                     </label>
                   </div>
                   <div className="flex items-center">
@@ -381,25 +373,61 @@ const UpdateStudent = () => {
                       name="status"
                       value={false}
                       checked={status === false || status === "false"}
-                      onChange={(e) =>
-                        setStudent({ ...student, status: false })
-                      }
+                      onChange={() => setStudent({ ...student, status: false })}
                       className="h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500"
                     />
                     <label htmlFor="inactive" className="ml-2 text-sm text-gray-700">
-                      {t('Inactive')}
+                      {t("Inactive")}
                     </label>
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* ✅ Siblings Section */}
             <div className="mb-4">
-              <label
-                htmlFor="address_field"
-                className="block text-sm font-medium text-gray-700"
+              <label className="block text-sm font-medium text-gray-700">{t("Siblings")}</label>
+              {siblings.map((sibling, index) => (
+                <div key={index} className="flex items-center space-x-4 mb-2">
+                  <select
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={sibling}
+                    onChange={(e) => updateSibling(index, e.target.value)}
+                  >
+                    <option value="" disabled>
+                      {t("Select a sibling")}
+                    </option>
+                    {studentsData?.users &&
+                      studentsData?.users
+                        .filter((s) => s._id !== params.id)
+                        .map((s) => (
+                          <option key={s._id} value={s._id}>
+                            {s.name}
+                          </option>
+                        ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="py-2 px-4 text-white bg-red-600 hover:bg-red-700 rounded-md"
+                    onClick={() => removeSibling(index)}
+                  >
+                    {t("Remove")}
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="py-2 px-4 text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+                onClick={addSibling}
               >
-                {t('Address')}
+                {t("Add Sibling")}
+              </button>
+            </div>
+
+            {/* Address */}
+            <div className="mb-4">
+              <label htmlFor="address_field" className="block text-sm font-medium text-gray-700">
+                {t("Address")}
               </label>
               <textarea
                 id="address_field"
@@ -408,15 +436,14 @@ const UpdateStudent = () => {
                 rows="2"
                 value={address}
                 onChange={onChange}
+                required
               ></textarea>
             </div>
 
+            {/* Email */}
             <div className="mb-4">
-              <label
-                htmlFor="email_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                {t('Email')}
+              <label htmlFor="email_field" className="block text-sm font-medium text-gray-700">
+                {t("Email")}
               </label>
               <input
                 type="email"
@@ -425,15 +452,14 @@ const UpdateStudent = () => {
                 name="email"
                 value={email}
                 onChange={onChange}
+                required
               />
             </div>
 
+            {/* Avatar */}
             <div className="mb-4">
-              <label
-                htmlFor="avatar_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                {t('Avatar')}
+              <label htmlFor="avatar_field" className="block text-sm font-medium text-gray-700">
+                {t("Avatar")}
               </label>
               <input
                 type="file"
@@ -452,6 +478,7 @@ const UpdateStudent = () => {
               )}
             </div>
 
+            {/* Submit */}
             <button
               type="submit"
               className={`w-full py-2 text-white font-semibold rounded-md ${
@@ -459,11 +486,20 @@ const UpdateStudent = () => {
               } focus:outline-none focus:ring focus:ring-blue-300`}
               disabled={updateLoading}
             >
-              {updateLoading ? t('Updating...') : t('UPDATE')}
+              {updateLoading ? t("Updating...") : t("Update")}
             </button>
           </form>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        confirmDelete={confirmUpdate}
+        isDeleteLoading={updateLoading}
+        message={t("Do you want to update this student?")}
+      />
     </AdminLayout>
   );
 };

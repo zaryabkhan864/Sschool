@@ -11,6 +11,7 @@ import mongoose from "mongoose";
 // Create new course => /api/v1/courses
 export const newCourse = catchAsyncErrors(async (req, res, next) => {
   const { campus } = req.cookies
+  const { selectedYear } = req.cookies;
 
   const { courseName, description, code, teacher ,year} = req.body;
   let teacherDetail
@@ -28,7 +29,7 @@ export const newCourse = catchAsyncErrors(async (req, res, next) => {
     code,
     teacher: teacherId,
     campus,
-    year
+    year:selectedYear,
   });
 
   res.status(200).json({
@@ -38,13 +39,20 @@ export const newCourse = catchAsyncErrors(async (req, res, next) => {
 
 //Create get all course => /api/v1/courses
 export const getCourses = catchAsyncErrors(async (req, res, next) => {
-  const { campus } = req.cookies
-  
-  req.query.campus = campus
-  
+  const { campus, selectedYear } = req.cookies;
+
+  // Inject filters from cookies into query
+  req.query.campus = campus;
+  if (selectedYear) {
+    req.query.year = selectedYear; // or 'session', depending on your schema
+  }
+
   const resPerPage = 8;
-  const apiFilters = new APIFilters(Course, req.query).search().filters().populate('campus'
-  );
+
+  const apiFilters = new APIFilters(Course, req.query)
+    .search()
+    .filters()
+    .populate('campus');
 
   let courses = await apiFilters.query;
   const filteredCoursesCount = courses.length;
@@ -60,31 +68,46 @@ export const getCourses = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
+
 // Update course => /api/v1/courses/:id
 export const updateCourse = catchAsyncErrors(async (req, res, next) => {
   let course = await Course.findById(req?.params?.id);
+
+  const { campus } = req.cookies;
+  const { selectedYear } = req.cookies;
 
   if (!course) {
     return next(new ErrorHandler("Course not found", 404));
   }
 
-  const { courseName, description, code, teacher, campus } = req.body;
+  const { courseName, description, code, teacher } = req.body;
 
   const teacherId = teacher === "" ? null : teacher;
+  let selectedCampus;
+  let teacherDetail;
 
   if(teacher){
-    teacherDetail = await Teacher.findById(teacher)
+    teacherDetail = await Teacher.findById(teacher);
     if (!teacherDetail) {
       return next(new ErrorHandler("Teacher not found", 404));
     }
-    selectedCampus = teacherDetail.campus
+    selectedCampus = teacherDetail.campus;
   }
   else{
-    selectedCampus = campus
+    selectedCampus = campus;
   }
+
+  // Update course with campus and year from cookies
   course = await Course.findByIdAndUpdate(
     req?.params?.id,
-    { courseName, description, code, teacher: teacherId },
+    { 
+      courseName, 
+      description, 
+      code, 
+      teacher: teacherId,
+      campus: selectedCampus, // Use campus from cookie or teacher
+      year: selectedYear // Use year from cookie
+    },
     {
       new: true,
     }

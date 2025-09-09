@@ -6,34 +6,55 @@ import { useLazyLogoutQuery } from "../../redux/api/authApi";
 import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 import LanguageSwitcher from "../LanguageSwitcher";
 import { useGetCampusQuery, useSetCampusTokenMutation } from "../../redux/api/campusApi";
+import dayjs from "dayjs";
 
 const Header = () => {
   const getCookie = (name) => {
     const cookieString = document.cookie;
     const cookies = cookieString.split('; ');
-
     for (let cookie of cookies) {
       const [cookieName, cookieValue] = cookie.split('=');
-      if (cookieName === name) {
-        return decodeURIComponent(cookieValue);
-      }
+      if (cookieName === name) return decodeURIComponent(cookieValue);
     }
     return null;
   };
 
-  const navigate = useNavigate();
   const location = useLocation();
   const { isLoading } = useGetMeQuery();
   const { data: CampusData, isLoading: CampusLoading, error } = useGetCampusQuery();
   const [setCampusToken] = useSetCampusTokenMutation();
   const [logout] = useLazyLogoutQuery();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedCampus, setSelectedCampus] = useState(getCookie('campus'));
   const [selectedCampusName, setSelectedCampusName] = useState(user?.campus?.name || 'N/A');
 
+  const [selectedYear, setSelectedYear] = useState('');
   const dropdownTimeoutRef = useRef(null);
+
+  // 🔄 Generate dynamic year list
+  const currentYear = dayjs().year();
+  const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
+
+  // 🔁 Load saved year from cookie on component mount and when user changes
+  useEffect(() => {
+    const getYearFromCookie = () => {
+      return getCookie('selectedYear');
+    };
+
+    const storedYear = getYearFromCookie();
+    if (storedYear) {
+      setSelectedYear(storedYear);
+    } else {
+      // Set default year if no cookie exists
+      const defaultYear = currentYear.toString();
+      setSelectedYear(defaultYear);
+      // Also set the cookie with the default year
+      document.cookie = `selectedYear=${encodeURIComponent(defaultYear)}; path=/; max-age=${60 * 60 * 24 * 365}`;
+    }
+  }, [currentYear, user]); // Added user as dependency to update when user logs in
 
   const handleMouseEnter = () => {
     clearTimeout(dropdownTimeoutRef.current);
@@ -47,30 +68,39 @@ const Header = () => {
   };
 
   useEffect(() => {
-    if(user?.role !== 'admin')
-    setSelectedCampusName(user?.campus?.name || 'N/A');
+    if (user?.role !== 'admin') {
+      setSelectedCampusName(user?.campus?.name || 'N/A');
+    }
   }, [user?.campus?.name, user?.role]);
 
   const handleChange = (value) => {
     setSelectedCampus(value);
     const campus = CampusData?.campus?.find((item) => String(item._id) === String(value));
     setSelectedCampusName(campus?.name);
-
-    // Use the mutation to set the campus token in the backend
     setCampusToken(value)
-    .unwrap()
-    .then((response) => {
-      if (response.success) {
-        console.log("Campus ID updated in cookie:", response.campusID);
-        window.location.reload();
-      }
-    })
-    .catch((error) => {
-      console.error("Failed to set campus token:", error);
-    });
-
+      .unwrap()
+      .then((response) => {
+        if (response.success) {
+          window.location.reload();
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to set campus token:", error);
+      });
   };
-
+  
+  // 🕹 Year change handler
+  const handleYearChange = (e) => {
+    const year = e.target.value;
+    setSelectedYear(year);
+  
+    // Set cookie manually (valid for 1 year)
+    document.cookie = `selectedYear=${encodeURIComponent(year)}; path=/; max-age=${60 * 60 * 24 * 365}`;
+  
+    // Reload the page to apply the selected year
+    window.location.reload();
+  };
+  
   const logoutHandler = () => {
     logout()
       .then(() => {
@@ -83,13 +113,9 @@ const Header = () => {
       });
   };
 
-  const toggleMenu = () => {
-    setMenuOpen(!menuOpen);
-  };
+  const toggleMenu = () => setMenuOpen(!menuOpen);
 
-  if (location.pathname === "/") {
-    return null;
-  }
+  if (location.pathname === "/") return null;
 
   return (
     <nav className="flex items-center justify-between px-4 shadow-lg relative py-3">
@@ -118,9 +144,7 @@ const Header = () => {
                   </li>
                 )}
                 <li className="w-full px-4 py-2 hover:bg-gray-200">
-                  <button className="text-red-600" onClick={logoutHandler}>
-                    Logout
-                  </button>
+                  <button className="text-red-600" onClick={logoutHandler}>Logout</button>
                 </li>
               </ul>
             </div>
@@ -128,14 +152,27 @@ const Header = () => {
 
           <div className="flex items-center">
             <LanguageSwitcher />
+
+            {/* 📆 Year Dropdown */}
+            <div className="mx-4">
+              <select
+                className="border p-2 rounded-md text-gray-700"
+                value={selectedYear}
+                onChange={handleYearChange}
+              >
+                {years.map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 🏫 Campus Dropdown */}
             <div className="relative mx-4">
               {user?.role === "admin" ? (
                 <select
                   className="border p-2 rounded-md text-gray-700"
                   value={selectedCampus}
-                  onChange={(e) => {
-                    handleChange(e.target.value)
-                  }}
+                  onChange={(e) => handleChange(e.target.value)}
                 >
                   {CampusLoading ? (
                     <option disabled>Loading Campuses...</option>
@@ -156,6 +193,7 @@ const Header = () => {
               )}
             </div>
 
+            {/* 👤 User Info Dropdown */}
             <div
               className="hidden md:flex relative items-center"
               onMouseEnter={handleMouseEnter}
@@ -174,6 +212,7 @@ const Header = () => {
                   <Cog6ToothIcon className="w-6 h-6 text-gray-700" />
                 </button>
               </div>
+
               {isDropdownOpen && (
                 <div
                   className="absolute right-0 mt-40 w-48 bg-white rounded-md shadow-lg z-10"

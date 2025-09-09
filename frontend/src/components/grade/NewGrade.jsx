@@ -20,10 +20,10 @@ const NewGrade = () => {
     gradeName: "",
     description: "",
     courses: [],
-    year:""
+    // year:""
   });
 
-  const { gradeName, description, courses ,year} = grade;
+  const { gradeName, description, courses } = grade;
 
   const [createGrade, { isLoading, error, isSuccess }] =
     useCreateGradeMutation();
@@ -72,7 +72,7 @@ const NewGrade = () => {
       gradeName,
       description,
       courses, // Send array of course IDs
-      year,
+      // year,
     };
     createGrade(formattedGrade);
   };
@@ -84,7 +84,7 @@ const NewGrade = () => {
         <div className="w-full max-w-7xl">
           <h2 className="text-2xl font-semibold mb-6">{t('New Grade')}</h2>
           <form onSubmit={submitHandler}>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
           <div className="mb-4">
               <label
                 htmlFor="gradeName_field"
@@ -102,7 +102,7 @@ const NewGrade = () => {
                 onChange={onChange}
               />
             </div>
-            <div className="mb-4">
+            {/* <div className="mb-4">
                 <label
                   htmlFor="year_field"
                   className="block text-sm font-medium text-gray-700"
@@ -127,7 +127,7 @@ const NewGrade = () => {
                   }}
                   onChange={onChange}
                 />
-              </div>
+              </div> */}
             </div>
 
 
@@ -181,8 +181,7 @@ const NewGrade = () => {
                     className="py-2 px-4 text-white bg-red-600 hover:bg-red-700 rounded-md"
                     onClick={() => removeCourse(index)}
                   >
-                    "{t('Remove')}"
-
+                    {t("Remove")}
                   </button>
                 </div>
               ))}
@@ -191,8 +190,7 @@ const NewGrade = () => {
                 className="py-2 px-4 text-white bg-blue-600 hover:bg-blue-700 rounded-md"
                 onClick={addCourse}
               >
-                "{t('Add Course')}"
-
+                {t("Add Course")}
               </button>
             </div>
 

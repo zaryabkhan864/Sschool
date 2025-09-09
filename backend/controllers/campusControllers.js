@@ -7,7 +7,6 @@ import sendCampusIDToken from "../utils/sendCampusIDToken.js";
 
 // Create new campus => /api/v1/campus
 export const newCampus = catchAsyncErrors(async (req, res, next) => {
-  console.log("what is request body",req.body)
   const campus = await Campus.create( req.body);
   res.status(200).json({
     campus,
@@ -89,4 +88,16 @@ export const setCampusIDinToken = catchAsyncErrors(async (req, res, next) => {
 
   // Call the utility function and pass status code 200
   sendCampusIDToken(campusID, 200, res);
+});
+
+// Delete campus => /api/v1/campus/:id
+export const deleteCampus = catchAsyncErrors(async (req, res, next) => {
+  const campus = await Campus.findById(req?.params?.id);
+  if (!campus) {
+    return next(new ErrorHandler("Campus not found", 404));
+  }
+  await Campus.findOneAndDelete({ _id: req?.params?.id });
+  res.status(200).json({
+    message: "Campus deleted successfully",
+  });
 });

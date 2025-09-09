@@ -17,9 +17,6 @@ const NewTeacher = () => {
   const { countries } = useCountries();
   const { refetch } = useGetUserByTypeQuery('teacher');
 
-
-
-
   const [teacher, setTeacher] = useState({
     role: 'teacher',
     name: "",
@@ -29,7 +26,6 @@ const NewTeacher = () => {
     nationality: "",
     phoneNumber: "",
     secondaryPhoneNumber: "",
-    year: "",
     status: "",
     email: "",
     password: "",
@@ -46,7 +42,6 @@ const NewTeacher = () => {
     nationality,
     phoneNumber,
     secondaryPhoneNumber,
-    year,
     status,
     email,
     password,
@@ -145,7 +140,7 @@ const NewTeacher = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               <div className="mb-4">
                 <label
                   htmlFor="nationality_field"
@@ -238,6 +233,45 @@ const NewTeacher = () => {
                   </div>
                 </div>
               </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  {t('Status')}
+                </label>
+                <div className="flex items-center space-x-4 mt-3">
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="active"
+                      name="status"
+                      value={true}
+                      checked={status === true || status === "true"}
+                      onChange={(e) =>
+                        setTeacher({ ...teacher, status: true })
+                      }
+                      className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500"
+                    />
+                    <label htmlFor="active" className="ml-2 text-sm text-gray-700">
+                      {t('Active')}
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      id="inactive"
+                      name="status"
+                      value={false}
+                      checked={status === false || status === "false"}
+                      onChange={(e) =>
+                        setTeacher({ ...teacher, status: false })
+                      }
+                      className="h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500"
+                    />
+                    <label htmlFor="inactive" className="ml-2 text-sm text-gray-700">
+                      {t('Inactive')}
+                    </label>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -280,74 +314,7 @@ const NewTeacher = () => {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="mb-4">
-                <label
-                  htmlFor="year_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Year')}
-                </label>
-                <input
-                  type="text"
-                  id="year_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="year"
-                  value={year}
-                  maxLength={4}
-                  minLength={4}
-                  required
-                  onInvalid={(e) =>
-                    e.target.setCustomValidity(
-                      "Year"
-                    )
-                  }
-                  onInput={(e) => {
-                    e.target.setCustomValidity("");
-                  }}
-                  onChange={onChange}
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  {t('Status')}
-                </label>
-                <div className="flex items-center space-x-4 mt-3">
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      id="active"
-                      name="status"
-                      value={true}
-                      checked={status === true || status === "true"}
-                      onChange={(e) =>
-                        setTeacher({ ...teacher, status: true })
-                      }
-                      className="h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500"
-                    />
-                    <label htmlFor="active" className="ml-2 text-sm text-gray-700">
-                      {t('Active')}
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      id="inactive"
-                      name="status"
-                      value={false}
-                      checked={status === false || status === "false"}
-                      onChange={(e) =>
-                        setTeacher({ ...teacher, status: false })
-                      }
-                      className="h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500"
-                    />
-                    <label htmlFor="inactive" className="ml-2 text-sm text-gray-700">
-                      {t('Inactive')}
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
+
             {/* add email and password */}
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">

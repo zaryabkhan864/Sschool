@@ -28,6 +28,11 @@ const announcementSchema = new mongoose.Schema(
         },
       },
     ],
+    gradeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Grade",
+      required: true,
+    },
   },
   { timestamps: true }
 );

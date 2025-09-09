@@ -35,16 +35,30 @@ const AddQuiz = () => {
     // 1 get user details and set user field in formValues
     useEffect(() => {
         if (user && user._id) {
+            const campusFromCookie = document.cookie
+                .split("; ")
+                .find((row) => row.startsWith("campus="))
+                ?.split("=")[1];
+    
+            const yearFromCookie = document.cookie
+                .split("; ")
+                .find((row) => row.startsWith("selectedYear="))
+                ?.split("=")[1];
+    
             setFormValues((prevFormValues) => ({
                 ...prevFormValues,
-                user: user._id, // Update user field in formValues
+                user: user._id,
+                campus: campusFromCookie,
+                year: Number(yearFromCookie)
             }));
+    
             setUserDetails({
                 userId: user._id,
                 userRole: user.role,
             });
         }
-    }, [user]); // Run this effect when user changes
+    }, [user]);
+    
 
     const [sendUserRoleAndID] = useGetGradeByUserIdAndRoleMutation();
     const [sendGradeAndTeacherID] = useGetCourseByGradeAndTeacherIDMutation();
@@ -93,7 +107,12 @@ const AddQuiz = () => {
             try {
 
                 const selectedCourse = courses.find((item) => item._id === formValues.course)
-                const response = await getQuizDetails({ ...formValues, user: selectedCourse?.teacher }).unwrap();
+                const response = await getQuizDetails({
+                    ...formValues,
+                    user: selectedCourse?.teacher,
+                    year: formValues.year,
+                    campus: formValues.campus
+                }).unwrap();
 
                 setQuizDetails(response.quiz);
                 // Initialize marks state with student IDs
