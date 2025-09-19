@@ -4,21 +4,20 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useGetGradeByUserIdAndRoleMutation } from '../../../redux/api/gradesApi';
 import { useGetCourseByGradeAndTeacherIDMutation } from '../../../redux/api/courseApi';
-import { useGetStudentsQuizDetailsByQuizDataMutation, useUpdateQuizMarksMutation } from '../../../redux/api/quizApi';
+import { useGetStudentsExamDetailsByExamDataMutation, useUpdateExamMarksMutation } from '../../../redux/api/examApi';
 import Loader from '../../layout/Loader';
 import AdminLayout from '../../layout/AdminLayout';
 import MetaData from '../../layout/MetaData';
 import PrintLayout from '../../GUI/PrintLayout';
 
-
-const QuizReport = () => {
+const ExamReport = () => {
   const { t } = useTranslation();
   const [userDetails, setUserDetails] = useState({});
   const [grades, setGrades] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [quizDetails, setQuizDetails] = useState(null);
+  const [examDetails, setExamDetails] = useState(null);
   const [marks, setMarks] = useState({});
-  const [isLoadingQuiz, setIsLoadingQuiz] = useState(false);
+  const [isLoadingExam, setIsLoadingExam] = useState(false);
   const contentRef = useRef();
 
   const [formValues, setFormValues] = useState({
@@ -26,7 +25,6 @@ const QuizReport = () => {
     course: '',
     semester: '',
     quarter: '',
-    quizNumber: '',
     user: '',
     campus: '',
     year: ''
@@ -34,24 +32,24 @@ const QuizReport = () => {
 
   const { user } = useSelector((state) => state.auth);
 
-  // 1 get user details and set user field in formValues
+  // 1 get user details
   useEffect(() => {
     if (user && user._id) {
       const campusFromCookie = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("campus="))
-        ?.split("=")[1];
+        .split('; ')
+        .find((row) => row.startsWith('campus='))
+        ?.split('=')[1];
 
       const yearFromCookie = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("selectedYear="))
-        ?.split("=")[1];
+        .split('; ')
+        .find((row) => row.startsWith('selectedYear='))
+        ?.split('=')[1];
 
       setFormValues((prevFormValues) => ({
         ...prevFormValues,
         user: user._id,
         campus: campusFromCookie,
-        year: Number(yearFromCookie)
+        year: Number(yearFromCookie),
       }));
 
       setUserDetails({
@@ -63,81 +61,76 @@ const QuizReport = () => {
 
   const [sendUserRoleAndID] = useGetGradeByUserIdAndRoleMutation();
   const [sendGradeAndTeacherID] = useGetCourseByGradeAndTeacherIDMutation();
-  const [getQuizDetails] = useGetStudentsQuizDetailsByQuizDataMutation();
-  const [updateQuizMarks, { isLoading: updateQuizMarksLoading }] = useUpdateQuizMarksMutation();
+  const [getExamDetails] = useGetStudentsExamDetailsByExamDataMutation();
+  const [updateExamMarks, { isLoading: updateExamMarksLoading }] = useUpdateExamMarksMutation();
 
-  // 2 get grades based on user role and id and get user grade 
+  // 2 get grades
   useEffect(() => {
     if (userDetails.userId && userDetails.userRole) {
       sendUserRoleAndID(userDetails)
         .unwrap()
-        .then((response) => {
-          setGrades(response.grades || []);
-        })
+        .then((response) => setGrades(response.grades || []))
         .catch((err) => console.error('API Error:', err));
     }
   }, [userDetails, sendUserRoleAndID]);
 
+  // 3 get courses
   useEffect(() => {
     if (formValues.grade && userDetails.userId) {
       const body = {
         gradeId: formValues.grade,
         teacherId: userDetails.userId,
-        userRole: userDetails.role
+        userRole: userDetails.role,
       };
       sendGradeAndTeacherID(body)
         .unwrap()
-        .then((response) => {
-          setCourses(response.courses || []);
-        })
+        .then((response) => setCourses(response.courses || []))
         .catch((err) => console.error('Error fetching courses:', err));
     }
   }, [formValues.grade, userDetails.userId, sendGradeAndTeacherID, userDetails.role]);
 
-  // Function to fetch quiz details
-  const fetchQuizDetails = async () => {
+  // 4 fetch exam details
+  const fetchExamDetails = async () => {
     if (
       formValues.grade &&
       formValues.course &&
       formValues.semester &&
       formValues.quarter &&
-      formValues.quizNumber &&
       formValues.user &&
       formValues.campus &&
       formValues.year
     ) {
-      setIsLoadingQuiz(true);
+      setIsLoadingExam(true);
       try {
         const selectedCourse = courses.find((item) => item._id === formValues.course);
 
-        const quizData = {
+        const examData = {
           grade: formValues.grade,
           course: formValues.course,
           semester: formValues.semester,
           quarter: formValues.quarter,
-          quizNumber: formValues.quizNumber,
           user: selectedCourse?.teacher || formValues.user,
           campus: formValues.campus,
-          year: formValues.year // Make sure this is included
+          year: formValues.year,
         };
 
-        const response = await getQuizDetails(quizData).unwrap();
+        const response = await getExamDetails(examData).unwrap();
+        setExamDetails(response.exam);
 
-        setQuizDetails(response.quiz);
-        // Initialize marks state with student IDs
+        // initialize marks
         const initialMarks = {};
-        response.quiz.marks.forEach(mark => {
+        response.exam.marks.forEach((mark) => {
           initialMarks[mark.student] = {
             ...mark,
-            studentName: mark.studentName // Ensure studentName is included
+            studentName: mark.studentName,
           };
         });
         setMarks(initialMarks);
       } catch (err) {
-        console.error('Error fetching quiz details:', err);
-        toast.error('Failed to fetch quiz details.');
+        console.error('Error fetching exam details:', err);
+        toast.error('Failed to fetch exam details.');
       } finally {
-        setIsLoadingQuiz(false);
+        setIsLoadingExam(false);
       }
     }
   };
@@ -147,81 +140,40 @@ const QuizReport = () => {
     setFormValues((prevState) => ({
       ...prevState,
       [name]: value,
-      ...(name === 'grade' && { course: '', semester: '', quarter: '', quizNumber: '' }),
-      ...(name === 'course' && { semester: '', quarter: '', quizNumber: '' }),
-      ...(name === 'semester' && { quarter: '', quizNumber: '' }),
-      ...(name === 'quarter' && { quizNumber: '' }),
+      ...(name === 'grade' && { course: '', semester: '', quarter: '' }),
+      ...(name === 'course' && { semester: '', quarter: '' }),
+      ...(name === 'semester' && { quarter: '' }),
     }));
 
-    // Reset quiz details when any dropdown changes
-    if (name !== 'quizNumber') {
-      setQuizDetails(null);
-      setMarks({});
-    }
+    setExamDetails(null);
+    setMarks({});
   };
 
-  const handleMarkChange = (studentId, markIndex, value) => {
-    setMarks(prevMarks => ({
-      ...prevMarks,
-      [studentId]: {
-        ...prevMarks[studentId],
-        [`question${markIndex}`]: parseInt(value) || 0
-      }
-    }));
-  };
-
-  const handleSubmitMarks = async () => {
-    try {
-      // Convert marks object to array format expected by the API
-      const marksArray = Object.keys(marks).map(studentId => ({
-        student: studentId,
-        question1: marks[studentId].question1 || 0,
-        question2: marks[studentId].question2 || 0,
-        question3: marks[studentId].question3 || 0,
-        question4: marks[studentId].question4 || 0,
-        question5: marks[studentId].question5 || 0,
-      }));
-
-      const payload = {
-        quizId: quizDetails._id,
-        marks: marksArray
-      };
-
-      await updateQuizMarks({ id: quizDetails._id, body: payload }).unwrap();
-      toast.success('Marks submitted successfully!');
-    } catch (err) {
-      console.error('Error submitting marks:', err);
-      toast.error('Failed to submit marks.');
-    }
-  };
-
-  // Check if all required fields are selected to enable the fetch button
-  const canFetchQuiz = formValues.grade && formValues.course &&
-    formValues.semester && formValues.quarter &&
-    formValues.quizNumber;
-
-  // Calculate total marks for a student
   const calculateTotalMarks = (studentMarks) => {
-    return (studentMarks.question1 || 0) + 
-           (studentMarks.question2 || 0) + 
-           (studentMarks.question3 || 0) + 
-           (studentMarks.question4 || 0) + 
-           (studentMarks.question5 || 0);
+    let total = 0;
+    for (let i = 1; i <= 10; i++) {
+      total += studentMarks[`question${i}`] || 0;
+    }
+    return total;
   };
+
+  const canFetchExam =
+    formValues.grade && formValues.course && formValues.semester && formValues.quarter;
 
   return (
     <AdminLayout>
-      <MetaData title={'Add Quiz Number'} />
+      <MetaData title={'Exam Report'} />
       
-      {/* Print/Export Buttons - Only show when quiz details are available */}
-      {quizDetails && (
+      {/* Print/Export Buttons - Only show when exam details are available */}
+      {examDetails && (
         <PrintLayout
           contentRef={contentRef} 
-          documentName={`Quiz_${formValues.quizNumber}_Report`}
+          documentName={`Exam_Report_S${formValues.semester}_Q${formValues.quarter}`}
         />
       )}
 
       <div className="flex flex-wrap gap-x-2 gap-y-4 justify-center mt-6">
+        {/* Dropdowns */}
         <select
           className="w-1/5 border border-gray-300 p-2 rounded"
           name="grade"
@@ -275,43 +227,31 @@ const QuizReport = () => {
           <option value="2">2</option>
         </select>
 
-        <select
-          className="w-1/6 border border-gray-300 p-2 rounded"
-          name="quizNumber"
-          value={formValues.quizNumber}
-          onChange={handleDropdownChange}
-          disabled={!formValues.grade || !formValues.course || !formValues.semester || !formValues.quarter}
-        >
-          <option value="">{t('Select Quiz Number')}</option>
-          <option value="1">1</option>
-          <option value="2">2</option>
-        </select>
-
-        {canFetchQuiz && !quizDetails && (
+        {canFetchExam && !examDetails && (
           <button
             className="bg-blue-500 text-white py-2 px-4 rounded"
-            onClick={fetchQuizDetails}
-            disabled={isLoadingQuiz}
+            onClick={fetchExamDetails}
+            disabled={isLoadingExam}
           >
-            {isLoadingQuiz ? 'Loading...' : 'Fetch Quiz'}
+            {isLoadingExam ? 'Loading...' : 'Fetch Exam'}
           </button>
         )}
       </div>
 
-      {isLoadingQuiz && <Loader />}
+      {isLoadingExam && <Loader />}
 
-      {quizDetails && !isLoadingQuiz && (
+      {examDetails && !isLoadingExam && (
         <div ref={contentRef} className="mt-10 bg-white p-6 rounded-lg shadow-md">
-          {/* School Header */}
+          {/* Header */}
           <div className="text-center mb-8 border-b-2 border-gray-300 pb-4">
             <div className="flex justify-center items-center mb-2">
-              {/* Replace with your actual school logo */}
+              {/* School logo placeholder */}
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mr-4">
                 <span className="text-2xl font-bold text-blue-600">S</span>
               </div>
               <div>
                 <h1 className="text-2xl font-bold">School Name</h1>
-                <p className="text-gray-600">Official Quiz Report</p>
+                <p className="text-gray-600">Official Exam Report</p>
               </div>
             </div>
             <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
@@ -321,60 +261,48 @@ const QuizReport = () => {
               </div>
               <div className="text-right">
                 <p><span className="font-semibold">Semester:</span> {formValues.semester}</p>
-                <p><span className="font-semibold">Quarter:</span> {formValues.quarter}, Quiz {formValues.quizNumber}</p>
+                <p><span className="font-semibold">Quarter:</span> {formValues.quarter}</p>
               </div>
             </div>
           </div>
 
-          {/* Student Marks Table */}
+          {/* Table */}
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse border border-gray-300">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="border border-gray-300 px-4 py-2">Roll No</th>
-                  <th className="border border-gray-300 px-4 py-2">Student Name</th>
-                  <th className="border border-gray-300 px-4 py-2">Q1</th>
-                  <th className="border border-gray-300 px-4 py-2">Q2</th>
-                  <th className="border border-gray-300 px-4 py-2">Q3</th>
-                  <th className="border border-gray-300 px-4 py-2">Q4</th>
-                  <th className="border border-gray-300 px-4 py-2">Q5</th>
-                  <th className="border border-gray-300 px-4 py-2 font-bold bg-blue-50">Total</th>
+                  <th className="border px-4 py-2">Roll No</th>
+                  <th className="border px-4 py-2">Student Name</th>
+                  {[...Array(10)].map((_, i) => (
+                    <th key={i} className="border px-4 py-2">Q{i + 1}</th>
+                  ))}
+                  <th className="border px-4 py-2 font-bold bg-blue-50">Total</th>
                 </tr>
               </thead>
               <tbody>
                 {Object.entries(marks).map(([studentId, studentMarks], index) => (
                   <tr key={studentId} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="border border-gray-300 px-4 py-2 text-center">{index + 1}</td>
-                    <td className="border border-gray-300 px-4 py-2">{studentMarks.studentName}</td>
-                    <td className="border border-gray-300 px-4 py-2 text-center">{studentMarks.question1 || 0}</td>
-                    <td className="border border-gray-300 px-4 py-2 text-center">{studentMarks.question2 || 0}</td>
-                    <td className="border border-gray-300 px-4 py-2 text-center">{studentMarks.question3 || 0}</td>
-                    <td className="border border-gray-300 px-4 py-2 text-center">{studentMarks.question4 || 0}</td>
-                    <td className="border border-gray-300 px-4 py-2 text-center">{studentMarks.question5 || 0}</td>
-                    <td className="border border-gray-300 px-4 py-2 text-center font-bold bg-blue-50">
+                    <td className="border px-4 py-2 text-center">{index + 1}</td>
+                    <td className="border px-4 py-2">{studentMarks.studentName}</td>
+                    {[...Array(10)].map((_, i) => (
+                      <td key={i} className="border px-4 py-2 text-center">
+                        {studentMarks[`question${i + 1}`] || 0}
+                      </td>
+                    ))}
+                    <td className="border px-4 py-2 text-center font-bold bg-blue-50">
                       {calculateTotalMarks(studentMarks)}
                     </td>
                   </tr>
                 ))}
                 {/* Summary Row */}
                 <tr className="bg-gray-100 font-bold">
-                  <td className="border border-gray-300 px-4 py-2 text-center" colSpan="2">Summary</td>
-                  <td className="border border-gray-300 px-4 py-2 text-center">
-                    {Object.values(marks).reduce((sum, m) => sum + (m.question1 || 0), 0)}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2 text-center">
-                    {Object.values(marks).reduce((sum, m) => sum + (m.question2 || 0), 0)}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2 text-center">
-                    {Object.values(marks).reduce((sum, m) => sum + (m.question3 || 0), 0)}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2 text-center">
-                    {Object.values(marks).reduce((sum, m) => sum + (m.question4 || 0), 0)}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2 text-center">
-                    {Object.values(marks).reduce((sum, m) => sum + (m.question5 || 0), 0)}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2 text-center bg-blue-100">
+                  <td className="border px-4 py-2 text-center" colSpan="2">Summary</td>
+                  {[...Array(10)].map((_, i) => (
+                    <td key={i} className="border px-4 py-2 text-center">
+                      {Object.values(marks).reduce((sum, m) => sum + (m[`question${i+1}`] || 0), 0)}
+                    </td>
+                  ))}
+                  <td className="border px-4 py-2 text-center bg-blue-100">
                     {Object.values(marks).reduce((sum, m) => sum + calculateTotalMarks(m), 0)}
                   </td>
                 </tr>
@@ -382,7 +310,7 @@ const QuizReport = () => {
             </table>
           </div>
 
-          {/* Statistics Section */}
+          {/* Stats */}
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div className="bg-gray-100 p-3 rounded">
               <p><span className="font-semibold">Total Students:</span> {Object.keys(marks).length}</p>
@@ -399,7 +327,7 @@ const QuizReport = () => {
             </div>
           </div>
 
-          {/* Signature Section */}
+          {/* Signatures */}
           <div className="mt-10 grid grid-cols-2 gap-8 border-t-2 border-gray-300 pt-6">
             <div className="text-center">
               <div className="border-b border-gray-300 inline-block pb-1 mb-2 font-semibold">Teacher's Signature</div>
@@ -416,4 +344,4 @@ const QuizReport = () => {
   );
 };
 
-export default QuizReport;
+export default ExamReport;

@@ -44,6 +44,10 @@ const quizSchema = new mongoose.Schema(
       ref: "Campus",
       required: false,
     },
+    year: {
+      type: Number,
+      required: [true, "Please enter course year"],
+    },
     marks: [
       {
         student: {
@@ -95,10 +99,6 @@ const quizSchema = new mongoose.Schema(
         },
       },
     ],
-    year:{
-      type: Number,
-      required: [true, "Please enter course year"],
-    }
   },
   { timestamps: true }
 );

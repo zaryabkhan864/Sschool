@@ -78,17 +78,8 @@ export const studentApi = createApi({
     }),
 
 
-    getStudentsQuizDetailsByQuizData: builder.mutation({
-      query(body) {
-        return {
-          url: "/students/quiz-record",
-          method: "POST",
-          body,
-        };
-      },
-      invalidatesTags: ["Student Record By Quiz Form Record"],
-    }),
 
+ 
 
   }),
 });
@@ -106,5 +97,5 @@ export const {
   useDeleteStudentMutation,
 
 
-  useGetStudentsQuizDetailsByQuizDataMutation
+
 } = studentApi;

@@ -9,24 +9,24 @@ import {
     getUnpaidFees,
     getOverdueFees,
     getFeesStats,
-    getRevenueVsExpenses
+    getRevenueVsExpenses,
+    getFeesByCurrency   // 👈 yeh import add karo
 } from "../controllers/feesController.js";
 import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 
 export const router = express.Router();
 
 // Create new fee entry
-
 router
     .route("/finance/fees")
     .post(isAuthenticatedUser, authorizeRoles("admin", "finance"), newFee);
+
 // Get all fees
 router
     .route("/finance/get/fees")
     .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getFees);
 
 // Update fee record
-
 router.route("/fees/:id")
     .put(isAuthenticatedUser, authorizeRoles("admin", "finance"), updateFee);
 
@@ -34,16 +34,13 @@ router.route("/fees/:id")
 router.route("/fees/:id")
     .delete(isAuthenticatedUser, authorizeRoles("admin", "finance"), deleteFee);
 
-
 // Get all fees for a specific student
 router.route("/fees/student/:id")
     .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getFeesByStudent);
 
-
 // Get unpaid fees
 router.route("/fees/unpaid")
     .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getUnpaidFees);
-
 
 // Get overdue fees
 router.route("/fees/overdue")
@@ -53,10 +50,13 @@ router.route("/fees/overdue")
 router.route("/fees/statistics")
     .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getFeesStats);
 
+// 👇 New Route: Get fees grouped by currency
+router.route("/fees/statistics/currency")
+    .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getFeesByCurrency);
+
 // Get revenue vs expenses
 router.route("/revenue/expenses")
-    .get(isAuthenticatedUser, authorizeRoles
-        ("admin", "finance"), getRevenueVsExpenses);
+    .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getRevenueVsExpenses);
 
 // Get single fee details
 router.route("/fees/:id")

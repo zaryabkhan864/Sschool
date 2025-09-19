@@ -38,6 +38,8 @@ import CampusDetails from "../campus/CampusDetails";
 import ListCampus from "../campus/ListCampus";
 import NewCampus from "../campus/NewCampus";
 import UpdateCampus from "../campus/UpdateCampus";
+import ListTeacherLeave from "../teacherLeave/ListTeacherLeave";
+import UpdateTeacherLeave from "../teacherLeave/UpdateTeacherLeave";
 
 const adminRoutes = () => {
   return (
@@ -162,6 +164,22 @@ const adminRoutes = () => {
           </ProtectedRoute>
         }
       />
+            <Route
+        path="/admin/teacher-leave/:id/edit"
+        element={
+          <ProtectedRoute admin={true}>
+            <UpdateTeacherLeave />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/TeacherLeaves"
+        element={
+          <ProtectedRoute admin={true}>
+            <ListTeacherLeave />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/admin/students"
         element={
@@ -227,8 +245,8 @@ const adminRoutes = () => {
           </ProtectedRoute>
         }
       />
-            {/* add attendance routes */}
-            <Route
+      {/* add attendance routes */}
+      <Route
         path="/admin/attendance/new"
         element={
           <ProtectedRoute admin={true}>

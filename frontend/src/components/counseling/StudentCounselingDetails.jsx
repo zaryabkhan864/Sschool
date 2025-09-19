@@ -5,8 +5,7 @@ import { useGetCounselingDetailsQuery } from "../../redux/api/counselingApi";
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import PrintLayout from "../GUI/PrintLayout";
 
 const StudentCounselingDetails = () => {
   const params = useParams();
@@ -23,81 +22,6 @@ const StudentCounselingDetails = () => {
       toast.error(error?.data?.message);
     }
   }, [data, error]);
-
-  // PDF download function
-  const downloadPDF = () => {
-    const input = contentRef.current;
-    html2canvas(input, { scale: 2, useCORS: true, logging: false }).then(
-      (canvas) => {
-        const imgData = canvas.toDataURL("image/png");
-        const pdf = new jsPDF("p", "mm", "a4");
-        const imgWidth = 210;
-        const pageHeight = 295;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        let heightLeft = imgHeight;
-        let position = 0;
-
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-
-        while (heightLeft >= 0) {
-          position = heightLeft - imgHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-          heightLeft -= pageHeight;
-        }
-
-        pdf.save(`${counseling?.student?.name || 'counseling'}_report.pdf`);
-      }
-    );
-  };
-
-  // PNG download function
-  const downloadPNG = () => {
-    const input = contentRef.current;
-    html2canvas(input, { scale: 2, useCORS: true, logging: false }).then(
-      (canvas) => {
-        const link = document.createElement("a");
-        link.download = `${counseling?.student?.name || 'counseling'}_report.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-      }
-    );
-  };
-
-  // Print function
-  const printDocument = () => {
-    const originalContents = document.body.innerHTML;
-    const printContents = contentRef.current.innerHTML;
-    
-    // Create a print-specific stylesheet
-    const style = document.createElement('style');
-    style.innerHTML = `
-      @media print {
-        body {
-          font-family: 'Times New Roman', serif;
-          color: #000;
-          background: #fff;
-        }
-        .no-print {
-          display: none !important;
-        }
-        .print-container {
-          box-shadow: none !important;
-          border: none !important;
-        }
-        .print-section {
-          page-break-inside: avoid;
-        }
-      }
-    `;
-    
-    document.head.appendChild(style);
-    document.body.innerHTML = printContents;
-    window.print();
-    document.body.innerHTML = originalContents;
-    window.location.reload();
-  };
 
   if (isLoading) {
     return <Loader />;
@@ -143,27 +67,11 @@ const StudentCounselingDetails = () => {
     <AdminLayout>
       <MetaData title={"Counseling Details"} />
       
-      {/* Action Buttons */}
-      <div className="flex justify-end gap-4 mb-6 px-6 no-print">
-        <button
-          onClick={printDocument}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center text-sm font-medium"
-        >
-          Print
-        </button>
-        <button
-          onClick={downloadPDF}
-          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center text-sm font-medium"
-        >
-          PDF
-        </button>
-        <button
-          onClick={downloadPNG}
-          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center text-sm font-medium"
-        >
-          PNG
-        </button>
-      </div>
+      {/* Use PrintLayout component */}
+      <PrintLayout 
+        contentRef={contentRef} 
+        documentName={`${counseling?.student?.name || 'counseling'}_report`} 
+      />
 
       <div className="flex justify-center items-start py-6 px-4">
         <div 

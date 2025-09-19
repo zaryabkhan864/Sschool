@@ -19,7 +19,15 @@ export const FeesSchema = new mongoose.Schema({
     dueDate: { type: Date, required: true },
     status: { type: String, enum: ["Paid", "Unpaid", "Overdue"], default: "Unpaid" },
     paymentDate: { type: Date },
-    paymentMethod: { type: String, enum: ["Cash", "Bank Transfer", "Online"] }
+    paymentMethod: { type: String, enum: ["Cash", "Bank Transfer", "Online"] },
+    campus:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Campus",
+      },
+      year:{
+        type: Number,
+        required: [true, "Please enter course year"],
+      }
 });
 
 export default mongoose.model("Fees", FeesSchema);

@@ -17,10 +17,6 @@ const examSchema = new mongoose.Schema(
       ref: "Course",
       required: [true, "Please specify the associated course"],
     },
-    campus:{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Campus",
-    },
     grade: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Grade",
@@ -36,7 +32,16 @@ const examSchema = new mongoose.Schema(
             return user && user.role === "teacher";
         },
         message: "The referenced user must be a teacher."
-    }
+    },
+    campus:{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Campus",
+    },
+    year: {
+      type: Number,
+      required: [true, "Please enter course year"],
+    },
+
     },
     marks: [
       {

@@ -97,19 +97,29 @@ const ListUsers = () => {
           {/* Users Table */}
           <Table hoverable={true} className="w-full">
             <Table.Head>
-              <Table.HeadCell>{t('id')}</Table.HeadCell>
               <Table.HeadCell>{t('Name')}</Table.HeadCell>
               <Table.HeadCell>{t('Email')}</Table.HeadCell>
+              <Table.HeadCell>{t('Gender')}</Table.HeadCell>
               <Table.HeadCell>{t('Role')}</Table.HeadCell>
+              <Table.HeadCell>{t('Status')}</Table.HeadCell>
               <Table.HeadCell>{t('actions')}</Table.HeadCell>
             </Table.Head>
             <Table.Body>
               {paginatedUsers?.map((user) => (
                 <Table.Row key={user?._id} className="bg-white dark:bg-gray-800">
-                  <Table.Cell>{user?._id}</Table.Cell>
                   <Table.Cell>{user?.name}</Table.Cell>
                   <Table.Cell>{user?.email}</Table.Cell>
+                  <Table.Cell>{user?.gender}</Table.Cell>
                   <Table.Cell>{user?.role}</Table.Cell>
+                  <Table.Cell>
+                    {user?.status === true ? (
+                      <span className="text-green-600 font-semibold">Active</span>
+                    ) : user?.status === false ? (
+                      <span className="text-red-600 font-semibold">Inactive</span>
+                    ) : (
+                      <span className="text-gray-500">N/A</span> // agar admin ka status field hi na ho
+                    )}
+                  </Table.Cell>
                   <Table.Cell>
                     <div className="flex space-x-2">
                       <Link
@@ -130,6 +140,7 @@ const ListUsers = () => {
                 </Table.Row>
               ))}
             </Table.Body>
+
           </Table>
 
           {/* Pagination */}

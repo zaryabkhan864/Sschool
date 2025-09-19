@@ -7,7 +7,6 @@ export const quizApi = createApi({
   endpoints: (builder) => ({
     addQuizMarks: builder.mutation({
       query(body) {
-        console.log("what is body in api", body)
         return {
           url: "/students/quiz/marks",
           method: "POST",
@@ -24,11 +23,21 @@ export const quizApi = createApi({
         };
       },
     }),
-
+    getStudentsQuizDetailsByQuizData: builder.mutation({
+      query(body) {
+        return {
+          url: "/students/quiz-record",
+          method: "POST",
+          body,
+        };
+      },
+      invalidatesTags: ["Student Record By Quiz Form Record"],
+    }),
   }),
 });
 
 export const {
   useAddQuizMarksMutation,
-  useUpdateQuizMarksMutation
+  useUpdateQuizMarksMutation,
+  useGetStudentsQuizDetailsByQuizDataMutation
 } = quizApi;

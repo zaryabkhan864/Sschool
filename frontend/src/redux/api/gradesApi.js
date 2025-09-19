@@ -56,7 +56,13 @@ export const gradeApi = createApi({
       }),
       providesTags: ["Grades By User ID"],
     }),
-
+    getCourseByGradeAndTeacherID: builder.mutation({
+      query: (data) => ({
+        url: "/grades/getCourseByGradeAndTeacherID",
+        method: "POST",
+        body: data,
+      }),
+    }),
   }),
 });
 
@@ -67,4 +73,5 @@ export const {
   useUpdateGradeMutation,
   useDeleteGradeMutation,
   useGetGradeByUserIdAndRoleMutation,
+  useGetCourseByGradeAndTeacherIDMutation,
 } = gradeApi;

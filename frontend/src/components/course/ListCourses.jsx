@@ -123,7 +123,7 @@ const ListCourses = () => {
           {/* Courses Table */}
           <Table hoverable={true} className="w-full">
             <Table.Head>
-              <Table.HeadCell>{t("id")}</Table.HeadCell>
+
               <Table.HeadCell>{t("Course")} {t("Name")}</Table.HeadCell>
               <Table.HeadCell>{t("Campus")}</Table.HeadCell>
               <Table.HeadCell>{t("Code")}</Table.HeadCell>
@@ -136,7 +136,7 @@ const ListCourses = () => {
                   key={course?._id}
                   className="bg-white dark:bg-gray-800"
                 >
-                  <Table.Cell>{course?._id}</Table.Cell>
+        
                   <Table.Cell>{course?.courseName}</Table.Cell>
                   <Table.Cell>{course?.campus?.name || 'N/A'}</Table.Cell>
                   <Table.Cell>{course?.code}</Table.Cell>

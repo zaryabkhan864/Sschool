@@ -55,7 +55,10 @@ const AdminLayout = ({ children }) => {
     { name: "New Expense", url: "/finance/expenses", icon: "fas fa-money-check-alt", roles: ["admin", "finance"] },
     { name: "Expense List", url: "/finance/expense/List", icon: "fas fa-file-invoice-dollar", roles: ["admin", "finance"] },
     { name: "New Teacher Leave", url: "/admin/teacherleave/new", icon: "fas fa-calendar-minus", roles: ["admin","teacher"] },
+    { name: "Teacher Leave Details", url: "/admin/TeacherLeaves", icon: "fas fa-calendar-minus", roles: ["admin","teacher"] },
     { name: "Reports", url: "/admin/reports", icon: "fas fa-chart-bar", roles: ["admin"] },
+    { name: "Meeting & Task", url: "/", icon: "fas fa-chart-bar", roles: ["admin"] },
+    { name: "Projects", url: "/", icon: "fas fa-chart-bar", roles: ["admin"] },
 ];
   // Filter menu items based on user role
   const menuItems = allMenuItems.filter((item) => item.roles.includes(user?.role));

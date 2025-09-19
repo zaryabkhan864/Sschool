@@ -3,32 +3,42 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 export const examApi = createApi({
   reducerPath: "examApi",
   baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" }),
-  tagTypes: ["Student", "AdminStudents", "Quiz"],
+  tagTypes: ["Student", "AdminStudents", "Exam"],
   endpoints: (builder) => ({
+    addExamMarks: builder.mutation({
+      query(body) {
+        return {
+          url: "/students/exam/marks",
+          method: "POST",
+          body,
+        };
+      }
+    }),
     updateExamMarks: builder.mutation({
       query({ id, body }) {
         return {
-          url: `/exam/${id}`,
+          url: `/students/exam/${id}`,
           method: "PUT",
           body,
         };
       },
     }),
-    getExamMarks: builder.mutation({
-        query(body) {
-          return {
-            url: "/exam/student-marks",
-            method: "POST",
-            body,
-          };
-        },
-        invalidatesTags: ["Student Record By Exam Form Record"],
-      }),
+    getStudentsExamDetailsByExamData: builder.mutation({
+      query(body) {
+        return {
+          url: "/students/exam-record",
+          method: "POST",
+          body,
+        };
+      },
+      invalidatesTags: ["Student Record By Exam Form Record"],
+    }),
 
   }),
 });
 
 export const {
-  useGetExamMarksMutation,
-  useUpdateExamMarksMutation
+  useAddExamMarksMutation,
+  useUpdateExamMarksMutation,
+  useGetStudentsExamDetailsByExamDataMutation
 } = examApi;

@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 export const feesApi = createApi({
     reducerPath: "feesApi",
     baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" }),
-    tagTypes: ["Fees", "StudentFees", "UnpaidFees", "OverdueFees"],
+    tagTypes: ["Fees", "StudentFees", "UnpaidFees", "OverdueFees", "CurrencyFees"],
     endpoints: (builder) => ({
         getFees: builder.query({
             query: () => "/finance/get/fees",
@@ -19,7 +19,7 @@ export const feesApi = createApi({
                 method: "POST",
                 body,
             }),
-            invalidatesTags: ["Fees"],
+            invalidatesTags: ["Fees", "CurrencyFees"],
         }),
         updateFee: builder.mutation({
             query: ({ id, body }) => ({
@@ -27,14 +27,14 @@ export const feesApi = createApi({
                 method: "PUT",
                 body,
             }),
-            invalidatesTags: ["Fees"],
+            invalidatesTags: ["Fees", "CurrencyFees"],
         }),
         deleteFee: builder.mutation({
             query: (id) => ({
                 url: `/fees/${id}`,
                 method: "DELETE",
             }),
-            invalidatesTags: ["Fees"],
+            invalidatesTags: ["Fees", "CurrencyFees"],
         }),
         getFeesByStudent: builder.query({
             query: (id) => `/fees/student/${id}`,
@@ -48,6 +48,11 @@ export const feesApi = createApi({
             query: () => "/fees/overdue",
             providesTags: ["OverdueFees"],
         }),
+        // 👇 new endpoint: currency-wise stats
+        getFeesByCurrency: builder.query({
+            query: () => "/fees/statistics/currency",
+            providesTags: ["CurrencyFees"],
+        }),
     }),
 });
 
@@ -60,4 +65,5 @@ export const {
     useGetFeesByStudentQuery,
     useGetUnpaidFeesQuery,
     useGetOverdueFeesQuery,
+    useGetFeesByCurrencyQuery,   // 👈 new hook
 } = feesApi;

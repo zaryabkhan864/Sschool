@@ -1,53 +1,66 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
-
 import AdminLayout from '../layout/AdminLayout';
 import MetaData from '../layout/MetaData';
 import Loader from '../layout/Loader';
-
-import { useGetExamMarksMutation, useUpdateExamMarksMutation } from '../../redux/api/examApi.js';
 import { useGetCourseByGradeAndTeacherIDMutation } from '../../redux/api/courseApi';
 import { useGetGradeByUserIdAndRoleMutation } from '../../redux/api/gradesApi';
+import { useGetStudentsExamDetailsByExamDataMutation, useUpdateExamMarksMutation } from '../../redux/api/examApi';
 import { useTranslation } from 'react-i18next';
 
 const AddExam = () => {
     const { t } = useTranslation();
-    const [userDetails, setUserDetails] = useState('');
+    const [userDetails, setUserDetails] = useState({});
     const [grades, setGrades] = useState([]);
     const [courses, setCourses] = useState([]);
-    const [marks, setMarks] = useState({});
     const [examDetails, setExamDetails] = useState(null);
-    
-    const { user } = useSelector((state) => state.auth);
+    const [marks, setMarks] = useState({});
+    const [isLoadingExam, setIsLoadingExam] = useState(false);
 
     const [formValues, setFormValues] = useState({
         grade: '',
         course: '',
         semester: '',
         quarter: '',
-        user: '', 
+        user: '',
+        campus: '',
+        year: ''
     });
 
+    const { user } = useSelector((state) => state.auth);
 
     // 1 get user details and set user field in formValues
     useEffect(() => {
         if (user && user._id) {
+            const campusFromCookie = document.cookie
+                .split("; ")
+                .find((row) => row.startsWith("campus="))
+                ?.split("=")[1];
+
+            const yearFromCookie = document.cookie
+                .split("; ")
+                .find((row) => row.startsWith("selectedYear="))
+                ?.split("=")[1];
+
             setFormValues((prevFormValues) => ({
                 ...prevFormValues,
-                user: user._id, // Update user field in formValues
+                user: user._id,
+                campus: campusFromCookie,
+                year: Number(yearFromCookie)
             }));
+
             setUserDetails({
                 userId: user._id,
                 userRole: user.role,
             });
         }
-    }, [user]); // Run this effect when user changes
+    }, [user]);
 
     const [sendUserRoleAndID] = useGetGradeByUserIdAndRoleMutation();
     const [sendGradeAndTeacherID] = useGetCourseByGradeAndTeacherIDMutation();
+    const [getExamDetails] = useGetStudentsExamDetailsByExamDataMutation();
     const [updateExamMarks, { isLoading: updateExamMarksLoading }] = useUpdateExamMarksMutation();
-    const [getExamMarks, { isLoading: examMarksLoading }] = useGetExamMarksMutation();
 
     // 2 get grades based on user role and id and get user grade 
     useEffect(() => {
@@ -77,61 +90,113 @@ const AddExam = () => {
         }
     }, [formValues.grade, userDetails.userId, sendGradeAndTeacherID, userDetails.role]);
 
-
-     // Function to fetch quiz details
-     const fetchExamDetails = async () => {
+    // Function to fetch exam details
+    const fetchExamDetails = async () => {
         if (
-            formValues.grade &&
-            formValues.course &&
-            formValues.semester &&
-            formValues.quarter
+          formValues.grade &&
+          formValues.course &&
+          formValues.semester &&
+          formValues.quarter &&
+          formValues.user &&
+          formValues.campus &&
+          formValues.year
         ) {
-            try {
-                const selectedCourse = courses.find((item)=> item._id === formValues.course)
-                const response = await getExamMarks({...formValues, user:selectedCourse?.teacher}).unwrap();
-                console.log("Exam details response:", response);
-                setExamDetails(response.exam);
-                // Initialize marks state with student IDs
-                const initialMarks = {};
-                response.exam.marks.forEach(mark => {
-                    initialMarks[mark.student] = mark;
-                });
-                setMarks(initialMarks);
-            } catch (err) {
-                console.error('Error fetching exam details:', err);
-            }
+          setIsLoadingExam(true);
+          try {
+            const selectedCourse = courses.find((item) => item._id === formValues.course);
+                
+            const examData = {
+                grade: formValues.grade,
+                course: formValues.course,
+                semester: formValues.semester,
+                quarter: formValues.quarter,
+                user: selectedCourse?.teacher || formValues.user,
+                campus: formValues.campus,
+                year: formValues.year
+              };
+    
+              const response = await getExamDetails(examData).unwrap();
+    
+              if (response.exam) {
+                  setExamDetails(response.exam);
+                  // Initialize marks state with student IDs
+                  const initialMarks = {};
+                  response.exam.marks.forEach(mark => {
+                      initialMarks[mark.student] = {
+                          ...mark,
+                          studentName: mark.studentName // Ensure studentName is included
+                      };
+                  });
+                  setMarks(initialMarks);
+              } else {
+                  // No exam found - you might want to create one or show a message
+                  toast.error('No exam found for the selected criteria.');
+                  setExamDetails(null);
+                  setMarks({});
+              }
+          } catch (err) {
+              console.error('Error fetching exam details:', err);
+              // Check if it's a "not found" error vs other error
+              if (err.status === 404) {
+                  toast.error('No exam found for the selected criteria.');
+              } else {
+                  toast.error('Failed to fetch exam details.');
+              }
+              setExamDetails(null);
+              setMarks({});
+          } finally {
+              setIsLoadingExam(false);
+          }
         }
     };
-
-    useEffect(() => {
-        fetchExamDetails();
-    }, [formValues]); // Re-run whenever formValues changes
 
     const handleDropdownChange = (event) => {
         const { name, value } = event.target;
         setFormValues((prevState) => ({
             ...prevState,
             [name]: value,
-            ...(name === 'grade' && { course: '', semester: '', quarter: '',  }),
-            ...(name === 'course' && { semester: '', quarter: '',  }),
-            ...(name === 'semester' && { quarter: '',  }),
+            ...(name === 'grade' && { course: '', semester: '', quarter: '' }),
+            ...(name === 'course' && { semester: '', quarter: '' }),
+            ...(name === 'semester' && { quarter: '' }),
         }));
+        
+        // Reset exam details when any dropdown changes
+        setExamDetails(null);
+        setMarks({});
     };
 
     const handleMarkChange = (studentId, markIndex, value) => {
         setMarks(prevMarks => ({
             ...prevMarks,
-            [studentId]: {...prevMarks[studentId], [`question${markIndex}`]: value}
+            [studentId]: { 
+                ...prevMarks[studentId], 
+                [`question${markIndex}`]: parseInt(value) || 0 
+            }
         }));
     };
 
     const handleSubmitMarks = async () => {
         try {
+            // Convert marks object to array format expected by the API
+            const marksArray = Object.keys(marks).map(studentId => {
+                const markObj = {
+                    student: studentId
+                };
+                
+                // Add all 10 questions
+                for (let i = 1; i <= 10; i++) {
+                    markObj[`question${i}`] = marks[studentId][`question${i}`] || 0;
+                }
+                
+                return markObj;
+            });
+
             const payload = {
-                quizId: examDetails._id,
-                marks: Object.values(marks)
+                examId: examDetails._id,
+                marks: marksArray
             };
-            await updateExamMarks({ id: examDetails._id, body: payload })
+            
+            await updateExamMarks({ id: examDetails._id, body: payload }).unwrap();
             toast.success('Exam marks submitted successfully!');
         } catch (err) {
             console.error('Error submitting marks:', err);
@@ -139,9 +204,13 @@ const AddExam = () => {
         }
     };
 
+    // Check if all required fields are selected to enable the fetch button
+    const canFetchExam = formValues.grade && formValues.course && 
+                        formValues.semester && formValues.quarter;
+
     return (
         <AdminLayout>
-            <MetaData title={'Add Exam Number'} />
+            <MetaData title={'Add Exam Marks'} />
             <div className="flex flex-wrap gap-x-2 gap-y-4 justify-center mt-6">
                 <select
                     className="w-1/5 border border-gray-300 p-2 rounded"
@@ -195,32 +264,46 @@ const AddExam = () => {
                     <option value="1">1</option>
                     <option value="2">2</option>
                 </select>
-            </div>
-            {!examDetails && examMarksLoading && (<Loader/>)}
 
-            {examDetails && !examMarksLoading && (
+                {canFetchExam && !examDetails && (
+                    <button
+                        className="bg-blue-500 text-white py-2 px-4 rounded"
+                        onClick={fetchExamDetails}
+                        disabled={isLoadingExam}
+                    >
+                        {isLoadingExam ? 'Loading...' : 'Fetch Exam'}
+                    </button>
+                )}
+            </div>
+
+            {isLoadingExam && <Loader />}
+
+            {examDetails && !isLoadingExam && (
                 <div className="overflow-x-auto mt-8">
+                    <h2 className="text-xl font-bold mb-4">Exam Details</h2>
                     <table className="min-w-full bg-white border border-gray-300">
                         <thead>
                             <tr>
                                 <th className="py-2 px-4 border-b">{t('Student Name')}</th>
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((markIndex) => (
-                                <th className="py-2 px-4 border-b" key={markIndex}>{t('Mark')} {markIndex}</th>
-                            ))}
-                               
+                                {[...Array(10)].map((_, index) => (
+                                    <th key={index} className="py-2 px-4 border-b">
+                                        {t('Question')} {index + 1}
+                                    </th>
+                                ))}
                             </tr>
                         </thead>
                         <tbody>
-                        {Object.entries(marks).map(([key, value]) => (
-                                <tr key={key}>
-                                    <td className="py-2 px-4 border-b">{value.studentName}</td>
-                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((markIndex) => (
-                                        <td className="py-2 px-4 border-b" key={markIndex}>
+                            {Object.entries(marks).map(([studentId, markData]) => (
+                                <tr key={studentId}>
+                                    <td className="py-2 px-4 border-b">{markData.studentName}</td>
+                                    {[...Array(10)].map((_, index) => (
+                                        <td className="py-2 px-4 border-b" key={index}>
                                             <input
                                                 type="number"
+                                                min="0"
                                                 className="w-full p-1 border border-gray-300 rounded"
-                                                value={value[`question${markIndex}`]}
-                                                onChange={(e) => handleMarkChange(key, markIndex, e.target.value)}
+                                                value={markData[`question${index + 1}`] || 0}
+                                                onChange={(e) => handleMarkChange(studentId, index + 1, e.target.value)}
                                             />
                                         </td>
                                     ))}

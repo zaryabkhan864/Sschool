@@ -152,6 +152,7 @@ export const deleteCourseInGrade = catchAsyncErrors(async (req, res, next) => {
 });
 
 export const getCoursesAndGradeByRole = catchAsyncErrors(async (req, res, next) => {
+  const { campus, selectedYear } = req.cookies;
   const { userId, userRole } = req.body;
 
   if (!userId || !userRole) {
@@ -161,20 +162,29 @@ export const getCoursesAndGradeByRole = catchAsyncErrors(async (req, res, next) 
   let courses, grades;
 
   if (userRole === "admin") {
-    // Fetch all courses and grades for admin
-    courses = await Course.find().populate("teacher");
-    grades = await Grade.find().populate("courses");
-  } else if (userRole === "teacher") {
+    // Admin: Get all courses and grades by campus & year
+    courses = await Course.find({ campus, year: selectedYear }).populate("teacher");
+    grades = await Grade.find({ campus, year: selectedYear }).populate("courses");
+  } 
+  
+  else if (userRole === "teacher") {
     const teacher = await user.findById(userId);
-
     if (!teacher) {
       return next(new ErrorHandler("Teacher not found", 404));
     }
 
-    // Fetch courses and grades associated with the teacher
-    courses = await Course.find({ teacher: teacher._id }).populate("teacher");
-    grades = await Grade.find({ courses: { $in: courses.map(c => c._id) } }).populate("courses");
-  } else {
+    // Teacher: Get courses by teacher, campus & year
+    courses = await Course.find({ teacher: teacher._id, campus, year: selectedYear }).populate("teacher");
+
+    // Only grades which contain these courses and match campus & year
+    grades = await Grade.find({
+      campus,
+      year: selectedYear,
+      courses: { $in: courses.map(c => c._id) }
+    }).populate("courses");
+  } 
+  
+  else {
     return next(new ErrorHandler("Access denied for the provided role", 403));
   }
 
@@ -183,4 +193,20 @@ export const getCoursesAndGradeByRole = catchAsyncErrors(async (req, res, next) 
     courses,
     grades,
   });
+});
+
+export const getCourseByGradeAndTeacherID = catchAsyncErrors(async (req, res) => {
+  const { campus, year } = req.cookies;
+  const { gradeId, teacherId, userRole } = req.body;
+
+  const grade = await Grade.findOne({ _id: gradeId, campus, year });
+  if (!grade) {
+    return res.status(404).json({ success: false, message: "Grade not found" });
+  }
+
+  const courses = grade.courses.filter(
+    (course) => course.teacher.toString() === teacherId.toString()
+  );
+
+  res.status(200).json({ success: true, courses });
 });

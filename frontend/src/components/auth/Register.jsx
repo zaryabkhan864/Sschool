@@ -31,7 +31,7 @@ const Register  = () => {
     secondaryPhoneNumber: "",
     address: "",
     grade: "",
-    year: "",
+    // year: "",
     status: "",
     email: "",
     password: "",
@@ -51,7 +51,7 @@ const Register  = () => {
     secondaryPhoneNumber,
     address,
     grade,
-    year,
+    // year,
     status,
     email,
     password,
@@ -288,7 +288,7 @@ const Register  = () => {
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
-              <div className="mb-4">
+              {/* <div className="mb-4">
                 <label
                   htmlFor="year_field"
                   className="block text-sm font-medium text-gray-700"
@@ -314,7 +314,7 @@ const Register  = () => {
                   }}
                   onChange={onChange}
                 />
-              </div>
+              </div> */}
               
 
 

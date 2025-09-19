@@ -131,7 +131,6 @@ const ListTeachers = () => {
           {/* Teachers Table */}
           <Table hoverable={true} className="w-full">
             <Table.Head>
-              <Table.HeadCell>{t("id")}</Table.HeadCell>
               <Table.HeadCell>{t("teacherName")}</Table.HeadCell>
               <Table.HeadCell>{t("Campus")}</Table.HeadCell>
               <Table.HeadCell>{t("age")}</Table.HeadCell>
@@ -145,7 +144,6 @@ const ListTeachers = () => {
                   key={teacher?._id}
                   className="bg-white dark:bg-gray-800"
                 >
-                  <Table.Cell>{teacher?._id}</Table.Cell>
                   <Table.Cell>{teacher?.name}</Table.Cell>
                   <Table.Cell>{teacher?.campus?.name || "N/A"}</Table.Cell>
                   <Table.Cell>{teacher?.age || "-"}</Table.Cell>

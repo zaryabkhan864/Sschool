@@ -52,13 +52,13 @@ export const getCourses = catchAsyncErrors(async (req, res, next) => {
   const apiFilters = new APIFilters(Course, req.query)
     .search()
     .filters()
-    .populate('campus');
+    .populate("campus");
 
-  let courses = await apiFilters.query;
+  let courses = await apiFilters.query.populate("teacher", "name email");
   const filteredCoursesCount = courses.length;
 
   apiFilters.pagination(resPerPage);
-  courses = await apiFilters.query.clone();
+  courses = await apiFilters.query.clone().populate("teacher", "name email");
 
   res.status(200).json({
     success: true,
@@ -67,6 +67,7 @@ export const getCourses = catchAsyncErrors(async (req, res, next) => {
     courses,
   });
 });
+
 
 
 // Update course => /api/v1/courses/:id
@@ -147,8 +148,8 @@ export const getCourseDetails = catchAsyncErrors(async (req, res) => {
 
 // Get all courses for a grade of teacher => /api/v1/courses/grade/teacher/:id
 export const getCoursesByGradeAndTeacherID = catchAsyncErrors(async (req, res) => {
-  const { campus } = req.cookies
-  const { gradeId, teacherId , userRole} = req.body; // Ensure gradeId and teacherId are passed in the body
+  const { campus ,year} = req.cookies
+  const { gradeId, teacherId , userRole} = req.body; 
  
   // Step 1: Find the grade
   const grade = await Grade.findOne({_id: new mongoose.Types.ObjectId(gradeId), campus:new mongoose.Types.ObjectId(campus)}).populate("courses"); // Populate courses array from Grade
