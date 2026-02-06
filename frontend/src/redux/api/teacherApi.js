@@ -6,13 +6,9 @@ export const teacherApi = createApi({
   tagTypes: ["Teacher", "AdminTeachers", "Reviews"],
   endpoints: (builder) => ({
     getTeachers: builder.query({
-      query: (params) => ({
+      query: ({ page = 1, limit = 8, keyword = "" }) => ({
         url: "/teachers",
-        params: {
-          page: params?.page,
-          keyword: params?.keyword,
-          category: params?.category,
-        },
+        params: { page, limit, keyword },
       }),
     }),
     getTeacherDetails: builder.query({

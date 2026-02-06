@@ -2,7 +2,6 @@ import { Toaster } from "react-hot-toast";
 import 'react-phone-input-2/lib/style.css';
 
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
-import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
 import NotFound from "./components/layout/NotFound";
 import useAdminRoutes from "./components/routes/adminRoutes";
@@ -44,7 +43,6 @@ function App() {
           </Routes>
         </div>
 
-        <Footer />
       </Router>
     </div>
   );

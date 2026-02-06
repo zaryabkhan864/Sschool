@@ -23,7 +23,7 @@ export const studentApi = createApi({
       invalidatesTags: ["AdminUsers"],
     }),
     getStudentDetails: builder.query({
-      query: (id) => `/student/${id}`,
+      query: (id) => `/admin/student/${id}`,
       providesTags: ["Student"],
     }),
 

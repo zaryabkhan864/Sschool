@@ -48,7 +48,6 @@ app.use((req, res, next) => {
 // Import all routes
 
 import authRoutes from "./routes/auth.js";
-
 import announcementRoutes from "./routes/announcement.js";
 import commentRoutes from "./routes/comment.js";
 import feesRoutes from "./routes/fees.js";
@@ -59,34 +58,51 @@ import counselingRoutes from "./routes/counseling.js";
 import courseRoutes from "./routes/course.js";
 import eventRoutes from "./routes/event.js";
 import examRoutes from "./routes/exam.js";
-import attendanceRoutes from "./routes/attendance.js"
+import attendanceRoutes from "./routes/attendance.js";
 import gradeRoutes from "./routes/grade.js";
 import quizRoutes from "./routes/quiz.js";
 import teacherLeaveRoutes from "./routes/teacherLeave.js";
-import attendanceRoute from "./routes/attendance.js"
 import fileRoutes from "./routes/file.js";
 import campusRoutes from "./routes/campus.js";
 
+/* 🔥 TIMETABLE MODULE ROUTES */
+import academicLevelRoutes from "./routes/academicLevelRoutes.js";
+import classGroupRoutes from "./routes/classGroupRoutes.js";
+import weekDayRoutes from "./routes/weekDayRoutes.js";
+import sessionTemplateRoutes from "./routes/sessionTemplateRoutes.js";
+import daySessionConfigRoutes from "./routes/daySessionConfigRoutes.js";
+import timeTableSlotRoutes from "./routes/timeTableSlotRoutes.js";
 
 
+
+
+app.use("/api/v1", authRoutes);
 app.use("/api/v1", courseRoutes);
 app.use("/api/v1", gradeRoutes);
-app.use("/api/v1", authRoutes);
+app.use("/api/v1", campusRoutes);
+
 app.use("/api/v1", eventRoutes);
 app.use("/api/v1", quizRoutes);
 app.use("/api/v1", examRoutes);
-app.use("/api/v1",attendanceRoutes);
+app.use("/api/v1", attendanceRoutes);
 app.use("/api/v1", counselingRoutes);
 app.use("/api/v1", announcementRoutes);
 app.use("/api/v1", commentRoutes);
-app.use("/api/v1",attendanceRoute)
-// finances routes
+
+// finances
 app.use("/api/v1", feesRoutes);
 app.use("/api/v1", salariesRoutes);
 app.use("/api/v1", expense);
 app.use("/api/v1", teacherLeaveRoutes);
 app.use("/api/v1", fileRoutes);
-app.use("/api/v1", campusRoutes);
+
+/* 🧠 TIMETABLE MODULE */
+app.use("/api/v1", academicLevelRoutes);
+app.use("/api/v1", classGroupRoutes);
+app.use("/api/v1", weekDayRoutes);
+app.use("/api/v1", sessionTemplateRoutes);
+app.use("/api/v1", daySessionConfigRoutes);
+app.use("/api/v1", timeTableSlotRoutes);
 
 if (process.env.NODE_ENV === "PRODUCTION") {
   app.use(express.static(path.join(__dirname, "../frontend/build")));

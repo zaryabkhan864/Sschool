@@ -240,7 +240,7 @@ const UpdateUser = () => {
                   <label className="flex items-center">
                     <input
                       type="radio"
-                      id="female"
+                      id="Female"
                       name="gender"
                       value="Female"
                       checked={gender === "Female"}

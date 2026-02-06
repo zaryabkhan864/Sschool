@@ -24,6 +24,15 @@ import { attendanceApi } from "./api/attendanceApi";
 import { campusApi } from "./api/campusApi";
 
 
+
+import { academicLevelApi } from "./api/academicLevelApi";
+import { classGroupApi } from "./api/classGroupApi";
+import { weekDayApi } from "./api/weekDayApi";
+import { sessionTemplateApi } from "./api/sessionTemplateApi";
+import { daySessionConfigApi } from "./api/daySessionConfigApi";
+import { timeTableSlotApi } from "./api/timeTableSlotApi";
+
+
 export const store = configureStore({
   reducer: {
     auth: userReducer,
@@ -47,6 +56,15 @@ export const store = configureStore({
     [commentApi.reducerPath]: commentApi.reducer,
     [fileApi.reducerPath]: fileApi.reducer,
     [campusApi.reducerPath]: campusApi.reducer,
+
+
+     // 🔥 Timetable system reducers
+  [academicLevelApi.reducerPath]: academicLevelApi.reducer,
+  [classGroupApi.reducerPath]: classGroupApi.reducer,
+  [weekDayApi.reducerPath]: weekDayApi.reducer,
+  [sessionTemplateApi.reducerPath]: sessionTemplateApi.reducer,
+  [daySessionConfigApi.reducerPath]: daySessionConfigApi.reducer,
+  [timeTableSlotApi.reducerPath]: timeTableSlotApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat([
@@ -70,5 +88,13 @@ export const store = configureStore({
       commentApi.middleware,
       fileApi.middleware,
       campusApi.middleware,
+
+      // 🔥 Timetable system middleware
+    academicLevelApi.middleware,
+    classGroupApi.middleware,
+    weekDayApi.middleware,
+    sessionTemplateApi.middleware,
+    daySessionConfigApi.middleware,
+    timeTableSlotApi.middleware,
     ]),
 });

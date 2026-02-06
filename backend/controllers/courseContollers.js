@@ -37,36 +37,188 @@ export const newCourse = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
-//Create get all course => /api/v1/courses
 export const getCourses = catchAsyncErrors(async (req, res, next) => {
   const { campus, selectedYear } = req.cookies;
 
-  // Inject filters from cookies into query
-  req.query.campus = campus;
-  if (selectedYear) {
-    req.query.year = selectedYear; // or 'session', depending on your schema
+  // 1. Cookie Filters - IMPORTANT CHANGE
+  // Dropdown ke liye campus filter skip karo (taki sare courses dikhein)
+  // Agar limit=0 hai (dropdown case) to campus filter na lagao
+  const limit = Number(req.query.limit);
+  const isDropdownRequest = limit === 0;
+  
+  if (campus && !isDropdownRequest) {
+    req.query.campus = campus;
+  }
+  
+  if (selectedYear && !isDropdownRequest) {
+    req.query.year = selectedYear;
   }
 
-  const resPerPage = 8;
+  // 2. Status handle karo (agar Course model me status field hai)
+  if (req.query.status) {
+    if (req.query.status === 'active') {
+      req.query.status = true;
+    } else if (req.query.status === 'deactive') {
+      req.query.status = false;
+    }
+  }
 
-  const apiFilters = new APIFilters(Course, req.query)
+  // 3. Teacher filter ko handle karo (agar search me teacher ka naam bhi dekhna hai)
+  // Agar teacher search keyword me hai to populate ke liye alag handle karna hoga
+  // Par pehle base query banao
+
+  // 4. Base query for counting
+  const baseApiFilters = new APIFilters(Course, req.query)
+    .setSearchFields(['courseName', 'code', 'description'])
     .search()
     .filters()
-    .populate("campus");
+    .sort();
 
-  let courses = await apiFilters.query.populate("teacher", "name email");
-  const filteredCoursesCount = courses.length;
+  // 5. Get counts using the base query
+  const baseQuery = baseApiFilters.query;
+  const total = await baseApiFilters.model.countDocuments(baseQuery._conditions);
+  
+  // 6. Get active/deactive counts (agar status field hai to)
+  let active = 0;
+  let deactive = 0;
+  
+  // Check karo ke Course model me status field hai ya nahi
+  try {
+    // Active courses count
+    const activeQuery = Course.find({
+      ...baseQuery._conditions,
+      status: true
+    });
+    active = await activeQuery.countDocuments();
+    
+    // Deactive courses count
+    const deactiveQuery = Course.find({
+      ...baseQuery._conditions,
+      status: false
+    });
+    deactive = await deactiveQuery.countDocuments();
+  } catch (error) {
+    // Agar status field nahi hai model me to ignore karo
+    console.log('Status field not found in Course model, ignoring counts');
+    active = total;
+    deactive = 0;
+  }
 
-  apiFilters.pagination(resPerPage);
-  courses = await apiFilters.query.clone().populate("teacher", "name email");
+  // 7. Now create a NEW query for actual data WITH/WITHOUT pagination
+  const apiFilters = new APIFilters(Course, req.query)
+    .setSearchFields(['courseName', 'code', 'description'])
+    .search()
+    .filters()
+    .sort()
+    .pagination(); // ✅ This will handle limit=0 case automatically
 
+  // 8. Conditionally populate
+  // Agar teacher search ya filter laga ho to teacher ke details bhi populate karo
+  const populateOptions = ["campus"];
+  
+  // Teacher ko bhi populate karo, lekin selective fields ke sath
+  if (req.query.teacher || (req.query.keyword && req.query.keyword.includes('teacher'))) {
+    populateOptions.push({
+      path: "teacher",
+      select: "name email phone department",
+      populate: {
+        path: "campus",
+        select: "name"
+      }
+    });
+  } else {
+    populateOptions.push({
+      path: "teacher",
+      select: "name email"
+    });
+  }
+
+  // Agar students bhi populate karne hain (agar Course model me students field hai)
+  if (req.query.populateStudents === 'true') {
+    populateOptions.push({
+      path: "students",
+      select: "name email rollNumber grade",
+      populate: {
+        path: "grade.gradeId",
+        select: "name"
+      }
+    });
+  }
+
+  apiFilters.populate(populateOptions);
+
+  // 9. Execute the query
+  const courses = await apiFilters.query;
+
+  // 10. ✅ Get pagination meta ONLY if pagination is enabled
+  let pagination = null;
+  if (apiFilters.shouldPaginate) {
+    pagination = {
+      total,
+      page: apiFilters.page,
+      limit: apiFilters.limit,
+      totalPages: Math.ceil(total / apiFilters.limit)
+    };
+  }
+
+  // 11. Additional filtering by teacher name (agar search keyword me teacher ka naam hai)
+  let finalCourses = courses;
+  
+  if (req.query.keyword && req.query.keyword.trim()) {
+    const keyword = req.query.keyword.trim().toLowerCase();
+    
+    // Agar teacher ke naam se bhi filter karna hai
+    finalCourses = courses.filter(course => {
+      const courseMatches = 
+        course.courseName?.toLowerCase().includes(keyword) ||
+        course.code?.toLowerCase().includes(keyword) ||
+        course.description?.toLowerCase().includes(keyword);
+      
+      const teacherMatches = course.teacher && (
+        course.teacher.name?.toLowerCase().includes(keyword) ||
+        course.teacher.email?.toLowerCase().includes(keyword)
+      );
+      
+      return courseMatches || teacherMatches;
+    });
+    
+    // Agar frontend pagination nahi use kar raha to yahan filter ke baad count update karo
+    if (!apiFilters.shouldPaginate) {
+      const filteredTotal = finalCourses.length;
+      
+      // Active/Deactive counts bhi update karo
+      let filteredActive = 0;
+      let filteredDeactive = 0;
+      
+      finalCourses.forEach(course => {
+        if (course.status === true) filteredActive++;
+        else if (course.status === false) filteredDeactive++;
+        else filteredActive++; // Agar status undefined hai to active consider karo
+      });
+      
+      // Update counts for filtered results
+      active = filteredActive;
+      deactive = filteredDeactive;
+      total = filteredTotal;
+    }
+  }
+
+  // 12. Final Response
   res.status(200).json({
     success: true,
-    resPerPage,
-    filteredCoursesCount,
-    courses,
+    ...(pagination && { 
+      pagination: { 
+        ...pagination, 
+        counts: { total, active, deactive } 
+      } 
+    }),
+    ...(!pagination && { 
+      counts: { total, active, deactive } 
+    }),
+    courses: finalCourses,
   });
 });
+
 
 
 

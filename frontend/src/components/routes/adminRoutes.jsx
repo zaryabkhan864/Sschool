@@ -40,6 +40,10 @@ import NewCampus from "../campus/NewCampus";
 import UpdateCampus from "../campus/UpdateCampus";
 import ListTeacherLeave from "../teacherLeave/ListTeacherLeave";
 import UpdateTeacherLeave from "../teacherLeave/UpdateTeacherLeave";
+import CreateTimeTable from "../timetable/CreateTimeTable";
+import NewAcademicLevel from "../timetable/NewAcademiclevel";
+import NewClassGroup from "../timetable/NewClassGroup";
+
 
 const adminRoutes = () => {
   return (
@@ -164,7 +168,7 @@ const adminRoutes = () => {
           </ProtectedRoute>
         }
       />
-            <Route
+      <Route
         path="/admin/teacher-leave/:id/edit"
         element={
           <ProtectedRoute admin={true}>
@@ -357,6 +361,31 @@ const adminRoutes = () => {
         element={
           <ProtectedRoute admin={true}>
             <CampusDetails />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/academic-level/new"
+        element={
+          <ProtectedRoute admin={true}>
+            <CreateTimeTable />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/academic-level/"
+        element={
+          <ProtectedRoute admin={true}>
+            <NewAcademicLevel />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/class-groups"
+        element={
+          <ProtectedRoute admin={true}>
+            <NewClassGroup />
           </ProtectedRoute>
         }
       />

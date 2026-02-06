@@ -10,6 +10,7 @@ import sendToken from "../utils/sendToken.js";
 import _ from "lodash";
 import { nanoid } from 'nanoid';
 import mongoose from "mongoose";
+import APIFilters from "../utils/apiFilters.js";
 
 // Register user   =>  /api/v1/register
 export const registerUser = catchAsyncErrors(async (req, res, next) => {
@@ -23,7 +24,7 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
     password,
     avatar,
     role,
-    age,
+    dateOfBirth,
     gender,
     status,
     nationality,
@@ -55,7 +56,7 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
     password,
     avatar,
     role, // Explicitly passing role from req.body
-    age,
+    dateOfBirth,
     gender,
     year:selectedYear,
     status,
@@ -265,7 +266,7 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
   const newUserData = {
     name: req.body.name,
     email: req.body.email,
-    age: req.body.age,
+    dateOfBirth: req.body.dateOfBirth,
     gender: req.body.gender,
     nationality: req.body.nationality,
     passportNumber: req.body.passportNumber,
@@ -319,8 +320,20 @@ export const allUsers = catchAsyncErrors(async (req, res, next) => {
 });
 
 // Get User Details - ADMIN  =>  /api/v1/admin/users/:id
+// Get User Details - ADMIN  =>  /api/v1/admin/users/:id
 export const getUserDetails = catchAsyncErrors(async (req, res, next) => {
-  const user = await User.findById(req.params.id);
+  // ✅ Grade ko populate karo
+  const user = await User.findById(req.params.id)
+    .populate({
+      path: 'grade.gradeId',
+      model: 'Grade',
+      select: 'gradeName description level name'
+    })
+    .populate({
+      path: 'siblings',
+      model: 'User',
+      select: 'name email grade userId'
+    });
 
   if (!user) {
     return next(
@@ -328,71 +341,28 @@ export const getUserDetails = catchAsyncErrors(async (req, res, next) => {
     );
   }
 
+  // ✅ Grade data ko properly format karo (single grade ke liye)
+  let formattedUser = user.toObject ? user.toObject() : user;
+  
+  if (formattedUser.grade && Array.isArray(formattedUser.grade) && formattedUser.grade.length > 0) {
+    // Agar multiple grades hain to first grade use karo
+    const firstGrade = formattedUser.grade[0];
+    if (firstGrade.gradeId) {
+      formattedUser.grade = firstGrade.gradeId; // Grade object assign karo
+    } else {
+      formattedUser.grade = null;
+    }
+  } else {
+    formattedUser.grade = null;
+  }
+
   res.status(200).json({
-    user,
+    success: true,
+    user: formattedUser,
   });
 });
 
-// Update User Details - ADMIN  =>  /api/v1/admin/users/:id
-// export const updateUser = catchAsyncErrors(async (req, res, next) => {
-//   // Handle avatar upload if it's a string
-//   if (_.isString(req.body?.avatar)) {
-//     try {
-//       const avatar = await upload_file(req.body.avatar, "shopit/avatars");
-//       if (avatar.url) {
-//         req.body.avatar = avatar;
-//       }
-//     } catch (err) {
-//       console.error("Avatar upload failed:", err);
-//       return next(new ErrorHandler("Avatar upload failed", 500));
-//     }
-//   }
 
-//   // Find the user
-//   const user = await User.findById(req.params.id).select("+password");
-//   if (!user) {
-//     return next(new ErrorHandler(`User not found with id: ${req.params.id}`, 404));
-//   }
-
-//   // Update fields safely
-//   const fieldsToUpdate = [
-//     "name",
-//     "email",
-//     "role",
-//     "age",
-//     "gender",
-//     "nationality",
-//     "passportNumber",
-//     "siblings",
-//     "phoneNumber",
-//     "secondaryPhoneNumber",
-//     "address",
-//     "avatar",
-//     "grade",
-//     "campus",
-//     "status",
-//     "year",
-//   ];
-
-//   fieldsToUpdate.forEach((field) => {
-//     if (req.body[field] !== undefined) {
-//       user[field] = req.body[field];
-//     }
-//   });
-
-//   // Update password only if provided and not empty
-//   if (req.body.password && req.body.password.trim() !== "") {
-//     user.password = req.body.password; // triggers pre-save hook to hash
-//   }
-
-//   // Save user
-//   await user.save();
-
-//   res.status(200).json({
-//     success: true,
-//     user,
-//   });
-// });
 export const updateUser = catchAsyncErrors(async (req, res, next) => {
   const { campus } = req.cookies;
   const { selectedYear } = req.cookies;
@@ -408,12 +378,30 @@ export const updateUser = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler(`User not found with id: ${req.params.id}`, 404));
   }
 
+  // ✅ Special handling for grade field
+  // Agar grade string mein aaya hai, to use array format mein convert karo
+  if (req.body.grade && typeof req.body.grade === 'string') {
+    // String ko array format mein convert karo
+    req.body.grade = [{ gradeId: req.body.grade }];
+  } else if (req.body.grade && Array.isArray(req.body.grade)) {
+    // Agar array mein aaya hai to use validate karo
+    req.body.grade = req.body.grade.map(gradeItem => {
+      if (typeof gradeItem === 'string') {
+        return { gradeId: gradeItem };
+      }
+      return gradeItem;
+    });
+  } else if (req.body.grade === "") {
+    // Agar empty string aaya hai to empty array set karo
+    req.body.grade = [];
+  }
+
   // Update fields safely
   const fieldsToUpdate = [
     "name",
     "email",
     "role",
-    "age",
+    "dateOfBirth",
     "gender",
     "nationality",
     "passportNumber",
@@ -421,7 +409,7 @@ export const updateUser = catchAsyncErrors(async (req, res, next) => {
     "phoneNumber",
     "secondaryPhoneNumber",
     "address",
-    "grade",
+    "grade", // ✅ Ab ye array format mein hai
     "campus",
     "status",
     "year",
@@ -450,14 +438,24 @@ export const updateUser = catchAsyncErrors(async (req, res, next) => {
   // Save user
   await user.save();
 
+  // ✅ User ko dobara populate karke bhejo taki frontend ko updated grade details mile
+  const updatedUser = await User.findById(req.params.id)
+    .populate({
+      path: 'grade.gradeId',
+      model: 'Grade',
+      select: 'gradeName description level name'
+    })
+    .populate({
+      path: 'siblings',
+      model: 'User',
+      select: 'name email grade userId'
+    });
+
   res.status(200).json({
     success: true,
-    user,
+    user: updatedUser,
   });
 });
-
-  
-
 
 
 // Delete User - ADMIN  =>  /api/v1/admin/users/:id
@@ -483,182 +481,153 @@ export const deleteUser = catchAsyncErrors(async (req, res, next) => {
 });
 
 
-// Get all Users -  /api/v1/users
-// export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
- 
-//   let users = [];
-//   let sortedStudents = [];
-//   const { campus, selectedYear } = req.cookies;
-
-//   const match = {};
-
-//   if (campus) {
-//     match.campus = new mongoose.Types.ObjectId(campus);
-//   }
-//   if (selectedYear) {
-//     // year tumhare model me Date hai => is wajah se direct string match nahi hoga
-//     // agar selectedYear format '2025' ya '2025-01-01' aa raha hai to accordingly cast karna padega
-//     match.year = new Date(selectedYear);
-//   }
-
-//   if (req.params.type === 'student') {
-//     match.role = 'student';
-
-//     const pipeline = [
-//       { $match: match },
-//       {
-//         $lookup: {
-//           from: 'grade',
-//           localField: 'grade.gradeId',
-//           foreignField: '_id',
-//           as: 'populatedGrades'
-//         }
-//       },
-//       {
-//         $lookup: {
-//           from: 'campus', // 🔹 table ka actual name check kar lo (zyada cases me plural hota hai)
-//           localField: 'campus',
-//           foreignField: '_id',
-//           as: 'campus'
-//         }
-//       },
-//       {
-//         $addFields: {
-//           grade: { $arrayElemAt: ['$populatedGrades', -1] } // last grade pick
-//         }
-//       },
-//       {
-//         $unwind: {
-//           path: '$campus',
-//           preserveNullAndEmptyArrays: true
-//         }
-//       },
-//       {
-//         $unwind: {
-//           path: '$grade',
-//           preserveNullAndEmptyArrays: true
-//         }
-//       }
-//     ];
-
-//     const fetchedUsers = await User.aggregate(pipeline);
-
-//     sortedStudents = _.sortBy(
-//       fetchedUsers,
-//       [
-//         (item) => item.grade?.gradeName?.toLowerCase() || "",
-//         (item) => item?.name?.toLowerCase() || ""
-//       ]
-//     );
-//   } 
-//   else if (req.params.type === 'employee') {
-//     users = await User.find({ ...match, role: { $ne: 'student' } });
-//   } 
-//   else {
-//     users = await User.find({ ...match, role: req.params.type }).populate('campus', 'name');
-//   }
-
-//   res.status(200).json({
-//     users: req.params.type === 'student' ? sortedStudents : users,
-//   });
-// });
 export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
-  let users = [];
-  let sortedStudents = [];
+  const { type } = req.params;
   const { campus, selectedYear } = req.cookies;
 
-  const match = {};
-
-  if (campus) {
-    match.campus = new mongoose.Types.ObjectId(campus);
-  }
-  if (selectedYear) {
-    match.year = new Date(selectedYear);
+  // 1. Role Logic
+  if (type === 'employee') {
+    req.query.role = { $ne: 'student' };
+  } else {
+    req.query.role = type;
   }
 
-  if (req.params.type === 'student') {
-    match.role = 'student';
+  // 2. Cookie Filters - IMPORTANT CHANGE
+  const limit = Number(req.query.limit);
+  const isDropdownRequest = limit === 0;
+  
+  if (campus && !isDropdownRequest) {
+    req.query.campus = campus;
+  }
+  
+  if (selectedYear && !isDropdownRequest) {
+    req.query.year = selectedYear;
+  }
 
-    const pipeline = [
-      { $match: match },
+  // 3. Status handle karo
+  if (req.query.status) {
+    if (req.query.status === 'active') {
+      req.query.status = true;
+    } else if (req.query.status === 'deactive') {
+      req.query.status = false;
+    }
+  }
+
+  // 4. Gender ko case-insensitive banao
+  if (req.query.gender) {
+    const genderValue = req.query.gender.toLowerCase();
+    if (genderValue === 'male' || genderValue === 'female' || genderValue === 'other') {
+      req.query.gender = genderValue.charAt(0).toUpperCase() + genderValue.slice(1);
+    }
+  }
+
+  // 5. Base query for counting
+  const baseApiFilters = new APIFilters(User, req.query)
+    .setSearchFields(['name', 'email', 'gender', 'nationality'])
+    .search()
+    .filters()
+    .sort();
+
+  // 6. Get counts using the base query
+  const baseQuery = baseApiFilters.query;
+  const total = await baseApiFilters.model.countDocuments(baseQuery._conditions);
+  
+  // 7. Get active/deactive counts
+  const activeQuery = User.find({
+    ...baseQuery._conditions,
+    status: true
+  });
+  const active = await activeQuery.countDocuments();
+  
+  const deactiveQuery = User.find({
+    ...baseQuery._conditions,
+    status: false
+  });
+  const deactive = await deactiveQuery.countDocuments();
+
+  // 8. Now create a NEW query for actual data WITH/WITHOUT pagination
+  const apiFilters = new APIFilters(User, req.query)
+    .setSearchFields(['name', 'email', 'gender', 'nationality'])
+    .search()
+    .filters()
+    .sort()
+    .pagination();
+
+  // 9. Conditionally populate - FIXED FOR STUDENTS
+  if (type === 'student') {
+    // Student ke liye grade.gradeId ko populate karo Grade model ke sath
+    // Aur campus ko bhi populate karo
+    apiFilters.populate([
       {
-        $lookup: {
-          from: 'grades', // Ensure this matches your actual collection name
-          localField: 'grade.gradeId',
-          foreignField: '_id',
-          as: 'gradeDetails'
-        }
+        path: 'grade.gradeId',
+        model: 'Grade',
+        select: 'gradeName description courses campus year'
       },
       {
-        $lookup: {
-          from: 'campuses', // Ensure this matches your actual collection name
-          localField: 'campus',
-          foreignField: '_id',
-          as: 'campus'
-        }
-      },
-      {
-        $unwind: {
-          path: '$campus',
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      // Add grade information to each grade entry
-      {
-        $addFields: {
-          grade: {
-            $map: {
-              input: "$grade",
-              as: "g",
-              in: {
-                $mergeObjects: [
-                  "$$g",
-                  {
-                    gradeDetails: {
-                      $arrayElemAt: [
-                        {
-                          $filter: {
-                            input: "$gradeDetails",
-                            as: "gd",
-                            cond: { $eq: ["$$gd._id", "$$g.gradeId"] }
-                          }
-                        },
-                        0
-                      ]
-                    }
-                  }
-                ]
-              }
-            }
-          }
-        }
-      },
-      // Add current grade for sorting
-      {
-        $addFields: {
-          currentGrade: { $arrayElemAt: ['$gradeDetails', -1] } // Last grade for sorting
-        }
+        path: 'campus',
+        model: 'Campus',
+        select: 'name'
       }
-    ];
-
-    const fetchedUsers = await User.aggregate(pipeline);
-
-    sortedStudents = _.sortBy(
-      fetchedUsers,
-      [
-        (item) => item.currentGrade?.gradeName?.toLowerCase() || "",
-        (item) => item?.name?.toLowerCase() || ""
-      ]
-    );
-  } 
-  else if (req.params.type === 'employee') {
-    users = await User.find({ ...match, role: { $ne: 'student' } });
-  } 
-  else {
-    users = await User.find({ ...match, role: req.params.type }).populate('campus', 'name');
+    ]);
+  } else {
+    // Non-student users ke liye sirf campus populate karo
+    apiFilters.populate({
+      path: 'campus',
+      model: 'Campus',
+      select: 'name'
+    });
   }
 
+  // 10. Execute the query
+  const users = await apiFilters.query;
+
+  // 11. Agar student type hai to grade data ko format karo
+  let formattedUsers = users;
+  if (type === 'student') {
+    formattedUsers = users.map(user => {
+      const userObj = user.toObject ? user.toObject() : user;
+      
+      // Agar grade array hai to use format karo
+      if (userObj.grade && Array.isArray(userObj.grade)) {
+        userObj.grade = userObj.grade.map(gradeItem => {
+          return {
+            ...gradeItem,
+            // Grade details ko direct access karne ke liye
+            gradeDetails: gradeItem.gradeId || null,
+            // Grade ID ko alag se bhi rakhna
+            gradeId: gradeItem.gradeId?._id || gradeItem.gradeId
+          };
+        });
+      }
+      
+      return userObj;
+    });
+  }
+
+  // 12. ✅ Get pagination meta ONLY if pagination is enabled
+  let pagination = null;
+  if (apiFilters.shouldPaginate) {
+    pagination = {
+      total,
+      page: apiFilters.page,
+      limit: apiFilters.limit,
+      totalPages: Math.ceil(total / apiFilters.limit)
+    };
+  }
+
+  // 13. Final Response
   res.status(200).json({
-    users: req.params.type === 'student' ? sortedStudents : users,
+    success: true,
+    ...(pagination && { 
+      pagination: { 
+        ...pagination, 
+        counts: { total, active, deactive } 
+      } 
+    }),
+    ...(!pagination && { 
+      counts: { total, active, deactive } 
+    }),
+    users: formattedUsers,
   });
 });
+

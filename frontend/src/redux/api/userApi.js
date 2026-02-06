@@ -96,14 +96,31 @@ export const userApi = createApi({
       },
       invalidatesTags: ["AdminUsers"],
     }),
+    // redux/api/userApi.js
+    // Redux API (userApi.js)
     getUserByType: builder.query({
-      query(type) {
+      query: ({ type, page = 1, limit = undefined, keyword = "", gender, status }) => {
+        const params = new URLSearchParams();
+        
+        // Always add page and keyword
+        params.append('page', page);
+        if (keyword) params.append('keyword', keyword);
+        
+        // ✅ Conditionally add limit - agar undefined nahi hai to add karo
+        if (limit !== undefined && limit !== null && limit !== '') {
+          params.append('limit', limit);
+        }
+        
+        // Add other filters
+        if (gender) params.append('gender', gender);
+        if (status) params.append('status', status);
+        
         return {
-          url: `/users/${type}`,
-          method: "get",
+          url: `/users/${type}?${params.toString()}`,
+          method: "GET",
         };
       },
-      invalidatesTags: ["AdminUsers"],
+      providesTags: ["AdminUsers"],
     }),
   }),
 });

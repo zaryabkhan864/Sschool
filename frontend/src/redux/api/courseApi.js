@@ -3,22 +3,32 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 export const courseApi = createApi({
   reducerPath: "courseApi",
   baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" }),
-  tagTypes: ["Course", "AdminCourses", "Reviews"],
+  tagTypes: ["Courses", "Course", "AdminCourses"], // Added "Courses" tag
   endpoints: (builder) => ({
     getCourses: builder.query({
-      query: (params) => ({
+      query: ({ page = 1, limit = 5, keyword = "", teacherId } = {}) => ({
         url: "/courses",
-        params: {
-          page: params?.page,
-          keyword: params?.keyword,
-          category: params?.category,
+        params: { 
+          page, 
+          limit, 
+          keyword,
+          ...(teacherId && { teacherId })
         },
       }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.courses.map(({ _id }) => ({ type: "Courses", id: _id })),
+              { type: "Courses", id: "LIST" },
+            ]
+          : [{ type: "Courses", id: "LIST" }],
     }),
+    
     getCourseDetails: builder.query({
       query: (id) => `/courses/${id}`,
-      providesTags: ["Course"],
+      providesTags: (result, error, id) => [{ type: "Course", id }],
     }),
+    
     createCourse: builder.mutation({
       query(body) {
         return {
@@ -27,8 +37,12 @@ export const courseApi = createApi({
           body,
         };
       },
-      invalidatesTags: ["AdminCourses"],
+      invalidatesTags: [
+        { type: "Courses", id: "LIST" },
+        { type: "AdminCourses" }
+      ],
     }),
+    
     updateCourse: builder.mutation({
       query({ id, body }) {
         return {
@@ -37,8 +51,13 @@ export const courseApi = createApi({
           body,
         };
       },
-      invalidatesTags: ["Course", "AdminCourses"],
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Courses", id },
+        { type: "Course", id },
+        { type: "AdminCourses" }
+      ],
     }),
+    
     deleteCourse: builder.mutation({
       query(id) {
         return {
@@ -46,15 +65,18 @@ export const courseApi = createApi({
           method: "DELETE",
         };
       },
-      invalidatesTags: ["AdminCourses"],
+      invalidatesTags: [
+        { type: "Courses", id: "LIST" },
+        { type: "AdminCourses" }
+      ],
     }),
+    
     getCourseByGradeAndTeacherID: builder.mutation({
       query: (body) => ({
         url: `/courses/grade/teacher`,
         method: "POST",
         body,
       }),
-      providesTags: ["Courses By Grade And Teacher ID"],
     }),
   }),
 });
@@ -63,11 +85,7 @@ export const {
   useGetCoursesQuery,
   useGetCourseDetailsQuery,
   useGetCourseByGradeAndTeacherIDMutation,
-  useGetAdminCoursesQuery,
   useCreateCourseMutation,
   useUpdateCourseMutation,
-
-  useDeleteCourseImageMutation,
   useDeleteCourseMutation,
-
 } = courseApi;

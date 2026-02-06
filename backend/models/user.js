@@ -34,10 +34,9 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "user",
     },
-    age: {
-      type: Number,
-      required: [true, "Please enter age of student"],
-      maxLength: [2, "Student age cannot exceed 2 digits"],
+    dateOfBirth: {
+      type: Date,
+      required: [true, "Please enter date of birth"],
     },
     gender: {
       type: String,
@@ -68,12 +67,12 @@ const userSchema = new mongoose.Schema(
     phoneNumber: {
       type: String,
       required: [true, "Please enter the phone number"],
-      maxLength: [12, "Contact number should be 10 digits"],
+      maxLength: [13, "Contact number should be 10 digits"],
     },
     secondaryPhoneNumber: {
       type: String,
       required: [true, "Please enter the phone number"],
-      maxLength: [12, "Contact number should be 10 digits"],
+      maxLength: [13, "Contact number should be 10 digits"],
     },
     address: {
       type: String,

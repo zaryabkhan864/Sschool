@@ -1,21 +1,19 @@
 // src/components/admin/UpdateTeacher.jsx
 import React, { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { toast } from "react-hot-toast";
-import { useNavigate, useParams } from "react-router-dom";
 import { useCountries } from "react-countries";
+import toast from "react-hot-toast";
+import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 
 import {
   useGetUserDetailsQuery,
   useUpdateUserMutation,
 } from "../../redux/api/userApi";
-
-import PhoneInput from "react-phone-input-2";
-import "react-phone-input-2/lib/style.css";
 import AdminLayout from "../layout/AdminLayout";
-import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
-import ConfirmationModal from "../GUI/ConfirmationModal";
+import Loader from "../layout/Loader";
 
 const UpdateTeacher = () => {
   const { t } = useTranslation();
@@ -26,62 +24,77 @@ const UpdateTeacher = () => {
   const [teacher, setTeacher] = useState({
     role: "teacher",
     name: "",
-    age: "",
+    dateOfBirth: "",
     gender: "",
     passportNumber: "",
     nationality: "",
     phoneNumber: "",
     secondaryPhoneNumber: "",
-    year: "",
-    status: "",
+    status: true,
     email: "",
     password: "",
+    address: "",
     avatar: "",
   });
-  const [avatarPreview, setAvatarPreview] = useState("");
-  
-  const [showModal, setShowModal] = useState(false);
 
+  const [avatarPreview, setAvatarPreview] = useState("");
   const {
     name,
-    age,
+    dateOfBirth,
     gender,
     passportNumber,
     nationality,
     phoneNumber,
     secondaryPhoneNumber,
-    year,
     status,
     email,
     password,
+    address,
   } = teacher;
 
-  const { data, isLoading: detailsLoading,refetch } = useGetUserDetailsQuery(
-    params?.id
-  );
+  const { data, isLoading: detailsLoading, refetch: refetchDetails } =
+    useGetUserDetailsQuery(params?.id);
   const [updateUser, { isLoading, error, isSuccess }] =
     useUpdateUserMutation();
 
-    const [shouldRefresh, setShouldRefresh] = useState(false);
-
   useEffect(() => {
     if (data?.user) {
+      const userData = data.user;
+      
+      // Format dateOfBirth to YYYY-MM-DD
+      let formattedDate = "";
+      if (userData.dateOfBirth) {
+        try {
+          // Handle different date formats
+          const dateObj = new Date(userData.dateOfBirth);
+          if (!isNaN(dateObj.getTime())) {
+            // Convert to YYYY-MM-DD format for input
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            formattedDate = `${year}-${month}-${day}`;
+          }
+        } catch (error) {
+          console.error("Error parsing date:", error);
+        }
+      }
+
       setTeacher({
         role: "teacher",
-        name: data.user.name || "",
-        age: data.user.age || "",
-        gender: data.user.gender || "",
-        passportNumber: data.user.passportNumber || "",
-        nationality: data.user.nationality || "",
-        phoneNumber: data.user.phoneNumber || "",
-        secondaryPhoneNumber: data.user.secondaryPhoneNumber || "",
-        year: data.user.year || "",
-        status: data.user.status ?? "",
-        email: data.user.email || "",
+        name: userData.name || "",
+        dateOfBirth: formattedDate,
+        gender: userData.gender || "",
+        passportNumber: userData.passportNumber || "",
+        nationality: userData.nationality || "",
+        phoneNumber: userData.phoneNumber || "",
+        secondaryPhoneNumber: userData.secondaryPhoneNumber || "",
+        status: userData.status ?? true,
+        email: userData.email || "",
         password: "",
-        avatar: data.user.avatar?.url || "",
+        address: userData.address || "",
+        avatar: userData.avatar?.url || "",
       });
-      setAvatarPreview(data.user.avatar?.url || "");
+      setAvatarPreview(userData.avatar?.url || "");
     }
 
     if (error) {
@@ -89,338 +102,327 @@ const UpdateTeacher = () => {
     }
 
     if (isSuccess) {
-      toast.success("Teacher updated successfully");
-      setShouldRefresh(true);
-      navigate("/admin/teachers", { state: { shouldRefetch: true } });
-
+      toast.success(t("Teacher Updated"));
+      navigate("/admin/teachers");
+      refetchDetails();
     }
-  }, [data, error, isSuccess, navigate]);
-
-  if (detailsLoading) {
-    return <Loader />;
-  }
+  }, [data, error, isSuccess, navigate, refetchDetails, t]);
 
   const onChange = (e) => {
     if (e.target.name === "avatar") {
       const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (reader.readyState === 2) {
-          setAvatarPreview(reader.result);
-          setTeacher({ ...teacher, avatar: reader.result });
-        }
-      };
-      if (file) reader.readAsDataURL(file);
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (reader.readyState === 2) {
+            setAvatarPreview(reader.result);
+            setTeacher({ ...teacher, avatar: reader.result });
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    } else if (e.target.name === "status") {
+      setTeacher({ ...teacher, status: e.target.value === "true" });
     } else {
       setTeacher({ ...teacher, [e.target.name]: e.target.value });
     }
   };
 
-  const handlePrimaryPhoneChange = (value) => {
-    setTeacher({ ...teacher, phoneNumber: value });
-  };
-  
-  const handleSecondaryPhoneChange = (value) => {
-    setTeacher({ ...teacher, secondaryPhoneNumber: value });
-  };
-
-  const handleSubmitClick = (e) => {
+  const submitHandler = (e) => {
     e.preventDefault();
-    setShowModal(true);
+    const updateData = { ...teacher };
+    
+    // Format dateOfBirth to ISO string without time (YYYY-MM-DDT00:00:00.000Z)
+    if (updateData.dateOfBirth) {
+      try {
+        // Create date object at start of day (00:00:00) in local timezone
+        const dateObj = new Date(updateData.dateOfBirth);
+        // Convert to ISO string in UTC
+        updateData.dateOfBirth = new Date(
+          dateObj.getFullYear(),
+          dateObj.getMonth(),
+          dateObj.getDate()
+        ).toISOString();
+      } catch (error) {
+        console.error("Error formatting date:", error);
+        // Keep original value if formatting fails
+      }
+    }
+    
+    // Don't send password if it's empty
+    if (!updateData.password) {
+      delete updateData.password;
+    }
+    
+    // Don't send avatar if it's not changed (already a URL string)
+    if (updateData.avatar && updateData.avatar.startsWith('http')) {
+      delete updateData.avatar;
+    }
+    
+    updateUser({ id: params?.id, body: updateData });
   };
 
-  const confirmUpdate = () => {
-    updateUser({ id: params?.id, body: teacher });
-  };
+  if (detailsLoading) {
+    return <Loader />;
+  }
+
+  const inputClass =
+    "w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all bg-white placeholder:text-gray-400";
+  const labelClass =
+    "block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1";
 
   return (
     <AdminLayout>
-      <MetaData title={"Update Teacher"} />
-      <div className="flex justify-center items-center pt-5 pb-10">
-        <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">
-            {t("Update")} {t("Teacher")}
-          </h2>
-          <form onSubmit={handleSubmitClick}>
-            {/* Name and Age */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="mb-4">
-                <label
-                  htmlFor="name_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t("Teacher")} {t("Name")}
-                </label>
-                <input
-                  type="text"
-                  id="name_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="name"
-                  value={name}
-                  onChange={onChange}
-                  required
-                />
-              </div>
+      <MetaData title={t("Update Teacher")} />
 
-              <div className="mb-4">
-                <label
-                  htmlFor="age_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t("Age")}
-                </label>
-                <input
-                  type="number"
-                  id="age_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="age"
-                  value={age}
-                  onChange={onChange}
-                  required
-                  min="18"
-                  max="100"
-                />
-              </div>
-            </div>
+      <div className="max-w-6xl mx-auto py-4">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4 px-2">
+          <div>
+            <h1 className="text-xl font-bold text-gray-800">
+              {t("Update Teacher")}
+            </h1>
+            <p className="text-xs text-gray-500">
+              {t("Update faculty member information")}
+            </p>
+          </div>
+          <button
+            onClick={() => navigate("/admin/teachers")}
+            className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm"
+          >
+            <i className="fa fa-arrow-left mr-1"></i> {t("back")}
+          </button>
+        </div>
 
-            {/* Nationality, Passport, and Gender */}
-            <div className="grid grid-cols-4 gap-4">
-              <div className="mb-4">
-                <label
-                  htmlFor="nationality_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t("Nationality")}
-                </label>
-                <select
-                  id="nationality_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="nationality"
-                  value={nationality}
-                  onChange={onChange}
-                  required
-                >
-                  <option value="">{t("Select Nationality")}</option>
-                  {countries?.map(({ name }) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
+        <form onSubmit={submitHandler} className="space-y-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            {/* Section 1: Credentials */}
+            <div className="p-5 border-b border-gray-100">
+              <div className="flex items-center gap-2 mb-4">
+                <i className="fa fa-lock text-blue-500 text-sm"></i>
+                <h3 className="font-bold text-sm text-gray-800">
+                  {t("Account Credentials")}
+                </h3>
               </div>
-
-              <div className="mb-4">
-                <label
-                  htmlFor="passportNumber_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t("Passport Number")}
-                </label>
-                <input
-                  type="text"
-                  id="passportNumber_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="passportNumber"
-                  value={passportNumber}
-                  onChange={onChange}
-                  required
-                  minLength={8}
-                  maxLength={14}
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  {t("Gender")}
-                </label>
-                <div className="flex items-center space-x-4 mt-2">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="Male"
-                      checked={gender === "Male"}
-                      onChange={onChange}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <span className="ml-2">{t("Male")}</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="Female"
-                      checked={gender === "Female"}
-                      onChange={onChange}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <span className="ml-2">{t("Female")}</span>
-                  </label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className={labelClass}>{t("Full Name")} *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={name}
+                    onChange={onChange}
+                    className={inputClass}
+                    required
+                  />
                 </div>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  {t("Status")}
-                </label>
-                <div className="flex items-center space-x-4 mt-2">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="status"
-                      checked={status === true || status === "true"}
-                      onChange={() => setTeacher({ ...teacher, status: true })}
-                      className="h-4 w-4 text-green-600 focus:ring-green-500"
-                    />
-                    <span className="ml-2">{t("Active")}</span>
+                <div>
+                  <label className={labelClass}>{t("Email Address")} *</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={email}
+                    onChange={onChange}
+                    className={inputClass}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>
+                    {t("Password")} ({t("optional")})
                   </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="status"
-                      checked={status === false || status === "false"}
-                      onChange={() => setTeacher({ ...teacher, status: false })}
-                      className="h-4 w-4 text-red-600 focus:ring-red-500"
-                    />
-                    <span className="ml-2">{t("Inactive")}</span>
-                  </label>
+                  <input
+                    type="password"
+                    name="password"
+                    value={password}
+                    onChange={onChange}
+                    className={inputClass}
+                    placeholder={t("Leave blank to keep current password")}
+                    minLength={6}
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Phone Numbers */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  {t("Phone Number")}
-                </label>
-                <div className="mt-1">
+            {/* Section 2: Personal & Contact */}
+            <div className="p-5 bg-gray-50/30">
+              <div className="flex items-center gap-2 mb-4">
+                <i className="fa fa-user text-green-500 text-sm"></i>
+                <h3 className="font-bold text-sm text-gray-800">
+                  {t("Personal Information")}
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className={labelClass}>{t("Gender")}</label>
+                  <select
+                    name="gender"
+                    value={gender}
+                    onChange={onChange}
+                    className={inputClass}
+                  >
+                    <option value="">Select</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>{t("Date of Birth")} *</label>
+                  <input
+                    type="date"
+                    name="dateOfBirth"
+                    value={dateOfBirth}
+                    onChange={onChange}
+                    className={inputClass}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>{t("Nationality")}</label>
+                  <select
+                    name="nationality"
+                    value={nationality}
+                    onChange={onChange}
+                    className={inputClass}
+                  >
+                    <option value="">Select Country</option>
+                    {countries?.map(({ name }) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>{t("Passport No")}</label>
+                  <input
+                    type="text"
+                    name="passportNumber"
+                    value={passportNumber}
+                    onChange={onChange}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div className="phone-compact">
+                  <label className={labelClass}>{t("Primary Contact")}</label>
                   <PhoneInput
                     country={"tr"}
                     value={phoneNumber}
-                    onChange={handlePrimaryPhoneChange}
-                    inputProps={{
-                      name: "phoneNumber",
-                      required: true,
-                    }}
-                    containerClass="w-full"
-                    inputClass="!w-full !h-[42px] !pl-14 !pr-3 !py-2 !border !border-gray-300 !rounded-md focus:!outline-none focus:!ring-2 focus:!ring-blue-500"
-                    buttonClass="!border-none !bg-transparent"
+                    onChange={(val) =>
+                      setTeacher({ ...teacher, phoneNumber: val })
+                    }
+                    inputClass="!w-full !h-[38px] !text-sm !border-gray-200 !rounded-lg"
+                    containerClass="!w-full"
                   />
                 </div>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  {t("Secondary Phone Number")}
-                </label>
-                <div className="mt-1">
+                <div className="phone-compact">
+                  <label className={labelClass}>
+                    {t("Secondary/Emergency Contact")}
+                  </label>
                   <PhoneInput
                     country={"tr"}
                     value={secondaryPhoneNumber}
-                    onChange={handleSecondaryPhoneChange}
-                    inputProps={{
-                      name: "secondaryPhoneNumber",
-                    }}
-                    containerClass="w-full"
-                    inputClass="!w-full !h-[42px] !pl-14 !pr-3 !py-2 !border !border-gray-300 !rounded-md focus:!outline-none focus:!ring-2 focus:!ring-blue-500"
-                    buttonClass="!border-none !bg-transparent"
+                    onChange={(val) =>
+                      setTeacher({ ...teacher, secondaryPhoneNumber: val })
+                    }
+                    inputClass="!w-full !h-[38px] !text-sm !border-gray-200 !rounded-lg"
+                    containerClass="!w-full"
                   />
                 </div>
+                <div>
+                  <label className={labelClass}>{t("Status")}</label>
+                  <select
+                    name="status"
+                    value={status}
+                    onChange={onChange}
+                    className={inputClass}
+                  >
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className={labelClass}>
+                  {t("Residential Address")}
+                </label>
+                <textarea
+                  name="address"
+                  value={address}
+                  onChange={onChange}
+                  rows="2"
+                  className={`${inputClass} resize-none`}
+                ></textarea>
               </div>
             </div>
 
-
-
-            {/* Email and Password */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="mb-4">
+            {/* Section 3: Avatar */}
+            <div className="p-5 border-t border-gray-100 flex items-center gap-4">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 overflow-hidden bg-white flex items-center justify-center">
+                  {avatarPreview ? (
+                    <img
+                      src={avatarPreview}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <i className="fa fa-camera text-gray-300 text-xl"></i>
+                  )}
+                </div>
                 <label
-                  htmlFor="email_field"
-                  className="block text-sm font-medium text-gray-700"
+                  htmlFor="avatar_field"
+                  className="absolute -bottom-1 -right-1 bg-blue-600 text-white w-6 h-6 rounded-md flex items-center justify-center cursor-pointer shadow-md"
                 >
-                  {t("Email")}
+                  <i className="fa fa-plus text-[10px]"></i>
                 </label>
-                <input
-                  type="email"
-                  id="email_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="email"
-                  value={email}
-                  onChange={onChange}
-                  required
-                />
-              </div>
-
-              <div className="mb-4">
-                <label
-                  htmlFor="password_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t("Password")}
-                </label>
-                <input
-                  type="password"
-                  id="password_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="password"
-                  value={password}
-                  onChange={onChange}
-                  placeholder={t("Leave blank to keep current password")}
-                  minLength={6}
-                />
-              </div>
-            </div>
-
-            {/* Avatar */}
-            <div className="mb-4">
-              <label
-                htmlFor="avatar_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                {t("Avatar")}
-              </label>
-              <div className="flex items-center mt-1">
                 <input
                   type="file"
                   id="avatar_field"
-                  name="avatar"
                   accept="image/*"
                   onChange={onChange}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  name="avatar"
+                  className="hidden"
                 />
-                {avatarPreview && (
-                  <img
-                    src={avatarPreview}
-                    alt="Avatar Preview"
-                    className="ml-4 h-12 w-12 rounded-full object-cover"
-                  />
-                )}
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-gray-800">
+                  {t("Profile Picture")}
+                </h4>
+                <p className="text-[10px] text-gray-500">
+                  Max size 2MB (JPG/PNG)
+                </p>
               </div>
             </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              className={`w-full py-2 text-white font-semibold rounded-md ${
-                isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-              } focus:outline-none focus:ring focus:ring-blue-300`}
-              disabled={isLoading}
-            >
-              {isLoading ? t("Updating...") : t("Update")}
-            </button>
-          </form>
-        </div>
+            {/* Actions */}
+            <div className="px-5 py-3 bg-gray-50 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => navigate("/admin/teachers")}
+                className="px-4 py-2 text-xs font-medium text-gray-600 hover:underline"
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className={`px-6 py-2 rounded-lg text-xs font-bold text-white transition-all ${
+                  isLoading
+                    ? "bg-gray-400"
+                    : "bg-blue-600 hover:bg-blue-700 shadow-md"
+                }`}
+              >
+                {isLoading ? t("updating") : t("Update Teacher")}
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
-
-      {/* Update Confirmation Modal */}
-      <ConfirmationModal
-        showModal={showModal}
-        setShowModal={setShowModal}
-        confirmDelete={confirmUpdate}
-        isDeleteLoading={isLoading}
-        message={t("Do you want to update this teacher?")}
-      />
     </AdminLayout>
   );
 };

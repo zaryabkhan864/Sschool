@@ -24,29 +24,205 @@ export const newGrade = catchAsyncErrors(async (req, res) => {
 });
 
 //Create get all grades => /api/v1/grades
+// Get grades with pagination - UPDATED VERSION
 export const getGrades = catchAsyncErrors(async (req, res, next) => {
   const { campus, selectedYear } = req.cookies;
 
-  // Inject campus and year into query filters
-  req.query.campus = campus;
-  if (selectedYear) {
-    req.query.year = selectedYear; // Or 'session' depending on your schema
+  // 1. Cookie Filters - IMPORTANT CHANGE
+  const limit = Number(req.query.limit);
+  const isDropdownRequest = limit === 0;
+  
+  if (campus && !isDropdownRequest) {
+    req.query.campus = campus;
+  }
+  
+  if (selectedYear && !isDropdownRequest) {
+    req.query.year = selectedYear;
   }
 
-  const apiFilters = new APIFilters(Grade, req.query)
+  // 2. Status handle karo
+  if (req.query.status) {
+    if (req.query.status === 'active') {
+      req.query.status = true;
+    } else if (req.query.status === 'deactive') {
+      req.query.status = false;
+    }
+  }
+
+  // 3. Base query for counting
+  const baseApiFilters = new APIFilters(Grade, req.query)
+    .setSearchFields(['gradeName', 'description', 'code'])
     .search()
-    .filters();
+    .filters()
+    .sort();
 
-  let grades = await apiFilters.query;
-  let filteredGradesCount = grades.length;
+  // 4. Get counts using the base query
+  const baseQuery = baseApiFilters.query;
+  const total = await baseApiFilters.model.countDocuments(baseQuery._conditions);
+  
+  // 5. Get active/deactive counts
+  let active = 0;
+  let deactive = 0;
+  
+  try {
+    const activeQuery = Grade.find({
+      ...baseQuery._conditions,
+      status: true
+    });
+    active = await activeQuery.countDocuments();
+    
+    const deactiveQuery = Grade.find({
+      ...baseQuery._conditions,
+      status: false
+    });
+    deactive = await deactiveQuery.countDocuments();
+  } catch (error) {
+    console.log('Status field not found in Grade model, ignoring counts');
+    active = total;
+    deactive = 0;
+  }
 
+  // 6. Create query for actual data
+  const apiFilters = new APIFilters(Grade, req.query)
+    .setSearchFields(['gradeName', 'description', 'code'])
+    .search()
+    .filters()
+    .sort()
+    .pagination();
+
+  // 7. Populate options
+  const populateOptions = [];
+  
+  // Campus populate karo
+  populateOptions.push({
+    path: "campus",
+    select: "name _id"
+  });
+  
+  // Academic Level populate karo
+  populateOptions.push({
+    path: "academicLevel",
+    select: "name _id level order"
+  });
+  
+  // Class Teacher populate karo
+  if (req.query.populateTeacher === 'true' || req.query.keyword?.includes('teacher')) {
+    populateOptions.push({
+      path: "classTeacher",
+      select: "name email phone department",
+      populate: {
+        path: "campus",
+        select: "name"
+      }
+    });
+  } else if (req.query.includeTeacher === 'true') {
+    populateOptions.push({
+      path: "classTeacher",
+      select: "name email"
+    });
+  }
+  
+  // Students populate karo
+  if (req.query.populateStudents === 'true') {
+    populateOptions.push({
+      path: "students",
+      select: "name email rollNumber admissionDate",
+      options: {
+        sort: { rollNumber: 1 },
+        limit: req.query.studentsLimit ? Number(req.query.studentsLimit) : 10
+      }
+    });
+  }
+  
+  // Subjects populate karo
+  if (req.query.populateSubjects === 'true') {
+    populateOptions.push({
+      path: "subjects",
+      select: "subjectName code teacher",
+      populate: {
+        path: "teacher",
+        select: "name email"
+      }
+    });
+  }
+
+  apiFilters.populate(populateOptions);
+
+  // 8. Execute the query
+  const grades = await apiFilters.query;
+
+  // 9. ✅ Fix: Declare pagination variable at the top
+  let pagination = null;
+  
+  // ✅ Check if pagination should be included
+  if (apiFilters.shouldPaginate) {
+    pagination = {
+      total,
+      page: apiFilters.page,
+      limit: apiFilters.limit,
+      totalPages: Math.ceil(total / apiFilters.limit),
+      counts: { total, active, deactive }
+    };
+  }
+
+  // 10. Additional filtering by teacher name
+  let finalGrades = grades;
+  
+  if (req.query.keyword && req.query.keyword.trim()) {
+    const keyword = req.query.keyword.trim().toLowerCase();
+    
+    // Agar teacher ke naam se bhi filter karna hai
+    finalGrades = grades.filter(grade => {
+      const gradeMatches = 
+        grade.gradeName?.toLowerCase().includes(keyword) ||
+        grade.code?.toLowerCase().includes(keyword) ||
+        grade.description?.toLowerCase().includes(keyword);
+      
+      const teacherMatches = grade.classTeacher && (
+        grade.classTeacher.name?.toLowerCase().includes(keyword) ||
+        grade.classTeacher.email?.toLowerCase().includes(keyword)
+      );
+      
+      const academicLevelMatches = grade.academicLevel && (
+        grade.academicLevel.name?.toLowerCase().includes(keyword) ||
+        grade.academicLevel.level?.toString().includes(keyword)
+      );
+      
+      return gradeMatches || teacherMatches || academicLevelMatches;
+    });
+    
+    // Agar frontend pagination nahi use kar raha to yahan filter ke baad count update karo
+    if (!apiFilters.shouldPaginate) {
+      const filteredTotal = finalGrades.length;
+      
+      let filteredActive = 0;
+      let filteredDeactive = 0;
+      
+      finalGrades.forEach(grade => {
+        if (grade.status === true) filteredActive++;
+        else if (grade.status === false) filteredDeactive++;
+        else filteredActive++;
+      });
+      
+      // Update counts for filtered results
+      active = filteredActive;
+      deactive = filteredDeactive;
+      total = filteredTotal;
+    }
+  }
+
+  // 11. Final Response - ✅ Now pagination is properly defined
   res.status(200).json({
     success: true,
-    filteredGradesCount,
-    grades,
+    ...(pagination && { 
+      pagination: pagination 
+    }),
+    ...(!pagination && { 
+      counts: { total, active, deactive } 
+    }),
+    grades: finalGrades,
   });
 });
-
 // Update grade => /api/v1/grades/:id
 export const updateGrade = catchAsyncErrors(async (req, res, next) => {
   const { campus, selectedYear } = req.cookies;
@@ -81,21 +257,12 @@ export const deleteGrade = catchAsyncErrors(async (req, res, next) => {
   if (!grade) {
     return next(new ErrorHandler("Grade not found", 404));
   }
-  //check if there are any courses associated with this grade
-  // if (grade.courses.length > 0) {
-  //   return next(
-  //     new ErrorHandler("Can not delete Grade ,Delete courses inside grade", 400)
-  //   );
-  // } else {
 
   await grade.deleteOne();
 
   res.status(200).json({
     message: "Grade deleted successfully",
   });
-  // }
-
-  //if no courses are associated, delete the grade
 });
 
 // extra controller for Grade

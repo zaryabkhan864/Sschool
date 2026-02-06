@@ -15,6 +15,9 @@ import {
   uploadAvatar,
   getUsersByType
 } from "../controllers/authControllers.js";
+import {
+  getStudentDetails
+} from "../controllers/studentController.js";
 const router = express.Router();
 
 import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
@@ -44,5 +47,11 @@ router
 router
   .route("/users/:type")
   .get(getUsersByType)
+
+
+  router
+  .route("/admin/student/:id")
+  .get(isAuthenticatedUser, authorizeRoles("admin"), getStudentDetails)
+
 
 export default router;
