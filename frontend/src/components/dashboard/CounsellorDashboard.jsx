@@ -1,6 +1,6 @@
 import React from "react";
 import { BarChart, Bar, PieChart, Pie, Tooltip, Legend, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
-import AdminLayout from "../layout/AdminLayout";
+import AdminLayout from "../GUI/AdminLayout";
 import MetaData from "../layout/MetaData";
 
 const counsellorStats = [

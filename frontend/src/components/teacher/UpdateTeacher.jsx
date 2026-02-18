@@ -11,9 +11,9 @@ import {
   useGetUserDetailsQuery,
   useUpdateUserMutation,
 } from "../../redux/api/userApi";
-import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 import Loader from "../layout/Loader";
+import AdminLayout from "../GUI/AdminLayout";
 
 const UpdateTeacher = () => {
   const { t } = useTranslation();

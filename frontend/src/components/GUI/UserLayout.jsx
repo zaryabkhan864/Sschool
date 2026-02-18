@@ -1,6 +1,5 @@
 import React from "react";
-import SideMenu from "./SideMenu";
-import Header from "./Header";
+import SideMenu from "../layout/SideMenu";
 
 const UserLayout = ({ children }) => {
   const menuItems = [

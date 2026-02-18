@@ -7,10 +7,11 @@ import {
     useDeleteExpenseMutation,
     useGetExpensesQuery,
 } from "../../../redux/api/expensesApi";
-import AdminLayout from "../../layout/AdminLayout";
+
 import Loader from "../../layout/Loader";
 import MetaData from "../../layout/MetaData";
 import { useTranslation } from "react-i18next";
+import AdminLayout from "../../GUI/AdminLayout";
 
 const ListExpenses = () => {
     const { t } = useTranslation();

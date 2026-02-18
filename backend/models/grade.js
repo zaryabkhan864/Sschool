@@ -1,6 +1,7 @@
-// Grade model me ye changes karein:
+// models/grade.js
 import mongoose from "mongoose";
 
+// models/grade.js
 const gradeSchema = new mongoose.Schema(
   {
     gradeName: {
@@ -8,33 +9,31 @@ const gradeSchema = new mongoose.Schema(
       required: [true, "Please enter Grade name"],
       maxLength: [30, "Grade name cannot exceed 30 characters"],
     },
+    // ✅ Ye field add karein
+    academicLevel: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AcademicLevel",
+      required: [true, "Please select Academic Level"],
+    },
     description: {
       type: String,
       required: [true, "Please enter description of the grade"],
       maxLength: [50, "Description cannot exceed 50 characters"],
     },
-    academicLevel: {  // ✅ ADD THIS FIELD
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "AcademicLevel",
-      required: true,
-    },
-    order: {  // ✅ OPTIONAL: Agar aapko ordering chahiye
-      type: Number,
-      required: false,
-    },
-    courses: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: false },
-    ],
     campus: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Campus",
+      required: true,
     },
     year: {
       type: Number,
       required: [true, "Please enter course year"],
+    },
+    status: {
+      type: Boolean,
+      default: true,
     }
   },
-  { timestamps: false }
+  { timestamps: true }
 );
-
 export default mongoose.model("Grade", gradeSchema);

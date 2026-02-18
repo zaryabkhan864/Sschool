@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useUpdatePasswordMutation } from "../../redux/api/userApi";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import UserLayout from "../layout/UserLayout";
+
 import MetaData from "../layout/MetaData";
+import UserLayout from "../GUI/UserLayout";
 
 const UpdatePassword = () => {
   const [oldPassword, setOldPassword] = useState("");

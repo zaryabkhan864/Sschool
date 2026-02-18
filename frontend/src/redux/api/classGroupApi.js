@@ -2,57 +2,145 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export const classGroupApi = createApi({
   reducerPath: "classGroupApi",
-  baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" }),
+  baseQuery: fetchBaseQuery({ 
+    baseUrl: "/api/v1",
+    prepareHeaders: (headers, { getState }) => {
+      // Auth token handle karne ke liye
+      const token = getState()?.auth?.token;
+      if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
+      }
+      return headers;
+    }
+  }),
   tagTypes: ["ClassGroup"],
   endpoints: (builder) => ({
+    // Get class groups with pagination and filters
     getClassGroups: builder.query({
-      query: (params) => ({
-        url: "/class-group",
-        params: {
-          page: params?.page,
-          keyword: params?.keyword,
-          paginate: params?.paginate,
-        },
+      query: ({ 
+        page = 1, 
+        limit = 10, 
+        keyword = "", 
+        status,
+        campus,
+        grade, // Class Group aksar Grade se linked hota hai
+        paginate = true 
+      } = {}) => {
+        const params = new URLSearchParams();
+        
+        params.append('paginate', paginate.toString());
+    
+        if (paginate === true) {
+          if (page) params.append('page', page);
+          if (limit) params.append('limit', limit);
+        }
+        
+        if (keyword) params.append('keyword', keyword);
+        if (status) params.append('status', status);
+        if (campus) params.append('campus', campus);
+        if (grade) params.append('grade', grade);
+        
+        return {
+          url: `/class-groups?${params.toString()}`,
+        };
+      },
+      
+      transformResponse: (response) => ({
+        success: response.success || false,
+        classGroups: response.classGroups || [],
+        pagination: response.pagination || null,
+        counts: response.counts || response.pagination?.counts || {
+          total: 0,
+          active: 0,
+          deactive: 0
+        }
       }),
-      providesTags: ["ClassGroup"],
+      
+      providesTags: (result) => {
+        if (!result) return [{ type: "ClassGroup", id: "LIST" }];
+        const tags = [{ type: "ClassGroup", id: "LIST" }];
+        if (result.classGroups) {
+          result.classGroups.forEach(group => tags.push({ type: "ClassGroup", id: group._id }));
+        }
+        return tags;
+      },
+      keepUnusedDataFor: 60,
     }),
 
+    // Get specific class group details
     getClassGroupDetails: builder.query({
-      query: (id) => `/class-group/${id}`,
-      providesTags: ["ClassGroup"],
+      query: (id) => `/class-groups/${id}`,
+      transformResponse: (response) => response.classGroup || response,
+      providesTags: (result, error, id) => [
+        { type: "ClassGroup", id }
+      ],
     }),
 
+    // Get class groups for dropdowns (No pagination)
+    getClassGroupsForDropdown: builder.query({
+      query: ({ campus, status = "active", grade } = {}) => {
+        const params = new URLSearchParams();
+        params.append('paginate', 'false');
+        if (campus) params.append('campus', campus);
+        if (status) params.append('status', status);
+        if (grade) params.append('grade', grade);
+        
+        return {
+          url: `/class-groups?${params.toString()}`,
+        };
+      },
+      transformResponse: (response) => response.classGroups || [],
+      providesTags: [{ type: "ClassGroup", id: "DROPDOWN" }],
+    }),
+
+    // Create Class Group (Admin only)
     createClassGroup: builder.mutation({
       query: (body) => ({
-        url: "/admin/class-group",
-        method: "POST",
+        url: '/admin/class-groups',
+        method: 'POST',
         body,
       }),
-      invalidatesTags: ["ClassGroup"],
+      invalidatesTags: [
+        { type: "ClassGroup", id: "LIST" },
+        { type: "ClassGroup", id: "DROPDOWN" }
+      ],
     }),
 
+    // Update Class Group (Admin only)
     updateClassGroup: builder.mutation({
-      query: ({ id, body }) => ({
-        url: `/admin/class-group/${id}`,
-        method: "PUT",
+      query: ({ id, ...body }) => ({
+        url: `/admin/class-groups/${id}`,
+        method: 'PUT',
         body,
       }),
-      invalidatesTags: ["ClassGroup"],
+      invalidatesTags: (result, error, { id }) => [
+        { type: "ClassGroup", id },
+        { type: "ClassGroup", id: "LIST" },
+        { type: "ClassGroup", id: "DROPDOWN" }
+      ],
     }),
 
+    // Delete Class Group (Admin only)
     deleteClassGroup: builder.mutation({
       query: (id) => ({
-        url: `/admin/class-group/${id}`,
-        method: "DELETE",
+        url: `/admin/class-groups/${id}`,
+        method: 'DELETE',
       }),
-      invalidatesTags: ["ClassGroup"],
+      invalidatesTags: (result, error, id) => [
+        { type: "ClassGroup", id },
+        { type: "ClassGroup", id: "LIST" },
+        { type: "ClassGroup", id: "DROPDOWN" }
+      ],
     }),
   }),
 });
 
+// Export hooks
 export const {
   useGetClassGroupsQuery,
+  useLazyGetClassGroupsQuery,
   useGetClassGroupDetailsQuery,
+  useGetClassGroupsForDropdownQuery,
   useCreateClassGroupMutation,
   useUpdateClassGroupMutation,
   useDeleteClassGroupMutation,

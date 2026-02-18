@@ -1,43 +1,31 @@
+// routes/gradeRoutes.js
 import express from "express";
+import { 
+  newGrade, 
+  getGrades, 
+  getGradeDetails, 
+  updateGrade, 
+  deleteGrade 
+} from "../controllers/gradeControllers.js";
 import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
+
 const router = express.Router();
 
-import {
-  newGrade,
-  getGrades,
-  updateGrade,
-  deleteGrade,
-  getGradeDetails,
-  addCourseInGrade,
-  deleteCourseInGrade,
-  getCoursesAndGradeByRole,
-  getCourseByGradeAndTeacherID,
-  // getGradesByUserIdAndRole,
-} from "../controllers/gradeControllers.js";
-
-router.route("/admin/grades").post(isAuthenticatedUser, newGrade);
-
+// ============ PUBLIC ROUTES ============
+// Get all grades (Public)
 router.route("/grades").get(getGrades);
-router
-  .route("/admin/grades/:id")
+
+// Get single grade details (Public)
+router.route("/grades/:id").get(getGradeDetails);
+
+// ============ ADMIN ROUTES ============
+// Create new grade (Admin only)
+router.route("/admin/grades")
+  .post(isAuthenticatedUser, authorizeRoles("admin"), newGrade);
+
+// Update grade (Admin only)
+router.route("/admin/grades/:id")
   .put(isAuthenticatedUser, authorizeRoles("admin"), updateGrade)
   .delete(isAuthenticatedUser, authorizeRoles("admin"), deleteGrade);
-
-router.route("/grade/:id").get(getGradeDetails);
-
-router
-  .route("/admin/grade/add/:id")
-  .patch(isAuthenticatedUser, authorizeRoles("admin"), addCourseInGrade);
-
-router
-  .route("/grade/grade-by-role")
-  .post(getCoursesAndGradeByRole);
-
-router
-  .route("/admin/grade/remove/:id")
-  .patch(isAuthenticatedUser, authorizeRoles("admin"), deleteCourseInGrade);
-
-  router.post("/grades/getCourseByGradeAndTeacherID", getCourseByGradeAndTeacherID);
-// router.route("/grades/user/:id").get(getGradesByUserIdAndRole);
 
 export default router;

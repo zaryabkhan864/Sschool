@@ -1,6 +1,6 @@
 import React from "react";
 import { useSelector } from "react-redux";
-import SideMenu from "./SideMenu";
+import SideMenu from "../layout/SideMenu";
 
 const AdminLayout = ({ children }) => {
   const { user } = useSelector((state) => state.auth);
@@ -17,9 +17,14 @@ const AdminLayout = ({ children }) => {
     // Timetable Management (The group you wanted)
     { name: "Create Timetable", url: "/admin/academic-level/new", icon: "fas fa-calendar-plus", roles: ["admin", "principle"], group: "timetable" },
     { name: "Academic Level", url: "/admin/academic-level", icon: "fas fa-layer-group", roles: ["admin", "principle"], group: "timetable" },
-    { name: "Class Group", url: "/admin/class-groups", icon: "fas fa-object-group", roles: ["admin", "principle"], group: "timetable" },
+    { name: "New Class Group", url: "/admin/class-groups/new", icon: "fas fa-object-group", roles: ["admin", "principle"], group: "timetable" },
+    { name: "ALL Class Group", url: "/admin/class-groups", icon: "fas fa-object-group", roles: ["admin", "principle"], group: "timetable" },
     { name: "Session Template", url: "/admin/session-templates", icon: "fas fa-clock", roles: ["admin", "principle"], group: "timetable" },
+    { name: "Week Days", url: "/admin/week-day", icon: "fas fa-clock", roles: ["admin", "principle"], group: "timetable" },
+    { name: "Day Session Template", url: "/admin/day-session-template/new", icon: "fas fa-clock", roles: ["admin", "principle"], group: "timetable" },
+    
 
+    
     // Academics Group
     { name: "Wall", url: "/posting_wall", icon: "fas fa-bullhorn", roles: ["admin", "teacher", "student"], group: "academics" },
     { name: "New Grade", url: "/admin/grade/new", icon: "fas fa-plus-circle", roles: ["admin"], group: "academics" },

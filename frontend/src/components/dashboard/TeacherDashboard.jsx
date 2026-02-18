@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "react-datepicker/dist/react-datepicker.css";
 import { useGetGradesQuery } from "../../redux/api/gradesApi";
-import AdminLayout from "../layout/AdminLayout";
+import AdminLayout from "../GUI/AdminLayout";
 import MetaData from "../layout/MetaData";
 import Slider from "../layout/Slider";
 import { useTranslation } from "react-i18next";

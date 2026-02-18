@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useParams } from "react-router-dom";
 import { useGetEventDetailsQuery } from "../../redux/api/eventApi";
-import AdminLayout from "../layout/AdminLayout";
+import AdminLayout from "../GUI/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 

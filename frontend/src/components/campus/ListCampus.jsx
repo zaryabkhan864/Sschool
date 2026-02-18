@@ -8,7 +8,7 @@ import {
   useDeleteCampusMutation,
   useGetCampusQuery,
 } from "../../redux/api/campusApi";
-import AdminLayout from "../layout/AdminLayout";
+import AdminLayout from "../GUI/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import ConfirmationModal from "../GUI/ConfirmationModal";

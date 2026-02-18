@@ -1,3 +1,4 @@
+// models/classGroup.js
 import mongoose from "mongoose";
 
 const classGroupSchema = new mongoose.Schema(
@@ -13,13 +14,24 @@ const classGroupSchema = new mongoose.Schema(
       required: true,
     },
     section: {
-      type: String, // A, B, ENG
+      type: String, // A, B, ENG, SCIENCE
       required: true,
+      trim: true,
+      uppercase: true
     },
     displayName: {
-      type: String, // "7B", "11 ENG"
+      type: String, // "7B", "11 ENG", "10 SCIENCE"
       required: true,
+      trim: true
     },
+    // ✅ Courses field add kiya
+    courses: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Course",
+        required: false,
+      }
+    ],
     campus: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Campus",

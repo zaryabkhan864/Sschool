@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import UserLayout from "../layout/UserLayout";
 import { useNavigate } from "react-router-dom";
 import { useUploadAvatarMutation } from "../../redux/api/userApi";
 import toast from "react-hot-toast";
 import { useSelector } from "react-redux";
 import MetaData from "../layout/MetaData";
+import UserLayout from "../GUI/UserLayout";
 
 const UploadAvatar = () => {
   const { user } = useSelector((state) => state.auth);

@@ -2,13 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { useGetGradeByUserIdAndRoleMutation } from '../../../redux/api/gradesApi';
+import { useLazyGetGradesQuery } from '../../../redux/api/gradesApi'; // Changed this line
 import { useGetCourseByGradeAndTeacherIDMutation } from '../../../redux/api/courseApi';
 import { useGetStudentsExamDetailsByExamDataMutation, useUpdateExamMarksMutation } from '../../../redux/api/examApi';
 import Loader from '../../layout/Loader';
-import AdminLayout from '../../layout/AdminLayout';
+
 import MetaData from '../../layout/MetaData';
 import PrintLayout from '../../GUI/PrintLayout';
+import AdminLayout from '../../GUI/AdminLayout';
 
 const ExamReport = () => {
   const { t } = useTranslation();
@@ -59,20 +60,35 @@ const ExamReport = () => {
     }
   }, [user]);
 
-  const [sendUserRoleAndID] = useGetGradeByUserIdAndRoleMutation();
+  // Changed from useGetGradeByUserIdAndRoleMutation to useLazyGetGradesQuery
+  const [triggerGetGrades, { isLoading: gradesLoading }] = useLazyGetGradesQuery();
   const [sendGradeAndTeacherID] = useGetCourseByGradeAndTeacherIDMutation();
   const [getExamDetails] = useGetStudentsExamDetailsByExamDataMutation();
   const [updateExamMarks, { isLoading: updateExamMarksLoading }] = useUpdateExamMarksMutation();
 
-  // 2 get grades
+  // 2 get grades - Updated to use useLazyGetGradesQuery
   useEffect(() => {
     if (userDetails.userId && userDetails.userRole) {
-      sendUserRoleAndID(userDetails)
+      triggerGetGrades({ userId: userDetails.userId, role: userDetails.userRole })
         .unwrap()
-        .then((response) => setGrades(response.grades || []))
-        .catch((err) => console.error('API Error:', err));
+        .then((response) => {
+          // Adjust this based on your actual API response structure
+          if (response && Array.isArray(response)) {
+            setGrades(response);
+          } else if (response && response.grades) {
+            setGrades(response.grades || []);
+          } else if (response && response.data) {
+            setGrades(response.data || []);
+          } else {
+            setGrades([]);
+          }
+        })
+        .catch((err) => {
+          console.error('API Error:', err);
+          toast.error('Failed to fetch grades');
+        });
     }
-  }, [userDetails, sendUserRoleAndID]);
+  }, [userDetails, triggerGetGrades]);
 
   // 3 get courses
   useEffect(() => {
@@ -80,14 +96,29 @@ const ExamReport = () => {
       const body = {
         gradeId: formValues.grade,
         teacherId: userDetails.userId,
-        userRole: userDetails.role,
+        userRole: userDetails.userRole, // Fixed: changed from role to userRole
       };
       sendGradeAndTeacherID(body)
         .unwrap()
-        .then((response) => setCourses(response.courses || []))
-        .catch((err) => console.error('Error fetching courses:', err));
+        .then((response) => {
+          if (response && Array.isArray(response)) {
+            setCourses(response);
+          } else if (response && response.courses) {
+            setCourses(response.courses || []);
+          } else if (response && response.data) {
+            setCourses(response.data || []);
+          } else {
+            setCourses([]);
+          }
+        })
+        .catch((err) => {
+          console.error('Error fetching courses:', err);
+          toast.error('Failed to fetch courses');
+        });
+    } else {
+      setCourses([]);
     }
-  }, [formValues.grade, userDetails.userId, sendGradeAndTeacherID, userDetails.role]);
+  }, [formValues.grade, userDetails.userId, sendGradeAndTeacherID, userDetails.userRole]);
 
   // 4 fetch exam details
   const fetchExamDetails = async () => {
@@ -115,20 +146,31 @@ const ExamReport = () => {
         };
 
         const response = await getExamDetails(examData).unwrap();
-        setExamDetails(response.exam);
+        
+        if (response && response.exam) {
+          setExamDetails(response.exam);
 
-        // initialize marks
-        const initialMarks = {};
-        response.exam.marks.forEach((mark) => {
-          initialMarks[mark.student] = {
-            ...mark,
-            studentName: mark.studentName,
-          };
-        });
-        setMarks(initialMarks);
+          // initialize marks
+          const initialMarks = {};
+          if (response.exam.marks && Array.isArray(response.exam.marks)) {
+            response.exam.marks.forEach((mark) => {
+              initialMarks[mark.student] = {
+                ...mark,
+                studentName: mark.studentName || 'Unknown Student',
+              };
+            });
+          }
+          setMarks(initialMarks);
+        } else {
+          setExamDetails(null);
+          setMarks({});
+          toast.error('No exam details found');
+        }
       } catch (err) {
         console.error('Error fetching exam details:', err);
         toast.error('Failed to fetch exam details.');
+        setExamDetails(null);
+        setMarks({});
       } finally {
         setIsLoadingExam(false);
       }
@@ -150,15 +192,25 @@ const ExamReport = () => {
   };
 
   const calculateTotalMarks = (studentMarks) => {
+    if (!studentMarks) return 0;
     let total = 0;
     for (let i = 1; i <= 10; i++) {
-      total += studentMarks[`question${i}`] || 0;
+      total += Number(studentMarks[`question${i}`]) || 0;
     }
     return total;
   };
 
   const canFetchExam =
     formValues.grade && formValues.course && formValues.semester && formValues.quarter;
+
+  // Calculate summary statistics
+  const totalStudents = Object.keys(marks).length;
+  const averageMarks = totalStudents > 0 
+    ? (Object.values(marks).reduce((acc, cur) => acc + calculateTotalMarks(cur), 0) / totalStudents).toFixed(2)
+    : 0;
+  const highestScore = totalStudents > 0
+    ? Math.max(...Object.values(marks).map(m => calculateTotalMarks(m)))
+    : 0;
 
   return (
     <AdminLayout>
@@ -179,11 +231,12 @@ const ExamReport = () => {
           name="grade"
           value={formValues.grade}
           onChange={handleDropdownChange}
+          disabled={gradesLoading}
         >
           <option value="">{t('Select Grade')}</option>
           {grades.map((grade) => (
             <option key={grade._id} value={grade._id}>
-              {grade.gradeName}
+              {grade.gradeName || grade.name || `Grade ${grade._id}`}
             </option>
           ))}
         </select>
@@ -193,12 +246,12 @@ const ExamReport = () => {
           name="course"
           value={formValues.course}
           onChange={handleDropdownChange}
-          disabled={!formValues.grade}
+          disabled={!formValues.grade || courses.length === 0}
         >
           <option value="">{t('Select Course')}</option>
           {courses.map((course) => (
             <option key={course._id} value={course._id}>
-              {course.courseName}
+              {course.courseName || course.name || `Course ${course._id}`}
             </option>
           ))}
         </select>
@@ -229,7 +282,7 @@ const ExamReport = () => {
 
         {canFetchExam && !examDetails && (
           <button
-            className="bg-blue-500 text-white py-2 px-4 rounded"
+            className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={fetchExamDetails}
             disabled={isLoadingExam}
           >
@@ -238,7 +291,7 @@ const ExamReport = () => {
         )}
       </div>
 
-      {isLoadingExam && <Loader />}
+      {(isLoadingExam || gradesLoading) && <Loader />}
 
       {examDetails && !isLoadingExam && (
         <div ref={contentRef} className="mt-10 bg-white p-6 rounded-lg shadow-md">
@@ -256,12 +309,13 @@ const ExamReport = () => {
             </div>
             <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
               <div className="text-left">
-                <p><span className="font-semibold">Grade:</span> {grades.find(g => g._id === formValues.grade)?.gradeName}</p>
-                <p><span className="font-semibold">Course:</span> {courses.find(c => c._id === formValues.course)?.courseName}</p>
+                <p><span className="font-semibold">Grade:</span> {grades.find(g => g._id === formValues.grade)?.gradeName || grades.find(g => g._id === formValues.grade)?.name || formValues.grade}</p>
+                <p><span className="font-semibold">Course:</span> {courses.find(c => c._id === formValues.course)?.courseName || courses.find(c => c._id === formValues.course)?.name || formValues.course}</p>
               </div>
               <div className="text-right">
                 <p><span className="font-semibold">Semester:</span> {formValues.semester}</p>
                 <p><span className="font-semibold">Quarter:</span> {formValues.quarter}</p>
+                <p><span className="font-semibold">Academic Year:</span> {formValues.year}</p>
               </div>
             </div>
           </div>
@@ -294,44 +348,54 @@ const ExamReport = () => {
                     </td>
                   </tr>
                 ))}
-                {/* Summary Row */}
-                <tr className="bg-gray-100 font-bold">
-                  <td className="border px-4 py-2 text-center" colSpan="2">Summary</td>
-                  {[...Array(10)].map((_, i) => (
-                    <td key={i} className="border px-4 py-2 text-center">
-                      {Object.values(marks).reduce((sum, m) => sum + (m[`question${i+1}`] || 0), 0)}
+                
+                {/* Show message if no marks found */}
+                {Object.keys(marks).length === 0 && (
+                  <tr>
+                    <td colSpan="13" className="border px-4 py-8 text-center text-gray-500">
+                      No student marks found for this exam
                     </td>
-                  ))}
-                  <td className="border px-4 py-2 text-center bg-blue-100">
-                    {Object.values(marks).reduce((sum, m) => sum + calculateTotalMarks(m), 0)}
-                  </td>
-                </tr>
+                  </tr>
+                )}
+
+                {/* Summary Row - Only show if there are marks */}
+                {Object.keys(marks).length > 0 && (
+                  <tr className="bg-gray-100 font-bold">
+                    <td className="border px-4 py-2 text-center" colSpan="2">Summary</td>
+                    {[...Array(10)].map((_, i) => (
+                      <td key={i} className="border px-4 py-2 text-center">
+                        {Object.values(marks).reduce((sum, m) => sum + (Number(m[`question${i+1}`]) || 0), 0)}
+                      </td>
+                    ))}
+                    <td className="border px-4 py-2 text-center bg-blue-100">
+                      {Object.values(marks).reduce((sum, m) => sum + calculateTotalMarks(m), 0)}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
 
           {/* Stats */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div className="bg-gray-100 p-3 rounded">
-              <p><span className="font-semibold">Total Students:</span> {Object.keys(marks).length}</p>
+          {Object.keys(marks).length > 0 && (
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="bg-gray-100 p-3 rounded">
+                <p><span className="font-semibold">Total Students:</span> {totalStudents}</p>
+              </div>
+              <div className="bg-gray-100 p-3 rounded">
+                <p><span className="font-semibold">Average Marks:</span> {averageMarks}</p>
+              </div>
+              <div className="bg-gray-100 p-3 rounded">
+                <p><span className="font-semibold">Highest Score:</span> {highestScore}</p>
+              </div>
             </div>
-            <div className="bg-gray-100 p-3 rounded">
-              <p><span className="font-semibold">Average Marks:</span> 
-                {(Object.values(marks).reduce((acc, cur) => acc + calculateTotalMarks(cur), 0) / Object.keys(marks).length).toFixed(2)}
-              </p>
-            </div>
-            <div className="bg-gray-100 p-3 rounded">
-              <p><span className="font-semibold">Highest Score:</span> 
-                {Math.max(...Object.values(marks).map(m => calculateTotalMarks(m)))}
-              </p>
-            </div>
-          </div>
+          )}
 
           {/* Signatures */}
           <div className="mt-10 grid grid-cols-2 gap-8 border-t-2 border-gray-300 pt-6">
             <div className="text-center">
               <div className="border-b border-gray-300 inline-block pb-1 mb-2 font-semibold">Teacher's Signature</div>
-              <p className="text-sm text-gray-600">{user?.name}</p>
+              <p className="text-sm text-gray-600">{user?.name || user?.username || 'Teacher'}</p>
             </div>
             <div className="text-center">
               <div className="border-b border-gray-300 inline-block pb-1 mb-2 font-semibold">Principal's Signature</div>

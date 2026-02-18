@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import AdminLayout from "../layout/AdminLayout";
+import AdminLayout from "../GUI/AdminLayout";
 import MetaData from "../layout/MetaData";
 import { useTranslation } from "react-i18next";
 

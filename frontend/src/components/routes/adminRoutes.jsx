@@ -43,6 +43,12 @@ import UpdateTeacherLeave from "../teacherLeave/UpdateTeacherLeave";
 import CreateTimeTable from "../timetable/CreateTimeTable";
 import NewAcademicLevel from "../timetable/NewAcademiclevel";
 import NewClassGroup from "../timetable/NewClassGroup";
+import ListClassGroups from "../timetable/ListClassGroups";
+import SessionTemplate from "../timetable/SessionTemplate";
+import UpdateClassGroup from "../timetable/UpdateClassGroup";
+import CreateDaySessionTemplate from "../timetable/CreateDaySessionTemplate";
+import CreateWeekDay from "../timetable/CreateWeekDay";
+
 
 
 const adminRoutes = () => {
@@ -382,12 +388,53 @@ const adminRoutes = () => {
         }
       />
       <Route
-        path="/admin/class-groups"
+        path="/admin/class-groups/new"
         element={
           <ProtectedRoute admin={true}>
             <NewClassGroup />
           </ProtectedRoute>
         }
+      />
+            <Route
+        path="/admin/class-groups"
+        element={
+          <ProtectedRoute admin={true}>
+            <ListClassGroups />
+          </ProtectedRoute>
+        }
+      />
+                  <Route
+        path="/admin/class-groups/:id"
+        element={
+          <ProtectedRoute admin={true}>
+            <UpdateClassGroup />
+          </ProtectedRoute>
+        }
+      />
+
+            <Route
+        path="/admin/session-templates"
+        element={
+          <ProtectedRoute admin={true}>
+            <SessionTemplate />
+          </ProtectedRoute>
+        }
+      />
+        <Route
+        path="/admin/week-day"
+        element={
+          <ProtectedRoute admin={true}>
+            <CreateWeekDay />
+          </ProtectedRoute>
+        }
+      />
+      <Route 
+      path="/admin/day-session-template/new"
+      element={
+        <ProtectedRoute admin={true}>
+        <CreateDaySessionTemplate/>
+      </ProtectedRoute>
+      }
       />
     </>
   );

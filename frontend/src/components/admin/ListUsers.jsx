@@ -9,7 +9,7 @@ import {
   useGetAdminUsersQuery, // Assuming your API supports params like page, limit, keyword
 } from "../../redux/api/userApi";
 
-import AdminLayout from "../layout/AdminLayout";
+import AdminLayout from "../GUI/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import ConfirmationModal from "../GUI/ConfirmationModal";

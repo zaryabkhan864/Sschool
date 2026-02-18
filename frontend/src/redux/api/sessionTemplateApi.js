@@ -5,8 +5,12 @@ export const sessionTemplateApi = createApi({
   baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" }),
   tagTypes: ["SessionTemplate"],
   endpoints: (builder) => ({
+    // ✅ اب پیرامیٹرز (page, limit, keyword, year, campus, academicLevel) کو query string میں بھیجے گا
     getSessionTemplates: builder.query({
-      query: () => "/session-template",
+      query: (params) => ({
+        url: "/session-template",
+        params,   // ✅ dropdown, limit, page sab yahan se jayenge
+      }),
       providesTags: ["SessionTemplate"],
     }),
 

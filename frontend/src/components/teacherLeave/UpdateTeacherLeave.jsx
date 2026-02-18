@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 
-import AdminLayout from "../layout/AdminLayout";
+
 import MetaData from "../layout/MetaData";
 import Loader from "../layout/Loader";
 import ConfirmationModal from "../GUI/ConfirmationModal";
@@ -11,6 +11,7 @@ import {
   useGetTeacherLeaveDetailsQuery,
   useUpdateTeacherLeaveMutation,
 } from "../../redux/api/teacherLeaveApi";
+import AdminLayout from "../GUI/AdminLayout";
 
 const UpdateTeacherLeave = () => {
   const params = useParams();

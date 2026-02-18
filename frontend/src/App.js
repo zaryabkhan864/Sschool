@@ -2,7 +2,7 @@ import { Toaster } from "react-hot-toast";
 import 'react-phone-input-2/lib/style.css';
 
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
-import Header from "./components/layout/Header";
+import Header from "./components/GUI/Header";
 import NotFound from "./components/layout/NotFound";
 import useAdminRoutes from "./components/routes/adminRoutes";
 import useTeacherRoutes from "./components/routes/teacherRoutes";

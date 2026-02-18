@@ -8,7 +8,7 @@ import {
   useGetGradeDetailsQuery,
   useUpdateGradeMutation,
 } from "../../redux/api/gradesApi";
-import AdminLayout from "../layout/AdminLayout";
+import AdminLayout from "../GUI/AdminLayout";
 import MetaData from "../layout/MetaData";
 import Loader from "../layout/Loader";
 import ConfirmationModal from "../GUI/ConfirmationModal";

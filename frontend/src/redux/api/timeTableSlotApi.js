@@ -2,38 +2,35 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export const timeTableSlotApi = createApi({
   reducerPath: "timeTableSlotApi",
-  baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" }),
-  tagTypes: ["TimeTableSlot"],
+  baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" , credentials: "include",   }),
+  tagTypes: ["TimeTable"],
   endpoints: (builder) => ({
-    getTimeTableSlots: builder.query({
+    getAndCreateTimeTable: builder.query({
+      query: (classGroupId) => ({
+        url: `/timetable-slot/${classGroupId}`,
+      }),
+      providesTags: ["TimeTable"],
+    }),
+    updateTimeTableSlots: builder.mutation({
+      query: ({ classGroupId, slots }) => ({
+        url: `/timetable-slot/${classGroupId}`,
+        method: "PUT",
+        body: { slots },
+      }),
+      invalidatesTags: ["TimeTable"],
+    }),
+    getAvailableCoursesForSlot: builder.query({
       query: (params) => ({
-        url: "/timetable-slot",
+        url: `/available-courses`,
         params,
       }),
-      providesTags: ["TimeTableSlot"],
-    }),
-
-    createTimeTableSlot: builder.mutation({
-      query: (body) => ({
-        url: "/admin/timetable-slot",
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: ["TimeTableSlot"],
-    }),
-
-    deleteTimeTableSlot: builder.mutation({
-      query: (id) => ({
-        url: `/admin/timetable-slot/${id}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: ["TimeTableSlot"],
+      providesTags: ["TimeTable"],
     }),
   }),
 });
 
 export const {
-  useGetTimeTableSlotsQuery,
-  useCreateTimeTableSlotMutation,
-  useDeleteTimeTableSlotMutation,
+  useGetAndCreateTimeTableQuery,
+  useUpdateTimeTableSlotsMutation,
+  useGetAvailableCoursesForSlotQuery,
 } = timeTableSlotApi;

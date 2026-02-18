@@ -2,10 +2,10 @@ import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useParams, Link } from "react-router-dom";
 import { useGetUserDetailsQuery } from "../../redux/api/userApi";
-import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import { useTranslation } from "react-i18next";
+import AdminLayout from "../GUI/AdminLayout";
 
 const TeacherDetails = () => {
   const { t } = useTranslation();

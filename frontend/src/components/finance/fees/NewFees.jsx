@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useCreateFeeMutation } from "../../../redux/api/feesApi";
-import AdminLayout from "../../layout/AdminLayout";
+
 import MetaData from "../../layout/MetaData";
 import { useGetUserByTypeQuery } from "../../../redux/api/userApi";
 import { useTranslation } from "react-i18next";
+import AdminLayout from "../../GUI/AdminLayout";
 
 const NewFees = () => {
   const { t } = useTranslation();

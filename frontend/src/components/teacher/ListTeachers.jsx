@@ -9,13 +9,13 @@ import {
   useGetUserByTypeQuery,
 } from "../../redux/api/userApi";
 
-import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import ConfirmationModal from "../GUI/ConfirmationModal";
 import { DataTableContainer } from "../GUI/DataTableContainer";
 import AddButton from "../layout/AddButton";
 import RefreshButton from "../layout/RefreshButton"; // ✅ Sahi import
+import AdminLayout from "../GUI/AdminLayout";
 
 const ListTeachers = () => {
   const { t } = useTranslation();

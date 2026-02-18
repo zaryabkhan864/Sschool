@@ -1,25 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
-import AdminLayout from '../layout/AdminLayout';
+
 import MetaData from '../layout/MetaData';
 import Loader from '../layout/Loader';
-import { useGetCourseByGradeAndTeacherIDMutation } from '../../redux/api/courseApi';
-import { useGetGradeByUserIdAndRoleMutation } from '../../redux/api/gradesApi';
+
 import { useGetStudentsQuizDetailsByQuizDataMutation, useUpdateQuizMarksMutation } from '../../redux/api/quizApi';
 import { useTranslation } from 'react-i18next';
+import AdminLayout from '../GUI/AdminLayout';
+import { useGetCoursesByRoleQuery } from '../../redux/api/courseApi';
 
 const AddQuiz = () => {
     const { t } = useTranslation();
     const [userDetails, setUserDetails] = useState({});
-    const [grades, setGrades] = useState([]);
+    const [classGroups, setClassGroups] = useState([]);
     const [courses, setCourses] = useState([]);
+    const [filteredCourses, setFilteredCourses] = useState([]);
     const [quizDetails, setQuizDetails] = useState(null);
     const [marks, setMarks] = useState({});
     const [isLoadingQuiz, setIsLoadingQuiz] = useState(false);
+    const [isCreatingNew, setIsCreatingNew] = useState(false);
 
     const [formValues, setFormValues] = useState({
-        grade: '',
+        classGroup: '',
         course: '',
         semester: '',
         quarter: '',
@@ -31,7 +34,7 @@ const AddQuiz = () => {
 
     const { user } = useSelector((state) => state.auth);
 
-    // 1 get user details and set user field in formValues
+    // 1. Get user details and set user field in formValues
     useEffect(() => {
         if (user && user._id) {
             const campusFromCookie = document.cookie
@@ -58,81 +61,146 @@ const AddQuiz = () => {
         }
     }, [user]);
 
-    const [sendUserRoleAndID] = useGetGradeByUserIdAndRoleMutation();
-    const [sendGradeAndTeacherID] = useGetCourseByGradeAndTeacherIDMutation();
+    // 2. Get class groups and courses based on user role
+    const { 
+        data: roleData, 
+        isLoading: roleLoading,
+        refetch: refetchRoleData 
+    } = useGetCoursesByRoleQuery({
+        userId: userDetails.userId,
+        userRole: userDetails.userRole
+    }, {
+        skip: !userDetails.userId || !userDetails.userRole,
+        refetchOnMountOrArgChange: true
+    });
+
+    // 3. Process role data when it loads
+    useEffect(() => {
+        if (roleData) {
+            // Set class groups
+            const allClassGroups = roleData.classGroups || [];
+            setClassGroups(allClassGroups);
+            
+            // Set all courses
+            const allCourses = roleData.courses || [];
+            setCourses(allCourses);
+            
+            // If there's a selected class group, filter courses for it
+            if (formValues.classGroup && allClassGroups.length > 0) {
+                const selectedClassGroup = allClassGroups.find(
+                    group => group._id === formValues.classGroup
+                );
+                if (selectedClassGroup && selectedClassGroup.courses) {
+                    setFilteredCourses(selectedClassGroup.courses);
+                } else {
+                    setFilteredCourses([]);
+                }
+            } else {
+                setFilteredCourses(allCourses);
+            }
+        }
+    }, [roleData, formValues.classGroup]);
+
+    // 4. Reset courses when class group changes
+    useEffect(() => {
+        if (formValues.classGroup && classGroups.length > 0) {
+            const selectedClassGroup = classGroups.find(
+                group => group._id === formValues.classGroup
+            );
+            if (selectedClassGroup && selectedClassGroup.courses) {
+                setFilteredCourses(selectedClassGroup.courses);
+            } else {
+                setFilteredCourses([]);
+            }
+            // Reset course selection and other fields
+            setFormValues(prev => ({ 
+                ...prev, 
+                course: '',
+                semester: '',
+                quarter: '',
+                quizNumber: ''
+            }));
+        } else {
+            setFilteredCourses(courses);
+        }
+    }, [formValues.classGroup, classGroups, courses]);
+
     const [getQuizDetails] = useGetStudentsQuizDetailsByQuizDataMutation();
     const [updateQuizMarks, { isLoading: updateQuizMarksLoading }] = useUpdateQuizMarksMutation();
-
-    // 2 get grades based on user role and id and get user grade 
-    useEffect(() => {
-        if (userDetails.userId && userDetails.userRole) {
-            sendUserRoleAndID(userDetails)
-                .unwrap()
-                .then((response) => {
-                    setGrades(response.grades || []);
-                })
-                .catch((err) => console.error('API Error:', err));
-        }
-    }, [userDetails, sendUserRoleAndID]);
-
-    useEffect(() => {
-        if (formValues.grade && userDetails.userId) {
-            const body = {
-                gradeId: formValues.grade,
-                teacherId: userDetails.userId,
-                userRole: userDetails.role
-            };
-            sendGradeAndTeacherID(body)
-                .unwrap()
-                .then((response) => {
-                    setCourses(response.courses || []);
-                })
-                .catch((err) => console.error('Error fetching courses:', err));
-        }
-    }, [formValues.grade, userDetails.userId, sendGradeAndTeacherID, userDetails.role]);
 
     // Function to fetch quiz details
     const fetchQuizDetails = async () => {
         if (
-          formValues.grade &&
-          formValues.course &&
-          formValues.semester &&
-          formValues.quarter &&
-          formValues.quizNumber &&
-          formValues.user &&
-          formValues.campus &&
-          formValues.year
+            formValues.classGroup &&
+            formValues.course &&
+            formValues.semester &&
+            formValues.quarter &&
+            formValues.quizNumber &&
+            formValues.user &&
+            formValues.campus &&
+            formValues.year
         ) {
-          setIsLoadingQuiz(true);
-          try {
-            const selectedCourse = courses.find((item) => item._id === formValues.course);
+            setIsLoadingQuiz(true);
+            setIsCreatingNew(false);
+            try {
+                const selectedCourse = filteredCourses.find(
+                    (item) => item._id === formValues.course
+                );
                 
-            const quizData = {
-                grade: formValues.grade,
-                course: formValues.course,
-                semester: formValues.semester,
-                quarter: formValues.quarter,
-                quizNumber: formValues.quizNumber,
-                user: selectedCourse?.teacher || formValues.user,
-                campus: formValues.campus,
-                year: formValues.year // Make sure this is included
-              };
+                // Get the selected class group to get the grade
+                const selectedClassGroup = classGroups.find(
+                    group => group._id === formValues.classGroup
+                );
+                
+                const quizData = {
+                    grade: selectedClassGroup?.grade?._id || formValues.classGroup,
+                    classGroup: formValues.classGroup,
+                    course: formValues.course,
+                    semester: formValues.semester,
+                    quarter: formValues.quarter,
+                    quizNumber: formValues.quizNumber,
+                    user: selectedCourse?.teacher || formValues.user,
+                    campus: formValues.campus,
+                    year: formValues.year
+                };
 
-              const response = await getQuizDetails(quizData).unwrap();
+                const response = await getQuizDetails(quizData).unwrap();
 
-                setQuizDetails(response.quiz);
-                // Initialize marks state with student IDs
-                const initialMarks = {};
-                response.quiz.marks.forEach(mark => {
-                    initialMarks[mark.student] = {
-                        ...mark,
-                        studentName: mark.studentName // Ensure studentName is included
-                    };
-                });
-                setMarks(initialMarks);
+                if (response.quiz) {
+                    setQuizDetails(response.quiz);
+                    // Initialize marks state with student IDs
+                    const initialMarks = {};
+                    response.quiz.marks.forEach(mark => {
+                        initialMarks[mark.student] = {
+                            ...mark,
+                            studentName: mark.studentName
+                        };
+                    });
+                    setMarks(initialMarks);
+                    toast.success('Quiz loaded successfully!');
+                } else {
+                    // No quiz found, we can create a new one
+                    setIsCreatingNew(true);
+                    toast.info('No quiz found. You can create a new one.');
+                    
+                    // Pre-populate marks with students from class group (if available)
+                    // This would require fetching students for the class group
+                    // For now, we'll set empty marks
+                    setQuizDetails(null);
+                    setMarks({});
+                }
             } catch (err) {
                 console.error('Error fetching quiz details:', err);
-                toast.error('Failed to fetch quiz details.');
+                if (err.status === 404) {
+                    setIsCreatingNew(true);
+                    toast.info('No quiz found. You can create a new one.');
+                    setQuizDetails(null);
+                    setMarks({});
+                } else {
+                    toast.error('Failed to fetch quiz details.');
+                    setQuizDetails(null);
+                    setMarks({});
+                }
             } finally {
                 setIsLoadingQuiz(false);
             }
@@ -141,33 +209,55 @@ const AddQuiz = () => {
 
     const handleDropdownChange = (event) => {
         const { name, value } = event.target;
+        
         setFormValues((prevState) => ({
             ...prevState,
             [name]: value,
-            ...(name === 'grade' && { course: '', semester: '', quarter: '', quizNumber: '' }),
-            ...(name === 'course' && { semester: '', quarter: '', quizNumber: '' }),
-            ...(name === 'semester' && { quarter: '', quizNumber: '' }),
-            ...(name === 'quarter' && { quizNumber: '' }),
+            ...(name === 'classGroup' && { 
+                course: '', 
+                semester: '', 
+                quarter: '',
+                quizNumber: '' 
+            }),
+            ...(name === 'course' && { 
+                semester: '', 
+                quarter: '',
+                quizNumber: '' 
+            }),
+            ...(name === 'semester' && { 
+                quarter: '',
+                quizNumber: '' 
+            }),
+            ...(name === 'quarter' && { 
+                quizNumber: '' 
+            }),
         }));
         
         // Reset quiz details when any dropdown changes
         if (name !== 'quizNumber') {
             setQuizDetails(null);
             setMarks({});
+            setIsCreatingNew(false);
         }
     };
 
     const handleMarkChange = (studentId, markIndex, value) => {
         setMarks(prevMarks => ({
             ...prevMarks,
-            [studentId]: { 
-                ...prevMarks[studentId], 
-                [`question${markIndex}`]: parseInt(value) || 0 
+            [studentId]: {
+                ...prevMarks[studentId],
+                [`question${markIndex}`]: parseInt(value) || 0
             }
         }));
     };
 
     const handleSubmitMarks = async () => {
+        if (!formValues.classGroup || !formValues.course || 
+            !formValues.semester || !formValues.quarter || !formValues.quizNumber) {
+            toast.error('Please select all required fields');
+            return;
+        }
+        
         try {
             // Convert marks object to array format expected by the API
             const marksArray = Object.keys(marks).map(studentId => ({
@@ -179,13 +269,35 @@ const AddQuiz = () => {
                 question5: marks[studentId].question5 || 0,
             }));
 
+            // Get selected class group and course
+            const selectedClassGroup = classGroups.find(
+                group => group._id === formValues.classGroup
+            );
+            const selectedCourse = filteredCourses.find(
+                course => course._id === formValues.course
+            );
+
             const payload = {
-                quizId: quizDetails._id,
+                quizId: quizDetails?._id || null, // null for new quiz
+                grade: selectedClassGroup?.grade?._id || formValues.classGroup,
+                classGroup: formValues.classGroup,
+                course: formValues.course,
+                semester: formValues.semester,
+                quarter: formValues.quarter,
+                quizNumber: formValues.quizNumber,
+                user: selectedCourse?.teacher || formValues.user,
+                campus: formValues.campus,
+                year: formValues.year,
                 marks: marksArray
             };
             
-            await updateQuizMarks({ id: quizDetails._id, body: payload }).unwrap();
-            toast.success('Marks submitted successfully!');
+            await updateQuizMarks({ id: quizDetails?._id || 'new', body: payload }).unwrap();
+            toast.success(isCreatingNew ? 'Quiz created successfully!' : 'Quiz marks updated successfully!');
+            
+            // Refresh quiz details
+            if (isCreatingNew) {
+                fetchQuizDetails();
+            }
         } catch (err) {
             console.error('Error submitting marks:', err);
             toast.error('Failed to submit marks.');
@@ -193,137 +305,430 @@ const AddQuiz = () => {
     };
 
     // Check if all required fields are selected to enable the fetch button
-    const canFetchQuiz = formValues.grade && formValues.course && 
-                        formValues.semester && formValues.quarter && 
-                        formValues.quizNumber;
+    const canFetchQuiz = formValues.classGroup && formValues.course &&
+        formValues.semester && formValues.quarter && formValues.quizNumber;
+
+    // Helper function to get display name for class group
+    const getClassGroupDisplay = (classGroup) => {
+        if (!classGroup) return '';
+        
+        if (classGroup.displayName) {
+            return classGroup.displayName;
+        }
+        
+        const gradeName = classGroup.grade?.gradeName || 'Grade';
+        return `${gradeName} - ${classGroup.section}`;
+    };
+
+    // Transform class groups for dropdown
+    const classGroupOptions = classGroups.map(group => ({
+        ...group,
+        displayLabel: getClassGroupDisplay(group)
+    }));
+
+    // Get selected class group and course for display
+    const selectedClassGroup = classGroups.find(g => g._id === formValues.classGroup);
+    const selectedCourse = filteredCourses.find(c => c._id === formValues.course);
+
+    // Calculate total marks for a student (for quizzes: 5 questions)
+    const calculateTotalMarks = (studentMarks) => {
+        let total = 0;
+        for (let i = 1; i <= 5; i++) {
+            total += studentMarks[`question${i}`] || 0;
+        }
+        return total;
+    };
+
+    // Calculate statistics for quiz
+    const calculateStatistics = () => {
+        const studentCount = Object.keys(marks).length;
+        if (studentCount === 0) return null;
+
+        const totals = Object.values(marks).map(mark => calculateTotalMarks(mark));
+        const average = totals.reduce((a, b) => a + b, 0) / studentCount;
+        const highest = Math.max(...totals);
+        const lowest = Math.min(...totals);
+
+        return { studentCount, average, highest, lowest };
+    };
+
+    const statistics = calculateStatistics();
 
     return (
         <AdminLayout>
-            <MetaData title={'Add Quiz Number'} />
-            <div className="flex flex-wrap gap-x-2 gap-y-4 justify-center mt-6">
-                <select
-                    className="w-1/5 border border-gray-300 p-2 rounded"
-                    name="grade"
-                    value={formValues.grade}
-                    onChange={handleDropdownChange}
-                >
-                    <option value="">{t('Select Grade')}</option>
-                    {grades.map((grade) => (
-                        <option key={grade._id} value={grade._id}>
-                            {grade.gradeName}
-                        </option>
-                    ))}
-                </select>
+            <MetaData title={'Add Quiz Marks'} />
+            
+            {/* Show loader while fetching role data */}
+            {roleLoading && <Loader />}
+            
+            {/* Main container */}
+            <div className="container mx-auto px-4 py-8">
+                {/* Header */}
+                <div className="mb-8">
+                    <h1 className="text-3xl font-bold text-gray-800">Quiz Management</h1>
+                    <p className="text-gray-600 mt-2">Add or update quiz marks for your classes</p>
+                </div>
 
-                <select
-                    className="w-1/5 border border-gray-300 p-2 rounded"
-                    name="course"
-                    value={formValues.course}
-                    onChange={handleDropdownChange}
-                    disabled={!formValues.grade}
-                >
-                    <option value="">{t('Select Course')}</option>
-                    {courses.map((course) => (
-                        <option key={course._id} value={course._id}>
-                            {course.courseName}
-                        </option>
-                    ))}
-                </select>
+                {/* Selection Panel */}
+                <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+                    <h2 className="text-xl font-semibold text-gray-800 mb-4">Select Quiz Parameters</h2>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        {/* Class Group Dropdown */}
+                        <div className="lg:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Class/Section
+                            </label>
+                            <select
+                                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                name="classGroup"
+                                value={formValues.classGroup}
+                                onChange={handleDropdownChange}
+                                disabled={roleLoading || classGroups.length === 0}
+                            >
+                                <option value="">Select Class/Section</option>
+                                {classGroupOptions.map((classGroup) => (
+                                    <option key={classGroup._id} value={classGroup._id}>
+                                        {classGroup.displayLabel}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
 
-                <select
-                    className="w-1/5 border border-gray-300 p-2 rounded"
-                    name="semester"
-                    value={formValues.semester}
-                    onChange={handleDropdownChange}
-                    disabled={!formValues.grade || !formValues.course}
-                >
-                    <option value="">{t('Select Semester')}</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                </select>
+                        {/* Course Dropdown */}
+                        <div className="lg:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Course
+                            </label>
+                            <select
+                                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                name="course"
+                                value={formValues.course}
+                                onChange={handleDropdownChange}
+                                disabled={!formValues.classGroup || filteredCourses.length === 0}
+                            >
+                                <option value="">Select Course</option>
+                                {filteredCourses.map((course) => (
+                                    <option key={course._id} value={course._id}>
+                                        {course.courseName}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
 
-                <select
-                    className="w-1/5 border border-gray-300 p-2 rounded"
-                    name="quarter"
-                    value={formValues.quarter}
-                    onChange={handleDropdownChange}
-                    disabled={!formValues.grade || !formValues.course || !formValues.semester}
-                >
-                    <option value="">{t('Select Quarter')}</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                </select>
+                        {/* Quiz Number Dropdown */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Quiz #
+                            </label>
+                            <select
+                                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                name="quizNumber"
+                                value={formValues.quizNumber}
+                                onChange={handleDropdownChange}
+                                disabled={!formValues.classGroup || !formValues.course}
+                            >
+                                <option value="">Select Quiz</option>
+                                {[1, 2, 3, 4, 5].map(num => (
+                                    <option key={num} value={num}>Quiz {num}</option>
+                                ))}
+                            </select>
+                        </div>
 
-                <select
-                    className="w-1/6 border border-gray-300 p-2 rounded"
-                    name="quizNumber"
-                    value={formValues.quizNumber}
-                    onChange={handleDropdownChange}
-                    disabled={!formValues.grade || !formValues.course || !formValues.semester || !formValues.quarter}
-                >
-                    <option value="">{t('Select Quiz Number')}</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                </select>
+                        {/* Semester Dropdown */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Semester
+                            </label>
+                            <select
+                                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                name="semester"
+                                value={formValues.semester}
+                                onChange={handleDropdownChange}
+                                disabled={!formValues.classGroup || !formValues.course || !formValues.quizNumber}
+                            >
+                                <option value="">Select Semester</option>
+                                <option value="1">Semester 1</option>
+                                <option value="2">Semester 2</option>
+                            </select>
+                        </div>
 
-                {canFetchQuiz && !quizDetails && (
-                    <button
-                        className="bg-blue-500 text-white py-2 px-4 rounded"
-                        onClick={fetchQuizDetails}
-                        disabled={isLoadingQuiz}
-                    >
-                        {isLoadingQuiz ? 'Loading...' : 'Fetch Quiz'}
-                    </button>
-                )}
-            </div>
+                        {/* Quarter Dropdown */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Quarter
+                            </label>
+                            <select
+                                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                name="quarter"
+                                value={formValues.quarter}
+                                onChange={handleDropdownChange}
+                                disabled={!formValues.classGroup || !formValues.course || !formValues.quizNumber || !formValues.semester}
+                            >
+                                <option value="">Select Quarter</option>
+                                <option value="1">Quarter 1</option>
+                                <option value="2">Quarter 2</option>
+                            </select>
+                        </div>
+                    </div>
 
-            {isLoadingQuiz && <Loader />}
-
-            {quizDetails && !isLoadingQuiz && (
-                <div className="overflow-x-auto mt-8">
-                    <h2 className="text-xl font-bold mb-4">Quiz Details</h2>
-                    <table className="min-w-full bg-white border border-gray-300">
-                        <thead>
-                            <tr>
-                                <th className="py-2 px-4 border-b">{t('Student Name')}</th>
-                                <th className="py-2 px-4 border-b">{t('Mark')} 1</th>
-                                <th className="py-2 px-4 border-b">{t('Mark')} 2</th>
-                                <th className="py-2 px-4 border-b">{t('Mark')} 3</th>
-                                <th className="py-2 px-4 border-b">{t('Mark')} 4</th>
-                                <th className="py-2 px-4 border-b">{t('Mark')} 5</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {Object.entries(marks).map(([studentId, markData]) => (
-                                <tr key={studentId}>
-                                    <td className="py-2 px-4 border-b">{markData.studentName}</td>
-                                    {[1, 2, 3, 4, 5].map((markIndex) => (
-                                        <td className="py-2 px-4 border-b" key={markIndex}>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                className="w-full p-1 border border-gray-300 rounded"
-                                                value={markData[`question${markIndex}`] || 0}
-                                                onChange={(e) => handleMarkChange(studentId, markIndex, e.target.value)}
-                                            />
-                                        </td>
-                                    ))}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-
-                    {Object.keys(marks).length > 0 && (
-                        <button
-                            className="mt-4 bg-blue-500 text-white py-2 px-4 rounded"
-                            onClick={handleSubmitMarks}
-                            disabled={updateQuizMarksLoading}
-                        >
-                            {updateQuizMarksLoading ? 'Submitting...' : 'Submit Marks'}
-                        </button>
+                    {/* Fetch/Create Button */}
+                    {canFetchQuiz && (
+                        <div className="mt-6 flex justify-center">
+                            <button
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed disabled:hover:shadow-none"
+                                onClick={fetchQuizDetails}
+                                disabled={isLoadingQuiz || roleLoading}
+                            >
+                                {isLoadingQuiz ? (
+                                    <span className="flex items-center">
+                                        <svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Loading...
+                                    </span>
+                                ) : quizDetails ? 'Reload Quiz' : 'Fetch Quiz'}
+                            </button>
+                        </div>
                     )}
                 </div>
-            )}
+
+                {/* No data message */}
+                {!roleLoading && classGroups.length === 0 && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
+                        <svg className="w-12 h-12 text-yellow-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                        <h3 className="text-lg font-semibold text-yellow-800 mb-2">No Class Groups Assigned</h3>
+                        <p className="text-yellow-600">You don't have any class groups or courses assigned to you.</p>
+                    </div>
+                )}
+
+                {/* Loading State */}
+                {isLoadingQuiz && (
+                    <div className="flex flex-col items-center justify-center py-12">
+                        <Loader />
+                        <p className="mt-4 text-gray-600">Loading quiz data...</p>
+                    </div>
+                )}
+
+                {/* Quiz Details Section */}
+                {(quizDetails || isCreatingNew) && !isLoadingQuiz && (
+                    <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                        {/* Quiz Header */}
+                        <div className="bg-gradient-to-r from-purple-600 to-purple-800 p-6 text-white">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between">
+                                <div>
+                                    <h2 className="text-2xl font-bold">
+                                        {quizDetails ? 'Quiz Details' : 'Create New Quiz'}
+                                    </h2>
+                                    <div className="mt-2 flex flex-wrap gap-4">
+                                        <div className="flex items-center">
+                                            <span className="text-purple-200">Class:</span>
+                                            <span className="ml-2 font-medium">{getClassGroupDisplay(selectedClassGroup)}</span>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <span className="text-purple-200">Course:</span>
+                                            <span className="ml-2 font-medium">{selectedCourse?.courseName || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <span className="text-purple-200">Quiz:</span>
+                                            <span className="ml-2 font-medium">#{formValues.quizNumber}</span>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <span className="text-purple-200">Semester:</span>
+                                            <span className="ml-2 font-medium">{formValues.semester}, Quarter {formValues.quarter}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {quizDetails && (
+                                    <div className="mt-4 md:mt-0 text-sm">
+                                        <div className="bg-purple-500 bg-opacity-30 px-3 py-1 rounded-full inline-block">
+                                            Quiz ID: {quizDetails._id?.substring(0, 8)}...
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Statistics Bar */}
+                        {statistics && Object.keys(marks).length > 0 && (
+                            <div className="bg-gray-50 border-b border-gray-200 p-4">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="text-center">
+                                        <div className="text-2xl font-bold text-gray-800">{statistics.studentCount}</div>
+                                        <div className="text-sm text-gray-600">Students</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-2xl font-bold text-green-600">{statistics.average.toFixed(1)}</div>
+                                        <div className="text-sm text-gray-600">Average Score</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-2xl font-bold text-blue-600">{statistics.highest}</div>
+                                        <div className="text-sm text-gray-600">Highest Score</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-2xl font-bold text-red-600">{statistics.lowest}</div>
+                                        <div className="text-sm text-gray-600">Lowest Score</div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Marks Table */}
+                        <div className="p-6">
+                            {Object.keys(marks).length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Student
+                                                </th>
+                                                <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Q1
+                                                </th>
+                                                <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Q2
+                                                </th>
+                                                <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Q3
+                                                </th>
+                                                <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Q4
+                                                </th>
+                                                <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Q5
+                                                </th>
+                                                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Total
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {Object.entries(marks).map(([studentId, markData]) => (
+                                                <tr key={studentId} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="flex items-center">
+                                                            <div className="flex-shrink-0 h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                                                <span className="text-purple-600 font-semibold">
+                                                                    {markData.studentName?.charAt(0) || 'S'}
+                                                                </span>
+                                                            </div>
+                                                            <div className="ml-4">
+                                                                <div className="text-sm font-medium text-gray-900">
+                                                                    {markData.studentName || `Student ${studentId.substring(0, 6)}`}
+                                                                </div>
+                                                                <div className="text-sm text-gray-500">
+                                                                    ID: {studentId.substring(0, 8)}...
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    {[1, 2, 3, 4, 5].map((questionNum) => (
+                                                        <td key={questionNum} className="px-3 py-4 whitespace-nowrap">
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="20"
+                                                                className="w-16 mx-auto block text-center border border-gray-300 rounded-md py-2 px-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                                                                value={markData[`question${questionNum}`] || 0}
+                                                                onChange={(e) => handleMarkChange(studentId, questionNum, e.target.value)}
+                                                                onFocus={(e) => e.target.select()}
+                                                            />
+                                                        </td>
+                                                    ))}
+                                                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                        <span className="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                                                            {calculateTotalMarks(markData)}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="text-center py-12">
+                                    <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                                        {isCreatingNew ? 'No Students Found' : 'No Marks Available'}
+                                    </h3>
+                                    <p className="text-gray-600 max-w-md mx-auto">
+                                        {isCreatingNew 
+                                            ? 'No students are enrolled in this class group yet. Please add students first.'
+                                            : 'This quiz has no marks recorded yet. Start adding marks below.'}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Submit Button */}
+                            {(Object.keys(marks).length > 0 || isCreatingNew) && (
+                                <div className="mt-8 pt-6 border-t border-gray-200">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between">
+                                        <div className="mb-4 md:mb-0">
+                                            <p className="text-sm text-gray-600">
+                                                {isCreatingNew 
+                                                    ? `You are creating a new quiz #${formValues.quizNumber}.`
+                                                    : `You are updating quiz #${formValues.quizNumber} with ${Object.keys(marks).length} student(s).`}
+                                            </p>
+                                            {quizDetails && (
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    Last updated: {new Date(quizDetails.updatedAt).toLocaleDateString()}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <button
+                                            className="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-8 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed disabled:hover:shadow-none"
+                                            onClick={handleSubmitMarks}
+                                            disabled={updateQuizMarksLoading}
+                                        >
+                                            {updateQuizMarksLoading ? (
+                                                <span className="flex items-center">
+                                                    <svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Processing...
+                                                </span>
+                                            ) : (
+                                                isCreatingNew ? 'Create Quiz' : 'Update Quiz Marks'
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Information Box */}
+                <div className="mt-8 bg-purple-50 border border-purple-200 rounded-xl p-6">
+                    <div className="flex items-start">
+                        <svg className="w-6 h-6 text-purple-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div>
+                            <h3 className="text-lg font-medium text-purple-800 mb-2">How to Use This Page</h3>
+                            <ul className="text-purple-700 space-y-2">
+                                <li>1. Select your class/section from the dropdown</li>
+                                <li>2. Choose the course you want to add quiz marks for</li>
+                                <li>3. Select the quiz number (1-5)</li>
+                                <li>4. Select the semester and quarter</li>
+                                <li>5. Click "Fetch Quiz" to load existing quiz or create new</li>
+                                <li>6. Enter marks for each student (0-20 for each question)</li>
+                                <li>7. Click "Create Quiz" or "Update Quiz Marks" to save</li>
+                            </ul>
+                            <p className="text-sm text-purple-600 mt-3">
+                                <strong>Note:</strong> Each quiz has 5 questions, each worth up to 20 marks (total 100).
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </AdminLayout>
     );
 };

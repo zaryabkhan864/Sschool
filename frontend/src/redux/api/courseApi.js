@@ -3,8 +3,9 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 export const courseApi = createApi({
   reducerPath: "courseApi",
   baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" }),
-  tagTypes: ["Courses", "Course", "AdminCourses"], // Added "Courses" tag
+  tagTypes: ["Courses", "Course", "AdminCourses", "CoursesByRole"],
   endpoints: (builder) => ({
+    // GET all courses (with filters & pagination)
     getCourses: builder.query({
       query: ({ page = 1, limit = 5, keyword = "", teacherId } = {}) => ({
         url: "/courses",
@@ -23,18 +24,20 @@ export const courseApi = createApi({
             ]
           : [{ type: "Courses", id: "LIST" }],
     }),
-    
+
+    // GET single course details
     getCourseDetails: builder.query({
       query: (id) => `/courses/${id}`,
       providesTags: (result, error, id) => [{ type: "Course", id }],
     }),
-    
+
+    // CREATE new course
     createCourse: builder.mutation({
-      query(body) {
+      query({ courseName, description, code, teacher, grade, ...rest }) {
         return {
           url: "/admin/courses",
           method: "POST",
-          body,
+          body: { courseName, description, code, teacher, grade, ...rest },
         };
       },
       invalidatesTags: [
@@ -42,13 +45,14 @@ export const courseApi = createApi({
         { type: "AdminCourses" }
       ],
     }),
-    
+
+    // UPDATE course – expects individual fields
     updateCourse: builder.mutation({
-      query({ id, body }) {
+      query({ id, courseName, description, code, teacher, grade, ...rest }) {
         return {
           url: `/admin/courses/${id}`,
           method: "PUT",
-          body,
+          body: { courseName, description, code, teacher, grade, ...rest },
         };
       },
       invalidatesTags: (result, error, { id }) => [
@@ -57,7 +61,8 @@ export const courseApi = createApi({
         { type: "AdminCourses" }
       ],
     }),
-    
+
+    // DELETE course
     deleteCourse: builder.mutation({
       query(id) {
         return {
@@ -70,13 +75,29 @@ export const courseApi = createApi({
         { type: "AdminCourses" }
       ],
     }),
-    
+
+    // Get courses by grade + teacher
     getCourseByGradeAndTeacherID: builder.mutation({
       query: (body) => ({
         url: `/courses/grade/teacher`,
         method: "POST",
         body,
       }),
+    }),
+
+    // Get courses & class groups by user role
+    getCoursesByRole: builder.query({
+      query: ({ userId, userRole }) => {
+        const params = new URLSearchParams();
+        if (userId) params.append("userId", userId);
+        if (userRole) params.append("role", userRole);
+        return `/courses/by-role?${params.toString()}`;
+      },
+      transformResponse: (response) => ({
+        classGroups: response.classGroups || [],
+        courses: response.courses || [],
+      }),
+      providesTags: ["CoursesByRole"],
     }),
   }),
 });
@@ -88,4 +109,5 @@ export const {
   useCreateCourseMutation,
   useUpdateCourseMutation,
   useDeleteCourseMutation,
+  useGetCoursesByRoleQuery,
 } = courseApi;

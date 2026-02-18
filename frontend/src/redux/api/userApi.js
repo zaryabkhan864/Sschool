@@ -96,10 +96,17 @@ export const userApi = createApi({
       },
       invalidatesTags: ["AdminUsers"],
     }),
-    // redux/api/userApi.js
-    // Redux API (userApi.js)
+    // Updated getUserByType query
     getUserByType: builder.query({
-      query: ({ type, page = 1, limit = undefined, keyword = "", gender, status }) => {
+      query: ({ 
+        type, 
+        page = 1, 
+        limit = undefined, 
+        keyword = "", 
+        gender, 
+        status,
+        dropdown = false // YEH NAYA PARAMETER ADD KARO
+      }) => {
         const params = new URLSearchParams();
         
         // Always add page and keyword
@@ -109,6 +116,11 @@ export const userApi = createApi({
         // ✅ Conditionally add limit - agar undefined nahi hai to add karo
         if (limit !== undefined && limit !== null && limit !== '') {
           params.append('limit', limit);
+        }
+        
+        // ✅ Dropdown flag add karo agar true ho
+        if (dropdown) {
+          params.append('dropdown', 'true');
         }
         
         // Add other filters
@@ -122,6 +134,30 @@ export const userApi = createApi({
       },
       providesTags: ["AdminUsers"],
     }),
+    // getUserByType: builder.query({
+    //   query: ({ type, page = 1, limit = undefined, keyword = "", gender, status }) => {
+    //     const params = new URLSearchParams();
+
+    //     // Always add page and keyword
+    //     params.append('page', page);
+    //     if (keyword) params.append('keyword', keyword);
+
+    //     // ✅ Conditionally add limit - agar undefined nahi hai to add karo
+    //     if (limit !== undefined && limit !== null && limit !== '') {
+    //       params.append('limit', limit);
+    //     }
+
+    //     // Add other filters
+    //     if (gender) params.append('gender', gender);
+    //     if (status) params.append('status', status);
+
+    //     return {
+    //       url: `/users/${type}?${params.toString()}`,
+    //       method: "GET",
+    //     };
+    //   },
+    //   providesTags: ["AdminUsers"],
+    // }),
   }),
 });
 

@@ -5,7 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 
-import AdminLayout from "../layout/AdminLayout";
+import AdminLayout from "../GUI/AdminLayout";
 import MetaData from "../layout/MetaData";
 import { useTranslation } from "react-i18next";
 

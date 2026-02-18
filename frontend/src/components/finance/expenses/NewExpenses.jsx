@@ -4,9 +4,10 @@ import { useNavigate } from "react-router-dom";
 import { useCreateExpenseMutation } from "../../../redux/api/expensesApi";
 import { useGetCampusQuery } from "../../../redux/api/campusApi";
 
-import AdminLayout from "../../layout/AdminLayout";
+
 import MetaData from "../../layout/MetaData";
 import { useTranslation } from "react-i18next";
+import AdminLayout from "../../GUI/AdminLayout";
 
 const NewExpenses = () => {
     const { t } = useTranslation();

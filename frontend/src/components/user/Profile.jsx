@@ -1,7 +1,8 @@
 import React from "react";
-import UserLayout from "../layout/UserLayout";
+
 import { useSelector } from "react-redux";
 import MetaData from "../layout/MetaData";
+import UserLayout from "../GUI/UserLayout";
 
 const Profile = () => {
   const { user } = useSelector((state) => state.auth);

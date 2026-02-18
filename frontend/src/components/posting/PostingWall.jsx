@@ -24,7 +24,7 @@ import {
   useUpdateCommentMutation
 } from "../../redux/api/commentApi";
 
-import AdminLayout from "../layout/AdminLayout";
+import AdminLayout from "../GUI/AdminLayout";
 import MetaData from "../layout/MetaData";
 
 const PostingWall = () => {

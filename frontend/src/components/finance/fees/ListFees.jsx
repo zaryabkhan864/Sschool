@@ -7,10 +7,11 @@ import {
     useDeleteFeeMutation,
     useGetFeesQuery,
 } from "../../../redux/api/feesApi";
-import AdminLayout from "../../layout/AdminLayout";
+
 import Loader from "../../layout/Loader";
 import MetaData from "../../layout/MetaData";
 import { useTranslation } from "react-i18next";
+import AdminLayout from "../../GUI/AdminLayout";
 
 const ListFees = () => {
     const { t } = useTranslation();

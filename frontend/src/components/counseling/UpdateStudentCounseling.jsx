@@ -7,7 +7,7 @@ import {
   useUpdateCounselingMutation,
 } from "../../redux/api/counselingApi";
 import { useGetStudentsQuery } from "../../redux/api/studentsApi";
-import AdminLayout from "../layout/AdminLayout";
+import AdminLayout from "../GUI/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import ConfirmationModal from "../GUI/ConfirmationModal";

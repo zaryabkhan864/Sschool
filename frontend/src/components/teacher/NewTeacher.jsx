@@ -4,12 +4,12 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useRegisterMutation } from "../../redux/api/authApi";
 import { useGetUserByTypeQuery } from "../../redux/api/userApi";
-import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 import { useTranslation } from "react-i18next";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import { useGetGradesQuery } from "../../redux/api/gradesApi";
+import AdminLayout from "../GUI/AdminLayout";
 
 const NewTeacher = () => {
   const { t } = useTranslation();

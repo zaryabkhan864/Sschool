@@ -1,636 +1,589 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { toast } from "react-hot-toast";
-import AdminLayout from "../layout/AdminLayout";
-import MetaData from "../layout/MetaData";
-import {
-  useGetClassGroupsQuery,
-  useCreateClassGroupMutation,
-  useUpdateClassGroupMutation,
-  useDeleteClassGroupMutation
-} from "../../redux/api/classGroupApi";
-import { useGetCampusQuery } from "../../redux/api/campusApi";
-import { useGetAcademicLevelsQuery } from "../../redux/api/academicLevelApi";
 import { useTranslation } from "react-i18next";
-import { Table, Pagination } from "flowbite-react";
-import ConfirmationModal from "../GUI/ConfirmationModal";
+import Select from 'react-select';
+import makeAnimated from 'react-select/animated';
+import { useNavigate } from "react-router-dom";
+
+import { 
+  useCreateClassGroupMutation
+} from "../../redux/api/classGroupApi";
+import { useGetAcademicLevelsQuery } from "../../redux/api/academicLevelApi";
 import { useGetGradesQuery } from "../../redux/api/gradesApi";
+import { useGetCoursesQuery } from "../../redux/api/courseApi";
+
+import MetaData from "../layout/MetaData";
+import Loader from "../layout/Loader";
+import AdminLayout from "../GUI/AdminLayout";
+import BackButton from "../../components/layout/BackButton";
+
+// Import reusable components
+import FormSection from "../../components/GUI/FormSection";
+import FormInput from "../../components/GUI/FormInput";
+import FormSelect from "../../components/GUI/FormSelect";
+import FormCheckbox from "../../components/GUI/FormCheckbox";
+import FormActions from "../../components/GUI/FormActions";
+import InfoBanner from "../../components/GUI/InfoBanner";
+import WarningBanner from "../../components/GUI/WarningBanner";
+
+// Cookie helper function
+const getCookie = (name) => {
+  const cookieString = document.cookie;
+  const cookies = cookieString.split('; ');
+  for (let cookie of cookies) {
+    const [cookieName, cookieValue] = cookie.split('=');
+    if (cookieName === name) return decodeURIComponent(cookieValue);
+  }
+  return null;
+};
+
+const animatedComponents = makeAnimated();
 
 const NewClassGroup = () => {
   const { t } = useTranslation();
-
-  // State for form
+  const navigate = useNavigate();
+  
+  // Form State
   const [classGroup, setClassGroup] = useState({
     grade: "",
     academicLevel: "",
     section: "",
     displayName: "",
-    campus: "",
-    year: new Date().getFullYear(),
+    courses: [],
     status: true,
   });
 
-  // State for table
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
-  const [editMode, setEditMode] = useState(false);
-  const [editId, setEditId] = useState(null);
+  // Cookies se campus aur year
+  const [currentCampus, setCurrentCampus] = useState(null);
+  const [currentYear, setCurrentYear] = useState(null);
   const [availableGrades, setAvailableGrades] = useState([]);
+  const [selectedCourseOptions, setSelectedCourseOptions] = useState([]);
+  
+  // Destructure classGroup variables
+  const { grade, academicLevel, section, displayName, courses, status } = classGroup;
 
-  // For delete confirmation modal
-  const [showModal, setShowModal] = useState(false);
-  const [selectedGroupId, setSelectedGroupId] = useState(null);
-
-  // RTK Queries and Mutations
-  const { data: groupsData, isLoading: groupsLoading, refetch: refetchGroups } = useGetClassGroupsQuery({
-    paginate: "false"
-  });
-
-  const { data: campusesData, isLoading: campusesLoading } = useGetCampusQuery({
-    paginate: "false"
-  });
-
-  const { data: academicLevelsData, isLoading: levelsLoading } = useGetAcademicLevelsQuery({
-    paginate: "false"
-  });
-
-  const { data: gradesData, isLoading: gradesLoading, refetch: refetchGrades } = useGetGradesQuery({
-    paginate: "false",
-    campus: classGroup.campus || undefined,
-    year: classGroup.year || undefined,
-  });
-
-  const [createClassGroup, { isLoading: createLoading, error: createError, isSuccess: createSuccess }] =
-    useCreateClassGroupMutation();
-
-  const [updateClassGroup, { isLoading: updateLoading, error: updateError, isSuccess: updateSuccess }] =
-    useUpdateClassGroupMutation();
-
-  const [deleteClassGroup, { isLoading: deleteLoading, error: deleteError, isSuccess: deleteSuccess }] =
-    useDeleteClassGroupMutation();
-
-  const { grade, academicLevel, section, displayName, campus, year, status } = classGroup;
-
-  // Filter grades based on selected academic level
+  // Cookies load karein
   useEffect(() => {
-    if (academicLevel && gradesData?.grades) {
-      // Ensure we're working with the correct data structure
-      const gradesArray = Array.isArray(gradesData.grades)
-        ? gradesData.grades
-        : gradesData.grades?.grades || [];
+    const campus = getCookie('campus');
+    const year = getCookie('selectedYear');
+    setCurrentCampus(campus);
+    setCurrentYear(year ? parseInt(year) : new Date().getFullYear());
+  }, []);
 
-      const filtered = gradesArray.filter(g => {
-        if (!g) return false;
+  // RTK Queries
+  const { 
+    data: academicLevelsData, 
+    isLoading: levelsLoading,
+    error: levelsError
+  } = useGetAcademicLevelsQuery({ 
+    paginate: false,
+    campus: currentCampus
+  }, {
+    skip: !currentCampus,
+    refetchOnMountOrArgChange: true,
+  });
+  
+  const { 
+    data: gradesData, 
+    isLoading: gradesLoading,
+    error: gradesError,
+    refetch: refetchGrades,
+    isFetching: gradesFetching
+  } = useGetGradesQuery({
+    paginate: false,
+    campus: currentCampus,
+    year: currentYear,
+    status: "active",
+  }, {
+    skip: !currentCampus || !currentYear,
+    refetchOnMountOrArgChange: true,
+  });
 
-        // Check multiple possible structures for academicLevel
-        const gradeLevelId =
-          g.academicLevel?._id ||
-          g.academicLevel ||
-          g.academicLevelId;
+  const { 
+    data: coursesData, 
+    isLoading: coursesLoading,
+    error: coursesError,
+    refetch: refetchCourses
+  } = useGetCoursesQuery({
+    paginate: false,
+    limit: 0, 
+    campus: currentCampus,
+    year: currentYear,
+    status: "active"
+  }, {
+    skip: !currentCampus || !currentYear,
+    refetchOnMountOrArgChange: true,
+  });
 
-        return gradeLevelId === academicLevel;
-      });
+  // Mutations
+  const [createClassGroupMutation, { 
+    isLoading: createLoading, 
+    error: createError, 
+    isSuccess: createSuccess 
+  }] = useCreateClassGroupMutation();
 
-      setAvailableGrades(filtered);
-    } else {
-      // If no academicLevel selected, show all grades for selected campus
-      const gradesArray = Array.isArray(gradesData?.grades)
-        ? gradesData.grades
-        : gradesData?.grades?.grades || [];
-
-      setAvailableGrades(gradesArray);
+  // SIMPLIFIED Grades filter - Frontend me filter karo
+  useEffect(() => {
+    if (!gradesData || !gradesData.grades || !Array.isArray(gradesData.grades)) {
+      setAvailableGrades([]);
+      return;
     }
-  }, [academicLevel, gradesData]);
 
-  // Auto-generate display name when grade and section change
+    const allGrades = gradesData.grades;
+    
+    // Pehle campus aur year ke hisaab se filter
+    let filtered = allGrades.filter(g => {
+      const gradeCampus = g.campus?._id || g.campus;
+      const campusMatch = gradeCampus === currentCampus;
+      const gradeYear = g.year;
+      const yearMatch = gradeYear === currentYear;
+      
+      return campusMatch && yearMatch;
+    });
+    
+    // Phir academic level ke hisaab se filter
+    if (academicLevel && academicLevel.trim() !== "") {
+      filtered = filtered.filter(g => {
+        const gradeAcademicLevel = g.academicLevel?._id || g.academicLevel;
+        return gradeAcademicLevel === academicLevel;
+      });
+    }
+    
+    setAvailableGrades(filtered);
+    
+    // Agar selected grade filtered list me nahi hai to reset
+    if (grade && filtered.length > 0 && !filtered.some(g => g._id === grade)) {
+      setClassGroup(prev => ({ ...prev, grade: "" }));
+    }
+    
+  }, [gradesData, academicLevel, currentCampus, currentYear, grade]);
+
+  // DEBUG: Console me courses data check karein
   useEffect(() => {
-    if (grade && section) {
-      const selectedGrade = availableGrades.find(g =>
-        g._id === grade || g?._id === grade
-      );
+    if (coursesData && coursesData.courses) {
+      console.log("Courses Data:", coursesData.courses);
+      console.log("Current Year:", currentYear);
+      console.log("Current Campus:", currentCampus);
+    }
+  }, [coursesData, currentYear, currentCampus]);
+
+  // ✅ FIX: Courses filter logic - AB GRADE FILTER NAHI KAR RAHE
+  // Kyunke API courses mein grade field nahi bhej rahi, isliye sirf campus aur year filter laga rahe hain
+  const filteredCourses = useMemo(() => {
+    if (!coursesData?.courses || !Array.isArray(coursesData.courses)) {
+      console.log("No courses data available");
+      return [];
+    }
+    
+    const allCourses = coursesData.courses;
+    console.log("All courses:", allCourses);
+    
+    // Sirf campus aur year ke hisaab se filter
+    let filteredByCampusAndYear = allCourses.filter(course => {
+      const courseCampus = course.campus?._id || course.campus;
+      const courseYear = course.year;
+      const campusMatch = courseCampus === currentCampus;
+      const yearMatch = courseYear === currentYear;
+      
+      return campusMatch && yearMatch;
+    });
+    
+    console.log("Filtered by campus and year:", filteredByCampusAndYear);
+    
+    // ✅ GRADE FILTER HATAYA - taake courses dropdown empty na rahe
+    // Agar backend mein grade field add karo to yahan condition wapas laga dena
+    
+    return filteredByCampusAndYear;
+    
+  }, [coursesData, currentCampus, currentYear]); // grade aur academicLevel dependency hatayi
+
+  // Auto-generate display name
+  useEffect(() => {
+    if (grade && section && availableGrades.length > 0) {
+      const selectedGrade = availableGrades.find(g => g._id === grade);
       if (selectedGrade) {
         setClassGroup(prev => ({
           ...prev,
-          displayName: `${selectedGrade.gradeName}${section}`
+          displayName: `${selectedGrade.gradeName} ${section.toUpperCase()}`
         }));
       }
+    } else if (!grade || !section) {
+      setClassGroup(prev => ({ ...prev, displayName: "" }));
     }
   }, [grade, section, availableGrades]);
 
+  // Selected courses formatting
   useEffect(() => {
-    if (createError || updateError || deleteError) {
-      const error = createError || updateError || deleteError;
-      toast.error(error?.data?.message || "Something went wrong");
+    console.log("Courses in state:", courses);
+    console.log("Filtered courses:", filteredCourses);
+    
+    if (courses.length > 0 && filteredCourses.length > 0) {
+      const selectedOptions = courses.map(courseId => {
+        const course = filteredCourses.find(c => c._id === courseId);
+        if (course) {
+          return {
+            value: course._id,
+            label: `${course.courseName} (${course.code || "No Code"})`,
+            teacher: course.teacher?.name || "No Teacher"
+          };
+        }
+        console.warn("Course not found in filtered courses:", courseId);
+        return null;
+      }).filter(Boolean);
+      
+      console.log("Selected options:", selectedOptions);
+      setSelectedCourseOptions(selectedOptions);
+    } else {
+      setSelectedCourseOptions([]);
     }
+  }, [courses, filteredCourses]);
 
+  // Reset courses when grade changes (optional - agar chaho toh rakho)
+  useEffect(() => {
+    if (grade) {
+      setClassGroup(prev => ({ ...prev, courses: [] }));
+      setSelectedCourseOptions([]);
+    }
+  }, [grade]); // academicLevel bhi dependency me tha, ab sirf grade pe reset
+
+  // API Responses
+  useEffect(() => {
+    if (createError) {
+      const errorMessage = createError?.data?.message || createError?.message || t("Something went wrong");
+      toast.error(errorMessage);
+      console.error("Create error:", createError);
+    }
     if (createSuccess) {
-      toast.success("Class Group created successfully");
+      toast.success(t("Class group created successfully"));
       resetForm();
-      refetchGroups();
+      navigate("/admin/class-groups", { state: { shouldRefetch: true } });
     }
-
-    if (updateSuccess) {
-      toast.success("Class Group updated successfully");
-      resetForm();
-      refetchGroups();
-    }
-
-    if (deleteSuccess) {
-      toast.success("Class Group deleted successfully");
-      refetchGroups();
-      setShowModal(false);
-      setSelectedGroupId(null);
-    }
-  }, [createError, updateError, deleteError, createSuccess, updateSuccess, deleteSuccess, refetchGroups]);
-
-  // Campus select hone par grades ko refetch karein
-  useEffect(() => {
-    if (classGroup.campus) {
-      refetchGrades();
-    }
-  }, [classGroup.campus, refetchGrades]);
+  }, [createError, createSuccess, t, navigate]);
 
   const onChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setClassGroup({
-      ...classGroup,
+    setClassGroup(prev => ({
+      ...prev,
       [name]: type === 'checkbox' ? checked : value
-    });
+    }));
   };
 
   const resetForm = () => {
     setClassGroup({
-      grade: "",
-      academicLevel: "",
-      section: "",
-      displayName: "",
-      campus: "",
-      year: new Date().getFullYear(),
-      status: true,
+      grade: "", academicLevel: "", section: "",
+      displayName: "", courses: [], status: true,
     });
-    setEditMode(false);
-    setEditId(null);
-    setAvailableGrades(gradesData?.grades || []);
+    setSelectedCourseOptions([]);
   };
 
   const submitHandler = (e) => {
     e.preventDefault();
-
+    console.log("Submitting form:", classGroup);
+    
+    if (!currentCampus || !currentYear) {
+      toast.error(t("Please select campus and year from header first"));
+      return;
+    }
+    if (!academicLevel || !grade || !section) {
+      toast.error(t("Please fill all required fields"));
+      return;
+    }
+    
     const payload = {
       ...classGroup,
-      year: parseInt(year)
+      campus: currentCampus,
+      year: currentYear,
+      courses: classGroup.courses
     };
-
-    if (editMode) {
-      updateClassGroup({ id: editId, body: payload });
-    } else {
-      createClassGroup(payload);
-    }
-  };
-
-  const handleEdit = (group) => {
-    setClassGroup({
-      grade: group.grade?._id || group.grade || "",
-      academicLevel: group.academicLevel?._id || group.academicLevel || "",
-      section: group.section || "",
-      displayName: group.displayName || "",
-      campus: group.campus?._id || group.campus || "",
-      year: group.year?.toString() || new Date().getFullYear().toString(),
-      status: group.status ?? true,
-    });
-    setEditMode(true);
-    setEditId(group._id);
-
-    // Scroll to form
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleDeleteClick = (id) => {
-    setSelectedGroupId(id);
-    setShowModal(true);
-  };
-
-  const confirmDelete = () => {
-    if (selectedGroupId) {
-      deleteClassGroup(selectedGroupId);
-    }
-  };
-
-  // Helper function to get grade name
-  const getGradeName = (grade) => {
-    if (!grade) return "N/A";
     
-    // Agar grade object hai (populated)
-    if (typeof grade === 'object') {
-      return grade.gradeName || grade.name || "N/A";
-    }
+    console.log("Final payload:", payload);
+    createClassGroupMutation(payload);
+  };
+
+  const handleCourseChange = (selectedOptions) => {
+    console.log("Course selection changed:", selectedOptions);
     
-    // Agar grade ID hai
-    if (typeof grade === 'string') {
-      if (!gradesData?.grades) return "N/A";
-      const gradeItem = gradesData.grades.find(g => g._id === grade);
-      return gradeItem ? gradeItem.gradeName : "N/A";
+    const selectedIds = selectedOptions ? selectedOptions.map(option => option.value) : [];
+    console.log("Selected IDs:", selectedIds);
+    
+    setClassGroup(prev => ({ ...prev, courses: selectedIds }));
+    setSelectedCourseOptions(selectedOptions || []);
+  };
+
+  const getGradeName = (gId) => {
+    if (!gId) return "N/A";
+    const found = gradesData?.grades?.find(g => g._id === (gId?._id || gId));
+    return found ? found.gradeName : "N/A";
+  };
+
+  const academicLevelOptions = useMemo(() => {
+    if (!academicLevelsData?.levels) return [];
+    return academicLevelsData.levels
+      .filter(l => (l.campus?._id || l.campus) === currentCampus)
+      .map(l => ({ value: l._id, label: `${l.name} (${l.code})` }));
+  }, [academicLevelsData, currentCampus]);
+
+  const gradeOptions = useMemo(() => {
+    if (!availableGrades || availableGrades.length === 0) {
+      if (academicLevel) {
+        return [{ 
+          value: "", 
+          label: t("No grades found. Check database?"), 
+          disabled: true 
+        }];
+      }
+      return [{ 
+        value: "", 
+        label: t("Select academic level first"), 
+        disabled: true 
+      }];
     }
     
-    return "N/A";
-  };
+    return availableGrades.map(g => ({
+      value: g._id,
+      label: `${g.gradeName} (Year: ${g.year})`,
+      title: `ID: ${g._id}\nCampus: ${g.campus?._id}\nAcademic Level: ${g.academicLevel?._id}`
+    }));
+  }, [availableGrades, t, academicLevel]);
 
-  // Filter and paginate the class groups
-  const filteredGroups = groupsData?.classGroups?.filter(group => {
-    if (!group) return false;
-    const groupDisplayName = group?.displayName?.toLowerCase() || "";
-    const groupSection = group?.section?.toLowerCase() || "";
-    const search = searchTerm.toLowerCase();
+  const courseOptions = useMemo(() => {
+    const options = filteredCourses.map(course => ({
+      value: course._id,
+      label: `${course.courseName} (${course.code || "No Code"}) - ${course.teacher?.name || "No Teacher"}`,
+    }));
+    
+    console.log("Course options for dropdown:", options);
+    return options;
+  }, [filteredCourses]);
 
-    return groupDisplayName.includes(search) || groupSection.includes(search);
-  }) || [];
-
-  const totalPages = Math.ceil(filteredGroups.length / itemsPerPage);
-  const paginatedGroups = filteredGroups.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  // Helper functions to get names from IDs
-  const getCampusName = (campusId) => {
-    if (!campusesData?.campus || !campusId) return "N/A";
-    const campusItem = campusesData.campus.find(c => c._id === campusId);
-    return campusItem ? campusItem.name : "N/A";
-  };
-
-  const getAcademicLevelName = (levelId) => {
-    if (!academicLevelsData?.levels || !levelId) return "N/A";
-    const levelItem = academicLevelsData.levels.find(l => l._id === levelId);
-    return levelItem ? levelItem.name : "N/A";
-  };
-
-  // Get academic levels for selected campus
-  const getCampusAcademicLevels = () => {
-    if (!campus || !academicLevelsData?.levels) return [];
-
-    return academicLevelsData.levels.filter(level => {
-      if (!level) return false;
-
-      // Handle both populated and unpopulated campus
-      const levelCampusId = level.campus?._id || level.campus;
-      return levelCampusId === campus;
-    });
-  };
-
-  // Safely get the level name for display
-  const getLevelName = (level) => {
-    if (!level) return "N/A";
-
-    if (typeof level === 'object') {
-      return level.name || "N/A";
+  // Errors handle karein
+  useEffect(() => {
+    if (gradesError) {
+      console.error("Grades Error:", gradesError);
+      toast.error(t("Failed to load grades. Check console."));
     }
+    
+    if (levelsError) {
+      console.error("Academic Levels Error:", levelsError);
+    }
+    
+    if (coursesError) {
+      console.error("Courses Error:", coursesError);
+      toast.error(t("Failed to load courses. Check console."));
+    }
+  }, [gradesError, levelsError, coursesError, t]);
 
-    // If it's just an ID, use the helper function
-    return getAcademicLevelName(level);
-  };
+  // Refresh courses when grade changes (optional - ab grade filter nahi, phir bhi refresh kar sakte ho)
+  useEffect(() => {
+    if (grade && currentCampus && currentYear) {
+      refetchCourses();
+    }
+  }, [grade, currentCampus, currentYear, refetchCourses]);
 
-  const isLoading = campusesLoading || levelsLoading || gradesLoading;
-
-  if (isLoading) {
-    return (
-      <AdminLayout>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      </AdminLayout>
-    );
-  }
+  const isLoading = levelsLoading || gradesLoading || coursesLoading;
+  if (isLoading) return <Loader />;
 
   return (
     <AdminLayout>
-      <MetaData title={editMode ? "Edit Class Group" : "Create New Class Group"} />
-
-      {/* Form Section */}
-      <div className="flex justify-center items-center pt-5">
-        <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">
-            {editMode ? "Edit Class Group" : "Create New Class Group"}
-          </h2>
-          <form onSubmit={submitHandler}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-              <div className="mb-4">
-                <label htmlFor="campus_field" className="block text-sm font-medium text-gray-700">
-                  {t("Campus")} *
-                </label>
-                <select
-                  id="campus_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="campus"
-                  value={campus}
-                  onChange={onChange}
-                  required
-                >
-                  <option value="">Select Campus</option>
-                  {campusesData?.campus?.map(campusItem => (
-                    <option key={campusItem._id} value={campusItem._id}>
-                      {campusItem.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="mb-4">
-                <label htmlFor="academicLevel_field" className="block text-sm font-medium text-gray-700">
-                  Academic Level *
-                </label>
-                <select
-                  id="academicLevel_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="academicLevel"
-                  value={academicLevel}
-                  onChange={onChange}
-                  required
-                  disabled={!campus}
-                >
-                  <option value="">Select Academic Level</option>
-                  {getCampusAcademicLevels().map(level => (
-                    <option key={level._id} value={level._id}>
-                      {level.name}
-                    </option>
-                  ))}
-                </select>
-                {!campus && (
-                  <p className="text-xs text-red-500 mt-1">Please select a campus first</p>
-                )}
-              </div>
-
-              <div className="mb-4">
-                <label htmlFor="grade_field" className="block text-sm font-medium text-gray-700">
-                  Grade *
-                </label>
-                <select
-                  id="grade_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="grade"
-                  value={grade}
-                  onChange={onChange}
-                  required
-                  disabled={!academicLevel || availableGrades.length === 0}
-                >
-                  <option value="">Select Grade</option>
-                  {availableGrades.map(gradeItem => (
-                    <option key={gradeItem._id} value={gradeItem._id}>
-                      {gradeItem.gradeName} {gradeItem.order ? `(Order: ${gradeItem.order})` : ''}
-                    </option>
-                  ))}
-                </select>
-                {!academicLevel && (
-                  <p className="text-xs text-red-500 mt-1">Please select an academic level first</p>
-                )}
-                {academicLevel && availableGrades.length === 0 && (
-                  <p className="text-xs text-yellow-500 mt-1">No grades found for this academic level</p>
-                )}
-              </div>
-
-              <div className="mb-4">
-                <label htmlFor="section_field" className="block text-sm font-medium text-gray-700">
-                  Section *
-                </label>
-                <input
-                  type="text"
-                  id="section_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="section"
-                  value={section}
-                  onChange={onChange}
-                  required
-                  placeholder="A, B, ENG, etc."
-                />
-              </div>
-
-              <div className="mb-4">
-                <label htmlFor="displayName_field" className="block text-sm font-medium text-gray-700">
-                  Display Name *
-                </label>
-                <input
-                  type="text"
-                  id="displayName_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="displayName"
-                  value={displayName}
-                  onChange={onChange}
-                  required
-                  readOnly
-                />
-                <p className="text-xs text-gray-500 mt-1">Auto-generated from grade and section</p>
-              </div>
-
-              <div className="mb-4">
-                <label htmlFor="year_field" className="block text-sm font-medium text-gray-700">
-                  {t("Year")} *
-                </label>
-                <input
-                  type="number"
-                  id="year_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="year"
-                  value={year}
-                  onChange={onChange}
-                  required
-                  min="2000"
-                  max="2100"
-                />
-              </div>
-
-              <div className="mb-4 flex items-center">
-                <input
-                  type="checkbox"
-                  id="status_field"
-                  className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
-                  name="status"
-                  checked={status}
-                  onChange={onChange}
-                />
-                <label htmlFor="status_field" className="ml-2 block text-sm font-medium text-gray-700">
-                  {t("Active")}
-                </label>
-              </div>
-            </div>
-
-            <div className="flex space-x-3">
-              <button
-                type="submit"
-                className={`px-6 py-2 text-white font-semibold rounded-md ${
-                  createLoading || updateLoading
-                    ? "bg-gray-400"
-                    : "bg-blue-600 hover:bg-blue-700"
-                } focus:outline-none focus:ring focus:ring-blue-300`}
-                disabled={createLoading || updateLoading}
-              >
-                {createLoading || updateLoading ? (
-                  <span className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    {editMode ? "Updating..." : "Creating..."}
-                  </span>
-                ) : (
-                  editMode ? "UPDATE" : "CREATE"
-                )}
-              </button>
-
-              {editMode && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="px-6 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 font-semibold rounded-md focus:outline-none focus:ring focus:ring-gray-300"
-                >
-                  CANCEL
-                </button>
-              )}
-            </div>
-          </form>
+      <MetaData title={t("Create Class Group")} />
+      <div className="max-w-6xl mx-auto py-4 px-4">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-xl font-bold text-gray-800">{t('Create Class Group')}</h1>
+            <p className="text-xs text-gray-500">{t('Fill in details to create a new class group')}</p>
+          </div>
+          <BackButton to="/admin/class-groups" label={t('back')} className="px-3 py-1.5 text-xs" />
         </div>
-      </div>
 
-      {/* Table Section */}
-      <div className="flex justify-center items-center pt-10 pb-10">
-        <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">
-            {filteredGroups.length} Class Groups
-          </h2>
-
-          {/* Controls Section */}
-          <div className="flex flex-col md:flex-row justify-between items-center mb-4">
-            {/* Search Bar */}
-            <input
-              type="text"
-              placeholder="Search by display name or section..."
-              className="block w-full md:w-1/3 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+        <div className="mb-6">
+          <InfoBanner
+            title={t("Current Session")}
+            message={`Year: ${currentYear || "Not set"} | Campus: ${currentCampus || "Not set"}`}
+            type="info"
+            icon="calendar-alt"
+          />
+          
+          {(!currentCampus || !currentYear) && (
+            <WarningBanner 
+              title={t("Action Required")} 
+              message={t("Please select campus and year from header first")} 
+              type="warning" 
             />
-
-            {/* Records per Page Dropdown */}
-            <div className="flex items-center mt-2 md:mt-0">
-              <label htmlFor="itemsPerPage" className="mr-2 text-sm font-medium">
-                Entries per Page:
-              </label>
-              <select
-                id="itemsPerPage"
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                value={itemsPerPage}
-                onChange={(e) => setItemsPerPage(Number(e.target.value))}
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={20}>20</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Class Groups Table */}
-          <div className="overflow-x-auto">
-            <Table hoverable={true} className="w-full">
-              <Table.Head>
-                <Table.HeadCell>#</Table.HeadCell>
-                <Table.HeadCell>Display Name</Table.HeadCell>
-                <Table.HeadCell>Grade</Table.HeadCell>
-                <Table.HeadCell>Section</Table.HeadCell>
-                <Table.HeadCell>Academic Level</Table.HeadCell>
-                <Table.HeadCell>Campus</Table.HeadCell>
-                <Table.HeadCell>Year</Table.HeadCell>
-                <Table.HeadCell>Status</Table.HeadCell>
-                <Table.HeadCell>Actions</Table.HeadCell>
-              </Table.Head>
-              <Table.Body className="divide-y">
-                {groupsLoading ? (
-                  <Table.Row>
-                    <Table.Cell colSpan={9} className="text-center py-4">
-                      <div className="flex justify-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      </div>
-                    </Table.Cell>
-                  </Table.Row>
-                ) : paginatedGroups.length === 0 ? (
-                  <Table.Row>
-                    <Table.Cell colSpan={9} className="text-center py-4">
-                      No class groups found
-                    </Table.Cell>
-                  </Table.Row>
-                ) : (
-                  paginatedGroups.map((group, index) => (
-                    <Table.Row key={group?._id} className="bg-white dark:bg-gray-800">
-                      <Table.Cell>{(currentPage - 1) * itemsPerPage + index + 1}</Table.Cell>
-                      <Table.Cell>
-                        <span className="font-semibold">{group?.displayName || "N/A"}</span>
-                      </Table.Cell>
-                      <Table.Cell>{getGradeName(group?.grade)}</Table.Cell>
-                      <Table.Cell>
-                        <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                          {group?.section || "N/A"}
-                        </span>
-                      </Table.Cell>
-                      <Table.Cell>{getLevelName(group?.academicLevel)}</Table.Cell>
-                      <Table.Cell>{group?.campus?.name || getCampusName(group?.campus)}</Table.Cell>
-                      <Table.Cell>{group?.year || "N/A"}</Table.Cell>
-                      <Table.Cell>
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          group?.status 
-                            ? "bg-green-100 text-green-800" 
-                            : "bg-red-100 text-red-800"
-                        }`}>
-                          {group?.status ? "Active" : "Inactive"}
-                        </span>
-                      </Table.Cell>
-                      <Table.Cell>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleEdit(group)}
-                            className="px-3 py-1 text-blue-600 border border-blue-600 rounded hover:bg-blue-600 hover:text-white focus:outline-none"
-                          >
-                            <i className="fa fa-pencil"></i>
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(group?._id)}
-                            disabled={deleteLoading}
-                            className="px-3 py-1 text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white focus:outline-none"
-                          >
-                            {deleteLoading && selectedGroupId === group?._id ? (
-                              <i className="fa fa-spinner fa-spin"></i>
-                            ) : (
-                              <i className="fa fa-trash"></i>
-                            )}
-                          </button>
-                        </div>
-                      </Table.Cell>
-                    </Table.Row>
-                  ))
-                )}
-              </Table.Body>
-            </Table>
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-4">
-              <Pagination
-                currentPage={currentPage}
-                layout="navigation"
-                onPageChange={(page) => setCurrentPage(page)}
-                showIcons={true}
-                totalPages={totalPages}
-              />
-            </div>
+          )}
+          
+          {currentCampus && currentYear && gradesData?.counts?.total === 0 && (
+            <WarningBanner 
+              title={t("No Grades Found")} 
+              message={t("No active grades found for selected campus and year. Please create grades first.")} 
+              type="warning" 
+            />
+          )}
+          
+          {currentCampus && currentYear && coursesData?.courses?.length === 0 && (
+            <WarningBanner 
+              title={t("No Courses Found")} 
+              message={t("No active courses found for selected campus and year. Please create courses first.")} 
+              type="warning" 
+            />
+          )}
+          
+          {/* ✅ Naya Warning: Agar grade select kiya hai lekin courses mein grade field nahi hai */}
+          {grade && filteredCourses.length === 0 && (
+            <WarningBanner 
+              title={t("No Courses Available")} 
+              message={t("No courses found for this campus and year. Please create courses or check backend.")} 
+              type="info" 
+            />
           )}
         </div>
+
+        <form onSubmit={submitHandler}>
+          <FormSection 
+            title={t("Create New Class Group")} 
+            icon="users" 
+            iconColor="blue" 
+            border={true} 
+            background="white" 
+            padding="p-6" 
+            className="mb-8 shadow-sm"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              <FormSelect
+                label={t("Academic Level")}
+                name="academicLevel"
+                value={academicLevel}
+                onChange={onChange}
+                options={academicLevelOptions}
+                placeholder={t("Select Academic Level")}
+                required={true}
+                disabled={!currentCampus}
+                className="md:col-span-1"
+              />
+              
+              <FormSelect
+                label={t("Grade")}
+                name="grade"
+                value={grade}
+                onChange={onChange}
+                options={gradeOptions}
+                placeholder={t("Select Grade")}
+                required={true}
+                disabled={!academicLevel || availableGrades.length === 0}
+                helperText={
+                  availableGrades.length > 0 
+                    ? `${availableGrades.length} grade(s) available` 
+                    : academicLevel 
+                    ? t("No grades found. Check if grades exist in database.") 
+                    : t("Select academic level first")
+                }
+                className="md:col-span-1"
+              />
+              
+              <FormInput
+                label={t("Section")}
+                name="section"
+                value={section}
+                onChange={onChange}
+                placeholder={t("e.g. A, B, C")}
+                required={true}
+                className="md:col-span-1"
+                maxLength="5"
+              />
+              
+              <FormInput
+                label={t("Display Name")}
+                name="displayName"
+                value={displayName}
+                readOnly={true}
+                placeholder={t("Auto-generated")}
+                className="md:col-span-1"
+                helperText={t("Auto-generated from grade and section")}
+              />
+              
+              <div className="md:col-span-1 flex items-end">
+                <FormCheckbox 
+                  label={t("Active Status")} 
+                  name="status" 
+                  checked={status} 
+                  onChange={onChange} 
+                  className="text-sm" 
+                />
+              </div>
+
+              <div className="md:col-span-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t("Courses")}
+                  <span className="text-xs text-gray-500 ml-2">
+                    ({filteredCourses.length} courses available)
+                  </span>
+                  {/* ✅ Warning update: ab grade filter nahi hai */}
+                  {filteredCourses.length === 0 && (
+                    <span className="text-xs text-amber-600 ml-2">
+                      {t("No courses found for this campus/year. Please create courses.")}
+                    </span>
+                  )}
+                </label>
+                <Select
+                  isMulti
+                  closeMenuOnSelect={false}
+                  components={animatedComponents}
+                  options={courseOptions}
+                  value={selectedCourseOptions}
+                  onChange={handleCourseChange}
+                  placeholder={filteredCourses.length === 0 ? t("No courses available") : t("Select courses...")}
+                  isDisabled={filteredCourses.length === 0}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  noOptionsMessage={() => 
+                    filteredCourses.length === 0 
+                    ? t("No courses available") 
+                    : t("No options")
+                  }
+                />
+                {selectedCourseOptions.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs text-gray-600">
+                      {t("Selected courses")}: {selectedCourseOptions.length}
+                      {selectedCourseOptions.map(option => (
+                        <span key={option.value} className="block text-xs text-gray-500 mt-1">
+                          • {option.label}
+                        </span>
+                      ))}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              <FormActions
+                onSubmit={submitHandler}
+                onCancel={() => navigate("/admin/class-groups")}
+                submitLabel={t("Create Class Group")}
+                isLoading={createLoading}
+                disabled={!currentCampus || !currentYear || !academicLevel || !grade || !section}
+                align="right"
+                showCancel={true}
+              />
+            </div>
+          </FormSection>
+        </form>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      <ConfirmationModal
-        showModal={showModal}
-        setShowModal={setShowModal}
-        confirmDelete={confirmDelete}
-        isDeleteLoading={deleteLoading}
-        message="Do you want to delete this class group? This action cannot be undone."
-      />
+      <style jsx>{`
+        .react-select-container .react-select__control { 
+          border-color: #d1d5db; 
+          border-radius: 0.5rem; 
+          min-height: 42px; 
+        }
+        .react-select-container .react-select__control--is-focused { 
+          border-color: #3b82f6; 
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); 
+        }
+        .react-select-container .react-select__menu {
+          z-index: 10;
+        }
+      `}</style>
     </AdminLayout>
   );
 };

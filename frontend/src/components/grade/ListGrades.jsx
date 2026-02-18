@@ -8,7 +8,7 @@ import {
   useGetGradesQuery,
 } from "../../redux/api/gradesApi";
 
-import AdminLayout from "../layout/AdminLayout";
+import AdminLayout from "../GUI/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import ConfirmationModal from "../GUI/ConfirmationModal";
@@ -63,7 +63,7 @@ const ListGrades = () => {
     if (deleteError) toast.error(deleteError?.data?.message);
 
     if (isSuccess) {
-      toast.success(t("gradeDeleted"));
+      toast.success(t("Grade Deleted"));
       refetch();
       setShowModal(false);
       setSelectedGradeId(null);
@@ -86,15 +86,15 @@ const ListGrades = () => {
     toast.success(t("Refreshed"));
   };
 
-  // ✅ Columns with CSS-based "..." (Guaranteed to show dots)
+  // ✅ Updated columns with only fields from NewGrade
   const columns = [
     {
       header: t("Grade Name"),
       accessor: "gradeName",
-      width: "30%",
-      minWidth: "200px",
+      width: "25%",
+      minWidth: "180px",
       render: (value) => (
-        <div className="max-w-[220px]">
+        <div className="max-w-[200px]">
           <p 
             className="font-medium text-gray-800 text-base" 
             style={{
@@ -103,9 +103,9 @@ const ListGrades = () => {
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              wordBreak: 'break-all' // Lambe strings ke liye zaroori hai
+              wordBreak: 'break-all'
             }}
-            title={value} // Hover karne par poora text dikhega
+            title={value}
           >
             {value}
           </p>
@@ -140,17 +140,43 @@ const ListGrades = () => {
       }
     },
     {
-      header: t("Courses"),
-      accessor: "courses",
+      header: t("Academic Level"),
+      accessor: "academicLevel",
       width: "20%",
-      minWidth: "120px",
+      minWidth: "150px",
       render: (value) => {
-        const courseCount = Array.isArray(value) ? value.length : 0;
+        // academicLevel is an object with _id and name
+        return (
+          <div className="max-w-[200px]">
+            <p 
+              className="text-sm text-gray-800" 
+              style={{
+                display: '-webkit-box',
+                WebkitLineClamp: '1',
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                wordBreak: 'break-word'
+              }}
+              title={value?.name}
+            >
+              {value?.name || 'N/A'}
+            </p>
+          </div>
+        );
+      }
+    },
+    {
+      header: t("Status"),
+      accessor: "status",
+      width: "15%",
+      minWidth: "100px",
+      render: (value) => {
         return (
           <div className="flex items-center justify-center">
-            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${courseCount > 0 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}`}>
-              <i className={`fas ${courseCount > 0 ? 'fa-book-open' : 'fa-book'} mr-2 text-xs`}></i>
-              {courseCount} {t("courses")}
+            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium ${value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+              <i className={`fas ${value ? 'fa-check-circle' : 'fa-times-circle'} mr-2`}></i>
+              {value ? t("Active") : t("Inactive")}
             </span>
           </div>
         );
@@ -158,11 +184,32 @@ const ListGrades = () => {
     }
   ];
 
+  // ✅ Updated stats without courses count
   const stats = [
-    { label: t("Total Grades"), value: data?.pagination?.total || 0, icon: "graduation-cap", color: "blue" },
-    { label: t("Total Courses"), value: data?.grades?.reduce((total, grade) => total + (grade.courses?.length || 0), 0) || 0, icon: "book", color: "green" },
-    { label: t("Items Shown"), value: data?.grades?.length || 0, icon: "list-ul", color: "purple" },
-    { label: t("Total Pages"), value: data?.pagination?.totalPages || 1, icon: "file-alt", color: "orange" }
+    { 
+      label: t("Total Grades"), 
+      value: data?.pagination?.total || 0, 
+      icon: "graduation-cap", 
+      color: "blue" 
+    },
+    { 
+      label: t("Active Grades"), 
+      value: data?.grades?.filter(grade => grade.status).length || 0, 
+      icon: "check-circle", 
+      color: "green" 
+    },
+    { 
+      label: t("Items Shown"), 
+      value: data?.grades?.length || 0, 
+      icon: "list-ul", 
+      color: "purple" 
+    },
+    { 
+      label: t("Total Pages"), 
+      value: data?.pagination?.totalPages || 1, 
+      icon: "file-alt", 
+      color: "orange" 
+    }
   ];
 
   const addButton = userRole === "admin" ? (
@@ -239,7 +286,7 @@ const ListGrades = () => {
 
       <DataTableContainer
         title={t("Grade Management")}
-        subtitle={t("Manage grade levels and their courses")}
+        subtitle={t("Manage grade levels and their details")}
         data={data?.grades || []}
         columns={columns}
         isLoading={isLoading}
@@ -253,7 +300,7 @@ const ListGrades = () => {
         setSearch={setSearch}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
-        searchPlaceholder={t("Search grades by grade name...")}
+        searchPlaceholder={t("Search grades by name or description...")}
         onRefresh={handleRefresh}
         refreshButton={refreshButton}
         addButton={addButton}

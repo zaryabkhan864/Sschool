@@ -1,25 +1,18 @@
 import express from "express";
 import {
-  newTimeTableSlot,
-  getTimeTableSlots,
-  deleteTimeTableSlot,
+  getAndCreateTimeTableSlots,
+  updateTimeTableSlots,
+  getAvailableCoursesForSlot,
 } from "../controllers/timeTableSlotController.js";
-
 import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 
 const router = express.Router();
 
-// Create Timetable Slot
-router
-  .route("/admin/timetable-slot")
-  .post(isAuthenticatedUser, authorizeRoles("admin"), newTimeTableSlot);
+router.route("/timetable-slot/:classGroupId")
+  .get(isAuthenticatedUser, authorizeRoles("admin"), getAndCreateTimeTableSlots)
+  .put(isAuthenticatedUser, authorizeRoles("admin"), updateTimeTableSlots);
 
-// Get Timetable Slots
-router.route("/timetable-slot").get(getTimeTableSlots);
-
-// Delete Timetable Slot
-router
-  .route("/admin/timetable-slot/:id")
-  .delete(isAuthenticatedUser, authorizeRoles("admin"), deleteTimeTableSlot);
+router.route("/available-courses")
+  .get(isAuthenticatedUser, authorizeRoles("admin"), getAvailableCoursesForSlot);
 
 export default router;

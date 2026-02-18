@@ -480,7 +480,7 @@ export const deleteUser = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
-
+// Updated getUsersByType function
 export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
   const { type } = req.params;
   const { campus, selectedYear } = req.cookies;
@@ -492,9 +492,13 @@ export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
     req.query.role = type;
   }
 
-  // 2. Cookie Filters - IMPORTANT CHANGE
+  // 2. Get dropdown flag from query params
   const limit = Number(req.query.limit);
-  const isDropdownRequest = limit === 0;
+  const dropdown = req.query.dropdown === 'true'; // ✅ NAYA CHECK
+  const isDropdownRequest = dropdown || limit === 0; // ✅ DONO CHECK KARO
+  // 3. Cookie Filters - UPDATED LOGIC
+  // Agar dropdown request hai ya limit 0 hai to cookie filters skip karo
+  const shouldSkipCookieFilters = dropdown || limit === 0;
   
   if (campus && !isDropdownRequest) {
     req.query.campus = campus;
@@ -504,7 +508,10 @@ export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
     req.query.year = selectedYear;
   }
 
-  // 3. Status handle karo
+  // Remove dropdown from query to avoid interfering with other filters
+  delete req.query.dropdown;
+
+  // 4. Status handle karo
   if (req.query.status) {
     if (req.query.status === 'active') {
       req.query.status = true;
@@ -513,7 +520,7 @@ export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
     }
   }
 
-  // 4. Gender ko case-insensitive banao
+  // 5. Gender ko case-insensitive banao
   if (req.query.gender) {
     const genderValue = req.query.gender.toLowerCase();
     if (genderValue === 'male' || genderValue === 'female' || genderValue === 'other') {
@@ -521,18 +528,18 @@ export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
     }
   }
 
-  // 5. Base query for counting
+  // 6. Base query for counting
   const baseApiFilters = new APIFilters(User, req.query)
     .setSearchFields(['name', 'email', 'gender', 'nationality'])
     .search()
     .filters()
     .sort();
 
-  // 6. Get counts using the base query
+  // 7. Get counts using the base query
   const baseQuery = baseApiFilters.query;
   const total = await baseApiFilters.model.countDocuments(baseQuery._conditions);
   
-  // 7. Get active/deactive counts
+  // 8. Get active/deactive counts
   const activeQuery = User.find({
     ...baseQuery._conditions,
     status: true
@@ -545,18 +552,20 @@ export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
   });
   const deactive = await deactiveQuery.countDocuments();
 
-  // 8. Now create a NEW query for actual data WITH/WITHOUT pagination
+  // 9. Create new query for actual data
   const apiFilters = new APIFilters(User, req.query)
     .setSearchFields(['name', 'email', 'gender', 'nationality'])
     .search()
     .filters()
-    .sort()
-    .pagination();
+    .sort();
 
-  // 9. Conditionally populate - FIXED FOR STUDENTS
+  // 10. Agar dropdown request nahi hai to pagination lagao
+  if (!dropdown && limit !== 0) {
+    apiFilters.pagination();
+  }
+
+  // 11. Conditionally populate
   if (type === 'student') {
-    // Student ke liye grade.gradeId ko populate karo Grade model ke sath
-    // Aur campus ko bhi populate karo
     apiFilters.populate([
       {
         path: 'grade.gradeId',
@@ -570,7 +579,6 @@ export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
       }
     ]);
   } else {
-    // Non-student users ke liye sirf campus populate karo
     apiFilters.populate({
       path: 'campus',
       model: 'Campus',
@@ -578,23 +586,20 @@ export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
     });
   }
 
-  // 10. Execute the query
+  // 12. Execute the query
   const users = await apiFilters.query;
 
-  // 11. Agar student type hai to grade data ko format karo
+  // 13. Format student data if needed
   let formattedUsers = users;
   if (type === 'student') {
     formattedUsers = users.map(user => {
       const userObj = user.toObject ? user.toObject() : user;
       
-      // Agar grade array hai to use format karo
       if (userObj.grade && Array.isArray(userObj.grade)) {
         userObj.grade = userObj.grade.map(gradeItem => {
           return {
             ...gradeItem,
-            // Grade details ko direct access karne ke liye
             gradeDetails: gradeItem.gradeId || null,
-            // Grade ID ko alag se bhi rakhna
             gradeId: gradeItem.gradeId?._id || gradeItem.gradeId
           };
         });
@@ -604,9 +609,9 @@ export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
     });
   }
 
-  // 12. ✅ Get pagination meta ONLY if pagination is enabled
+  // 14. Get pagination meta ONLY if pagination is enabled
   let pagination = null;
-  if (apiFilters.shouldPaginate) {
+  if (!dropdown && limit !== 0 && apiFilters.shouldPaginate) {
     pagination = {
       total,
       page: apiFilters.page,
@@ -615,7 +620,7 @@ export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
     };
   }
 
-  // 13. Final Response
+  // 15. Final Response
   res.status(200).json({
     success: true,
     ...(pagination && { 
@@ -630,4 +635,155 @@ export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
     users: formattedUsers,
   });
 });
+
+
+// export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
+//   const { type } = req.params;
+//   const { campus, selectedYear } = req.cookies;
+
+//   // 1. Role Logic
+//   if (type === 'employee') {
+//     req.query.role = { $ne: 'student' };
+//   } else {
+//     req.query.role = type;
+//   }
+
+//   // 2. Cookie Filters - IMPORTANT CHANGE
+//   const limit = Number(req.query.limit);
+//   const isDropdownRequest = limit === 0;
+  
+//   if (campus && !isDropdownRequest) {
+//     req.query.campus = campus;
+//   }
+  
+//   if (selectedYear && !isDropdownRequest) {
+//     req.query.year = selectedYear;
+//   }
+
+//   // 3. Status handle karo
+//   if (req.query.status) {
+//     if (req.query.status === 'active') {
+//       req.query.status = true;
+//     } else if (req.query.status === 'deactive') {
+//       req.query.status = false;
+//     }
+//   }
+
+//   // 4. Gender ko case-insensitive banao
+//   if (req.query.gender) {
+//     const genderValue = req.query.gender.toLowerCase();
+//     if (genderValue === 'male' || genderValue === 'female' || genderValue === 'other') {
+//       req.query.gender = genderValue.charAt(0).toUpperCase() + genderValue.slice(1);
+//     }
+//   }
+
+//   // 5. Base query for counting
+//   const baseApiFilters = new APIFilters(User, req.query)
+//     .setSearchFields(['name', 'email', 'gender', 'nationality'])
+//     .search()
+//     .filters()
+//     .sort();
+
+//   // 6. Get counts using the base query
+//   const baseQuery = baseApiFilters.query;
+//   const total = await baseApiFilters.model.countDocuments(baseQuery._conditions);
+  
+//   // 7. Get active/deactive counts
+//   const activeQuery = User.find({
+//     ...baseQuery._conditions,
+//     status: true
+//   });
+//   const active = await activeQuery.countDocuments();
+  
+//   const deactiveQuery = User.find({
+//     ...baseQuery._conditions,
+//     status: false
+//   });
+//   const deactive = await deactiveQuery.countDocuments();
+
+//   // 8. Now create a NEW query for actual data WITH/WITHOUT pagination
+//   const apiFilters = new APIFilters(User, req.query)
+//     .setSearchFields(['name', 'email', 'gender', 'nationality'])
+//     .search()
+//     .filters()
+//     .sort()
+//     .pagination();
+
+//   // 9. Conditionally populate - FIXED FOR STUDENTS
+//   if (type === 'student') {
+//     // Student ke liye grade.gradeId ko populate karo Grade model ke sath
+//     // Aur campus ko bhi populate karo
+//     apiFilters.populate([
+//       {
+//         path: 'grade.gradeId',
+//         model: 'Grade',
+//         select: 'gradeName description courses campus year'
+//       },
+//       {
+//         path: 'campus',
+//         model: 'Campus',
+//         select: 'name'
+//       }
+//     ]);
+//   } else {
+//     // Non-student users ke liye sirf campus populate karo
+//     apiFilters.populate({
+//       path: 'campus',
+//       model: 'Campus',
+//       select: 'name'
+//     });
+//   }
+
+//   // 10. Execute the query
+//   const users = await apiFilters.query;
+
+//   // 11. Agar student type hai to grade data ko format karo
+//   let formattedUsers = users;
+//   if (type === 'student') {
+//     formattedUsers = users.map(user => {
+//       const userObj = user.toObject ? user.toObject() : user;
+      
+//       // Agar grade array hai to use format karo
+//       if (userObj.grade && Array.isArray(userObj.grade)) {
+//         userObj.grade = userObj.grade.map(gradeItem => {
+//           return {
+//             ...gradeItem,
+//             // Grade details ko direct access karne ke liye
+//             gradeDetails: gradeItem.gradeId || null,
+//             // Grade ID ko alag se bhi rakhna
+//             gradeId: gradeItem.gradeId?._id || gradeItem.gradeId
+//           };
+//         });
+//       }
+      
+//       return userObj;
+//     });
+//   }
+
+//   // 12. ✅ Get pagination meta ONLY if pagination is enabled
+//   let pagination = null;
+//   if (apiFilters.shouldPaginate) {
+//     pagination = {
+//       total,
+//       page: apiFilters.page,
+//       limit: apiFilters.limit,
+//       totalPages: Math.ceil(total / apiFilters.limit)
+//     };
+//   }
+
+//   // 13. Final Response
+//   res.status(200).json({
+//     success: true,
+//     ...(pagination && { 
+//       pagination: { 
+//         ...pagination, 
+//         counts: { total, active, deactive } 
+//       } 
+//     }),
+//     ...(!pagination && { 
+//       counts: { total, active, deactive } 
+//     }),
+//     users: formattedUsers,
+//   });
+// });
 

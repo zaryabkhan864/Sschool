@@ -17,6 +17,12 @@ const courseSchema = new mongoose.Schema(
       required: [true, "Please enter the code of course"],
       maxLength: [8, "Code cannot exceed 8 characters"],
     },
+    grade:{
+      type:mongoose.Schema.Types.ObjectId,
+      ref:"Grade",
+      required:true,
+      default:null
+    },
     teacher: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
