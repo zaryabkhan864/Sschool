@@ -9,13 +9,17 @@ import {
   useGetCoursesQuery,
 } from "../../redux/api/courseApi";
 
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import ConfirmationModal from "../GUI/ConfirmationModal";
 import { DataTableContainer } from "../GUI/DataTableContainer";
 import AddButton from "../layout/AddButton";
 import RefreshButton from "../layout/RefreshButton";
+import ActionButtons from "../GUI/ActionButtons";
+import FilterDropdown from "../GUI/FilterDropdown";
+import EmptyState from "../GUI/EmptyState";
+import TruncatedCell from "../GUI/TruncatedCell";
 
 const ListCourses = () => {
   const { t } = useTranslation();
@@ -28,10 +32,9 @@ const ListCourses = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(8);
-  const [showFilters, setShowFilters] = useState(false);
   const [teacherFilter] = useState(""); // kept for API compatibility, no UI
 
-  // ✅ Toast from navigation
+  // Toast from navigation
   useEffect(() => {
     if (location.state?.showSuccessToast) {
       toast.success(t("Course created successfully!"));
@@ -39,7 +42,7 @@ const ListCourses = () => {
     }
   }, [location.state, navigate, t]);
 
-  // ✅ Debounced search
+  // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchTerm(search);
@@ -48,7 +51,7 @@ const ListCourses = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // ✅ API query
+  // API query
   const {
     data,
     isLoading,
@@ -112,7 +115,7 @@ const ListCourses = () => {
     navigate(`/admin/course/${id}/details`);
   };
 
-  // ✅ Columns (same as before, Grade column included)
+  // Columns using shared components
   const columns = [
     {
       header: t("Course Name"),
@@ -121,15 +124,7 @@ const ListCourses = () => {
       minWidth: "220px",
       render: (value) => {
         if (!value) return <span className="text-xs text-gray-400 italic">{t("No name")}</span>;
-        const maxLength = 30;
-        const truncated = value.length > maxLength ? value.substring(0, maxLength) + "..." : value;
-        return (
-          <div className="truncate">
-            <p className="font-medium text-gray-800 truncate" title={value.length > maxLength ? value : ""}>
-              {truncated}
-            </p>
-          </div>
-        );
+        return <TruncatedCell lines={1}>{value}</TruncatedCell>;
       }
     },
     {
@@ -183,7 +178,7 @@ const ListCourses = () => {
     }
   ];
 
-  // ✅ Stats (same stats, now passed as prop to DataTableContainer)
+  // Stats
   const stats = [
     {
       label: t("Total Courses"),
@@ -211,12 +206,10 @@ const ListCourses = () => {
     }
   ];
 
-  // ✅ Add button
   const addButton = userRole === "admin" ? (
     <AddButton to="/admin/course/new" text={t("Add New Course")} icon="plus" />
   ) : null;
 
-  // ✅ Refresh button
   const refreshButton = (
     <RefreshButton
       onClick={handleRefresh}
@@ -227,106 +220,42 @@ const ListCourses = () => {
     />
   );
 
-  // ✅ Inline filters (exactly like ListGrades)
+  // Filter dropdown using shared component
   const filters = (
-    <div className="flex items-center gap-3">
-      <div className="relative">
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className="px-4 py-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 flex items-center gap-2"
-        >
-          <i className="fa fa-sliders-h"></i>
-          <span>{t("Filters")}</span>
-          <i className={`fa fa-chevron-${showFilters ? "up" : "down"} text-sm`}></i>
-        </button>
-
-        {showFilters && (
-          <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-10 p-4">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t("Items per page")}
-                </label>
-                <select
-                  value={limit}
-                  onChange={(e) => { setLimit(Number(e.target.value)); setCurrentPage(1); }}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                >
-                  {[5, 8, 10, 15, 20, 50].map(n => (
-                    <option key={n} value={n}>{n} {t("items")}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="pt-2 border-t">
-                <button
-                  onClick={() => {
-                    setSearch("");
-                    setSearchTerm("");
-                    setCurrentPage(1);
-                    setLimit(8);
-                  }}
-                  className="w-full px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md"
-                >
-                  <i className="fa fa-undo mr-2"></i>{t("Reset Filters")}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+    <FilterDropdown
+      limit={limit}
+      onLimitChange={(newLimit) => {
+        setLimit(newLimit);
+        setCurrentPage(1);
+      }}
+      onReset={() => {
+        setSearch("");
+        setSearchTerm("");
+        setCurrentPage(1);
+        setLimit(8);
+      }}
+    />
   );
 
-  // ✅ Row actions (inline buttons, grade style)
   const renderRowActions = (row) => (
-    <div className="flex justify-end items-center gap-1">
-      <a
-        href={`/admin/course/${row._id}/details`}
-        className="p-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg flex items-center justify-center transition-colors"
-        title={t("View Details")}
-        style={{ width: "36px", height: "36px" }}
-      >
-        <i className="fa fa-eye text-sm"></i>
-      </a>
-      {userRole === "admin" && (
-        <>
-          <button
-            onClick={() => handleEditCourse(row._id)}
-            className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg flex items-center justify-center transition-colors"
-            title={t("Edit")}
-            style={{ width: "36px", height: "36px" }}
-          >
-            <i className="fa fa-edit text-sm"></i>
-          </button>
-          <button
-            onClick={() => handleDeleteClick(row._id)}
-            disabled={isDeleteLoading}
-            className="p-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50"
-            title={t("Delete")}
-            style={{ width: "36px", height: "36px" }}
-          >
-            <i className="fa fa-trash text-sm"></i>
-          </button>
-        </>
-      )}
-    </div>
+    <ActionButtons
+      id={row._id}
+      userRole={userRole}
+      onDelete={handleDeleteClick}
+      isDeleteLoading={isDeleteLoading}
+      editHref={`/admin/courses/${row._id}`} 
+      onView={handleViewDetails}
+      onEdit={handleEditCourse}
+      // No hrefs provided, so click handlers will be used
+    />
   );
 
-  // ✅ Empty state (inline, grade style)
   const emptyState = (
-    <div className="flex flex-col items-center justify-center py-12">
-      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-        <i className="fa fa-book text-gray-400 text-2xl"></i>
-      </div>
-      <h3 className="text-lg font-medium text-gray-700 mb-2">
-        {searchTerm
-          ? t("No courses found matching your search")
-          : t("No courses found")}
-      </h3>
-      <p className="text-sm text-gray-500">
-        {t("Try adjusting your search or filters to find what you're looking for.")}
-      </p>
-    </div>
+    <EmptyState
+      icon="book"
+      title={searchTerm ? t("No courses found matching your search") : t("No courses found")}
+      message={t("Try adjusting your search or filters to find what you're looking for.")}
+    />
   );
 
   if (isLoading) return <Loader />;
@@ -357,7 +286,7 @@ const ListCourses = () => {
         addButton={addButton}
         emptyState={emptyState}
         filters={filters}
-        stats={stats}                   // ✅ Stats now passed as prop
+        stats={stats}
         userRole={userRole}
         renderRowActions={renderRowActions}
         renderHeaderInfo={() => (
@@ -368,7 +297,7 @@ const ListCourses = () => {
         )}
         className="course-table-container"
         showSearch={true}
-        showStats={true}              // ✅ Stats will be displayed inside the container
+        showStats={true}
         showPagination={true}
       />
 

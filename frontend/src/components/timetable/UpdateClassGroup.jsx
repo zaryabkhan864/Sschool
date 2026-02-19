@@ -15,7 +15,7 @@ import { useGetCoursesQuery } from "../../redux/api/courseApi";
 
 import MetaData from "../layout/MetaData";
 import Loader from "../layout/Loader";
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 import ConfirmationModal from "../GUI/ConfirmationModal";
 import BackButton from "../../components/layout/BackButton";
 
@@ -27,6 +27,7 @@ import FormCheckbox from "../../components/GUI/FormCheckbox";
 import FormActions from "../../components/GUI/FormActions";
 import InfoBanner from "../../components/GUI/InfoBanner";
 import WarningBanner from "../../components/GUI/WarningBanner";
+import FormInput from "../GUI/FormInput";
 
 // Cookie helper function
 const getCookie = (name) => {

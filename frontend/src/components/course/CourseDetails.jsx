@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { useParams, Link } from "react-router-dom";
 import { useGetCourseDetailsQuery } from "../../redux/api/courseApi";
 import { useGetUserByTypeQuery } from "../../redux/api/userApi";
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import { useTranslation } from "react-i18next";

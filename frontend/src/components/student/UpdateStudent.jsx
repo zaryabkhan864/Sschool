@@ -12,7 +12,7 @@ import {
   useUpdateUserMutation,
 } from "../../redux/api/userApi";
 import { useGetGradesQuery } from "../../redux/api/gradesApi";
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 import Loader from "../layout/Loader";
 

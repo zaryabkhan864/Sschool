@@ -2,22 +2,35 @@ import React, { useEffect, useState, useMemo, useRef, useCallback } from "react"
 import { useCountries } from "react-countries";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { useRegisterMutation } from "../../redux/api/authApi";
-import { useGetUserByTypeQuery } from "../../redux/api/userApi";
-import AdminLayout from "../GUI/AdminLayout";
-import MetaData from "../layout/MetaData";
 import { useTranslation } from "react-i18next";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
+
+// Redux
+import { useRegisterMutation } from "../../redux/api/authApi";
+import { useGetUserByTypeQuery } from "../../redux/api/userApi";
 import { useGetGradesQuery } from "../../redux/api/gradesApi";
+
+// Shared GUI Components
+import AdminLayout from "../layout/AdminLayout";
+import MetaData from "../layout/MetaData";
+import AppPageHeader from "../layout/AppPageHeader";
+import AppCard from "../GUI/AppCard";
+import AppInput from "../GUI/AppInput";
+import AppSubmitButton from "../GUI/AppSubmitButton";
+import AppCancelButton from "../GUI/AppCancelButton";
+import SearchableSelect from "../GUI/SearchableSelect";
+import GenderRadio from "../GUI/GenderRadio";
+import NationalitySelect from "../GUI/NationalitySelect";
+import AvatarUpload from "../GUI/AvatarUpload";
 
 const Register = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { countries } = useCountries();
-  const { refetch } = useGetUserByTypeQuery("user");
+  const { refetch } = useGetUserByTypeQuery({ type: "user" });
 
-  // ✅ Grade Search & Infinite Scroll States
+  // Grade search & infinite scroll states
   const [gradeSearch, setGradeSearch] = useState("");
   const [showGradeDropdown, setShowGradeDropdown] = useState(false);
   const [gradePage, setGradePage] = useState(1);
@@ -66,82 +79,83 @@ const Register = () => {
 
   const [register, { isLoading, error, isSuccess }] = useRegisterMutation();
 
-  // ✅ Grade Fetch Query with Search & Pagination
+  // Grade fetch query
   const {
     data: gradesData,
     isFetching: gradeLoading,
     error: gradeError,
-  } = useGetGradesQuery({
-    page: gradePage,
-    limit: 10,
-    keyword: gradeSearch
-  }, {
-    refetchOnMountOrArgChange: true,
-    skip: !showGradeDropdown && gradeSearch === "",
-  });
+  } = useGetGradesQuery(
+    {
+      page: gradePage,
+      limit: 10,
+      keyword: gradeSearch,
+    },
+    {
+      refetchOnMountOrArgChange: true,
+      skip: !showGradeDropdown && gradeSearch === "",
+    }
+  );
 
-  // ✅ Calculate age from date of birth
+  // Age calculation
   const calculateAgeFromDOB = (dob) => {
     if (!dob) return "";
     const today = new Date();
     const birthDate = new Date(dob);
     let calculatedAge = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       calculatedAge--;
     }
     return calculatedAge.toString();
   };
 
-  // ✅ Handle date of birth change
+  // Handle date of birth change
   const handleDateOfBirthChange = (e) => {
     const dob = e.target.value;
-    setUser(prev => ({
+    setUser((prev) => ({
       ...prev,
       dateOfBirth: dob,
       age: calculateAgeFromDOB(dob),
     }));
   };
 
-  // ✅ Handle age change (manual override)
+  // Handle age manual override
   const handleAgeChange = (e) => {
     setUser({ ...user, age: e.target.value });
   };
 
-  // ✅ Handle Infinite Scroll Observer for Grades
-  const lastGradeElementRef = useCallback(node => {
-    if (gradeLoading) return;
-    if (gradeObserver.current) gradeObserver.current.disconnect();
+  // Infinite scroll observer
+  const lastGradeElementRef = useCallback(
+    (node) => {
+      if (gradeLoading) return;
+      if (gradeObserver.current) gradeObserver.current.disconnect();
+      gradeObserver.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore && !gradeLoading) {
+          setGradePage((prevPage) => prevPage + 1);
+        }
+      });
+      if (node) gradeObserver.current.observe(node);
+    },
+    [gradeLoading, hasMore]
+  );
 
-    gradeObserver.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore && !gradeLoading) {
-        setGradePage(prevPage => prevPage + 1);
-      }
-    });
-
-    if (node) gradeObserver.current.observe(node);
-  }, [gradeLoading, hasMore]);
-
-  // ✅ Sync gradesList with gradesData correctly
+  // Sync grades list
   useEffect(() => {
     if (gradesData?.grades || gradesData?.data?.grades) {
       const grades = gradesData.grades || gradesData.data.grades;
-
       if (gradePage === 1 || gradeSearch) {
         setGradesList(grades);
       } else {
-        setGradesList(prev => {
+        setGradesList((prev) => {
           const combined = [...prev, ...grades];
           const uniqueMap = new Map();
-          combined.forEach(gradeItem => {
+          combined.forEach((gradeItem) => {
             const id = gradeItem._id || gradeItem.id;
             uniqueMap.set(id, gradeItem);
           });
           return Array.from(uniqueMap.values());
         });
       }
-
       setHasMore(grades.length === 10);
     } else if (!gradeLoading) {
       setGradesList([]);
@@ -149,7 +163,7 @@ const Register = () => {
     }
   }, [gradesData, gradePage, gradeSearch, gradeLoading]);
 
-  // ✅ Reset list and page on new search
+  // Reset page on search
   useEffect(() => {
     if (gradeSearch) {
       setGradePage(1);
@@ -157,21 +171,25 @@ const Register = () => {
     }
   }, [gradeSearch]);
 
-  // ✅ Get selected grade name
+  // Get selected grade name
   const selectedGradeName = useMemo(() => {
     if (!grade) return "";
-    const foundGrade = gradesList.find(g => {
+    const foundGrade = gradesList.find((g) => {
       const id = g._id || g.id;
       return id === grade;
     });
     return foundGrade?.gradeName || foundGrade?.name || `Grade ${foundGrade?.level || foundGrade?.grade}` || "";
   }, [grade, gradesList]);
 
-  // ✅ Handle click outside grade dropdown
+  // Click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (gradeDropdownRef.current && !gradeDropdownRef.current.contains(event.target) &&
-        gradeInputRef.current && !gradeInputRef.current.contains(event.target)) {
+      if (
+        gradeDropdownRef.current &&
+        !gradeDropdownRef.current.contains(event.target) &&
+        gradeInputRef.current &&
+        !gradeInputRef.current.contains(event.target)
+      ) {
         setShowGradeDropdown(false);
       }
     };
@@ -179,6 +197,7 @@ const Register = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Handle success/error
   useEffect(() => {
     if (error) toast.error(error?.data?.message);
     if (isSuccess) {
@@ -186,19 +205,18 @@ const Register = () => {
       navigate("/admin/users");
       refetch();
     }
-
     if (gradeError) {
       toast.error("Failed to load grades");
     }
   }, [error, isSuccess, navigate, refetch, t, gradeError]);
 
+  // General onChange handler (excluding dateOfBirth and age)
   const onChange = (e) => {
-    const { name, value, type } = e.target;
+    const { name, value, type, files } = e.target;
 
     if (name === "avatar") {
-      const file = e.target.files[0];
+      const file = files[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = () => {
         if (reader.readyState === 2) {
@@ -207,64 +225,55 @@ const Register = () => {
         }
       };
       reader.readAsDataURL(file);
-    }
-    else if (name === "status") {
-      setUser({ ...user, [name]: value === 'true' });
-    }
-    else if (name === "age") {
+    } else if (name === "status") {
+      setUser({ ...user, [name]: value === "true" });
+    } else if (name === "age") {
       handleAgeChange(e);
-    }
-    else {
+    } else {
       setUser({ ...user, [name]: value });
     }
   };
 
-  // ✅ Grade selection handler
+  // Grade select handler
   const handleGradeSelect = (gradeId, gradeName) => {
     setUser({ ...user, grade: gradeId });
     setShowGradeDropdown(false);
     setGradeSearch(gradeName);
   };
 
-  // ✅ Get current date for max date (at least 5 years old)
+  // Date constraints
   const getMaxDate = () => {
     const today = new Date();
     const maxDate = new Date(today.setFullYear(today.getFullYear() - 5));
     return maxDate.toISOString().split("T")[0];
   };
-
-  // ✅ Get min date (100 years ago)
   const getMinDate = () => {
     const today = new Date();
     const minDate = new Date(today.setFullYear(today.getFullYear() - 100));
     return minDate.toISOString().split("T")[0];
   };
 
+  // Submit handler
   const submitHandler = (e) => {
     e.preventDefault();
 
-    // Validate required fields
     if (!name.trim()) {
       toast.error("User name is required");
       return;
     }
-
     if (!email.trim()) {
       toast.error("Email is required");
       return;
     }
-
     if (!password.trim()) {
       toast.error("Password is required");
       return;
     }
-
     if (!role) {
       toast.error("Please select a role");
       return;
     }
 
-    // Data ko properly format karein
     const userData = {
       ...user,
       phoneNumber: phoneNumber ? `+${phoneNumber}` : "",
@@ -275,436 +284,227 @@ const Register = () => {
     register(userData);
   };
 
-  const inputClass = "w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all bg-white placeholder:text-gray-400";
-  const labelClass = "block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1";
-
   return (
     <AdminLayout>
       <MetaData title={t("New User")} />
 
-      <div className="max-w-6xl mx-auto py-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4 px-2">
-          <div>
-            <h1 className="text-xl font-bold text-gray-800">{t('New User')}</h1>
-            <p className="text-xs text-gray-500">{t('Create a new user account')}</p>
-          </div>
-          <button
-            onClick={() => navigate("/admin/users")}
-            className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm"
-          >
-            <i className="fa fa-arrow-left mr-1"></i> {t('back')}
-          </button>
-        </div>
+      <div className="max-w-6xl mx-auto py-4 px-4">
+        <AppPageHeader
+          title={t("New User")}
+          subtitle={t("Create a new user account")}
+          backUrl="/admin/users"
+        />
 
-        <form onSubmit={submitHandler} className="space-y-4">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-visible">
-
-            {/* Section 1: Credentials */}
-            <div className="p-5 border-b border-gray-100">
-              <div className="flex items-center gap-2 mb-4">
-                <i className="fa fa-lock text-blue-500 text-sm"></i>
-                <h3 className="font-bold text-sm text-gray-800">{t('Account Credentials')}</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <label className={labelClass}>{t('User Name')} *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={name}
-                    onChange={onChange}
-                    className={inputClass}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>{t('Email Address')} *</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={email}
-                    onChange={onChange}
-                    className={inputClass}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>{t('Password')} *</label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={password}
-                    onChange={onChange}
-                    className={inputClass}
-                    minLength="6"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>{t('Role')} *</label>
-                  <select
-                    name="role"
-                    value={role}
-                    onChange={onChange}
-                    className={inputClass}
-                    required
-                  >
-                    <option value="">Select Role</option>
-                    <option value="user">User</option>
-                    <option value="admin">Admin</option>
-                    <option value="teacher">Teacher</option>
-                    <option value="student">Student</option>
-                    <option value="finance">Finance</option>
-                    <option value="principle">Principle</option>
-                    <option value="counsellor">Counsellor</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Section 2: Personal Information */}
-            <div className="p-5 bg-gray-50/30">
-              <div className="flex items-center gap-2 mb-4">
-                <i className="fa fa-user text-green-500 text-sm"></i>
-                <h3 className="font-bold text-sm text-gray-800">{t('Personal Information')}</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <label className={labelClass}>{t('Date of Birth')} *</label>
-                  <input
-                    type="date"
-                    name="dateOfBirth"
-                    value={dateOfBirth}
-                    onChange={handleDateOfBirthChange}
-                    className={inputClass}
-                    max={getMaxDate()}
-                    min={getMinDate()}
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {t("Must be at least 5 years old")}
-                  </p>
-                </div>
-                <div>
-                  <label className={labelClass}>{t('Age')}</label>
-                  <input
-                    type="number"
-                    name="age"
-                    value={age}
-                    onChange={handleAgeChange}
-                    className={inputClass}
-                    min="5"
-                    max="100"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {t("Auto-calculated from date of birth")}
-                  </p>
-                </div>
-                <div>
-                  <label className={labelClass}>{t('Gender')}</label>
-                  <div className="flex items-center gap-4 mt-1">
-                    <label className="flex items-center gap-1.5">
-                      <input
-                        type="radio"
-                        name="gender"
-                        value="Male"
-                        checked={gender === "Male"}
-                        onChange={onChange}
-                        className="w-3.5 h-3.5 text-blue-600"
-                      />
-                      <span className="text-xs text-gray-700">Male</span>
-                    </label>
-                    <label className="flex items-center gap-1.5">
-                      <input
-                        type="radio"
-                        name="gender"
-                        value="Female"
-                        checked={gender === "Female"}
-                        onChange={onChange}
-                        className="w-3.5 h-3.5 text-blue-600"
-                      />
-                      <span className="text-xs text-gray-700">Female</span>
-                    </label>
-                  </div>
-                </div>
-                <div>
-                  <label className={labelClass}>{t('Nationality')}</label>
-                  <select
-                    name="nationality"
-                    value={nationality}
-                    onChange={onChange}
-                    className={inputClass}
-                  >
-                    <option value="">Select Country</option>
-                    {countries?.map((country) => (
-                      <option key={country.name} value={country.name}>
-                        {country.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div>
-                  <label className={labelClass}>{t('Passport No')}</label>
-                  <input
-                    type="text"
-                    name="passportNumber"
-                    value={passportNumber}
-                    onChange={onChange}
-                    maxLength={14}
-                    minLength={8}
-                    pattern="[a-zA-z0-9]{8,14}"
-                    className={inputClass}
-                    onInvalid={(e) =>
-                      e.target.setCustomValidity(
-                        "Passport number must be 8 to 14 characters"
-                      )
-                    }
-                    onInput={(e) => {
-                      e.target.setCustomValidity("");
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>{t('Primary Contact')}</label>
-                  <PhoneInput
-                    country={"tr"}
-                    value={phoneNumber}
-                    onChange={(phone) => setUser({ ...user, phoneNumber: phone })}
-                    isValid={(value, country) => {
-                      if (country.countryCode === "tr") {
-                        return value.length === 12;
-                      }
-                      return true;
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>{t('Secondary/Emergency Contact')}</label>
-                  <PhoneInput
-                    country={"tr"}
-                    value={secondaryPhoneNumber}
-                    onChange={(phone) => setUser({ ...user, secondaryPhoneNumber: phone })}
-                    inputProps={{
-                      name: "secondaryPhoneNumber"
-                    }}
-                    inputClass="!w-full !h-[38px] !text-sm !border-gray-200 !rounded-lg"
-                    containerClass="!w-full"
-                    dropdownClass="!z-50"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div>
-                  <label className={labelClass}>{t('Status')}</label>
-                  <div className="flex items-center gap-4 mt-1">
-                    <label className="flex items-center gap-1.5">
-                      <input
-                        type="radio"
-                        name="status"
-                        value={true}
-                        checked={status === true || status === "true"}
-                        onChange={onChange}
-                        className="w-3.5 h-3.5 text-green-600"
-                      />
-                      <span className="text-xs text-gray-700">Active</span>
-                    </label>
-                    <label className="flex items-center gap-1.5">
-                      <input
-                        type="radio"
-                        name="status"
-                        value={false}
-                        checked={status === false || status === "false"}
-                        onChange={onChange}
-                        className="w-3.5 h-3.5 text-red-600"
-                      />
-                      <span className="text-xs text-gray-700">Inactive</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Grade Search Dropdown */}
-                <div className="relative">
-                  <label className={labelClass}>{t('Grade')}</label>
-                  <div className="relative">
-                    <input
-                      ref={gradeInputRef}
-                      type="text"
-                      className={`${inputClass} pr-10 cursor-pointer`}
-                      placeholder="Click to search grade..."
-                      value={gradeSearch}
-                      onChange={(e) => {
-                        setGradeSearch(e.target.value);
-                        setShowGradeDropdown(true);
-                        setGradePage(1);
-                      }}
-                      onFocus={() => setShowGradeDropdown(true)}
-                      onClick={() => setShowGradeDropdown(true)}
-                    />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
-                      <i className={`fa ${gradeLoading ? 'fa-spinner fa-spin' : 'fa-chevron-down'} text-[10px]`}></i>
-                    </div>
-
-                    {showGradeDropdown && (
-                      <div
-                        ref={gradeDropdownRef}
-                        className="absolute left-0 right-0 z-[100] mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden flex flex-col"
-                        style={{ maxHeight: '300px' }}
-                      >
-                        <div className="overflow-y-auto flex-1 custom-scrollbar">
-                          {gradesList.length > 0 ? (
-                            <ul className="divide-y divide-gray-50">
-                              {gradesList.map((gradeItem, index) => {
-                                const gradeId = gradeItem._id || gradeItem.id;
-                                const gradeName = gradeItem.gradeName || gradeItem.name || `Grade ${gradeItem.level || gradeItem.grade}`;
-
-                                return (
-                                  <li
-                                    key={`${gradeId}-${index}`}
-                                    ref={gradesList.length === index + 1 ? lastGradeElementRef : null}
-                                    className={`px-4 py-3 hover:bg-blue-50 cursor-pointer transition-all flex items-center justify-between ${grade === gradeId ? 'bg-blue-50' : ''}`}
-                                    onClick={() => handleGradeSelect(gradeId, gradeName)}
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white text-[10px] font-bold shadow-sm">
-                                        {gradeName?.charAt(0).toUpperCase() || 'G'}
-                                      </div>
-                                      <div>
-                                        <p className="text-sm font-semibold text-gray-700 leading-tight">{gradeName}</p>
-                                        {gradeItem.description && (
-                                          <p className="text-[10px] text-gray-500 truncate max-w-[200px]">
-                                            {gradeItem.description}
-                                          </p>
-                                        )}
-                                      </div>
-                                    </div>
-                                    {grade === gradeId && <i className="fa fa-check-circle text-green-500 text-sm"></i>}
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          ) : (
-                            <div className="p-8 text-center">
-                              {gradeLoading ? (
-                                <div className="flex flex-col items-center gap-2">
-                                  <div className="w-5 h-5 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-                                  <p className="text-[11px] text-gray-500">Fetching grades...</p>
-                                </div>
-                              ) : (
-                                <p className="text-xs text-gray-400 font-medium italic">
-                                  {gradeSearch ? "No grades found" : "Type to search grades"}
-                                </p>
-                              )}
-                            </div>
-                          )}
-
-                          {gradeLoading && gradesList.length > 0 && (
-                            <div className="p-3 flex justify-center items-center gap-2 bg-gray-50/50 border-t border-gray-50">
-                              <div className="w-3 h-3 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-                              <span className="text-[10px] text-green-600 font-semibold uppercase tracking-tighter">Loading more...</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  {grade && (
-                    <div className="mt-2 flex items-center justify-between px-2 py-1 bg-green-50 border border-green-100 rounded-md">
-                      <span className="text-[11px] text-green-700 font-semibold">
-                        <i className="fa fa-check-circle mr-1"></i> {selectedGradeName}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUser({ ...user, grade: "" });
-                          setGradeSearch("");
-                          setShowGradeDropdown(false);
-                        }}
-                        className="text-[10px] text-red-500 hover:text-red-700 font-bold"
-                      >
-                        CLEAR
-                      </button>
-                    </div>
-                  )}
-                  {gradeError && (
-                    <p className="text-xs text-red-500 mt-1">
-                      Failed to load grades: {gradeError?.data?.message || "Please try again"}
-                    </p>
-                  )}
-                </div>
-
-                {/* Empty div for grid alignment */}
-                <div></div>
-              </div>
-
-              <div className="mt-4">
-                <label className={labelClass}>{t('Residential Address')}</label>
-                <textarea
-                  name="address"
-                  value={address}
-                  onChange={onChange}
-                  rows="2"
-                  className={`${inputClass} resize-none`}
-                ></textarea>
-              </div>
-            </div>
-
-            {/* Section 3: Avatar */}
-            <div className="p-5 border-t border-gray-100 flex items-center gap-4">
-              <div className="relative">
-                <div className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 overflow-hidden bg-white flex items-center justify-center">
-                  {avatarPreview ? (
-                    <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <i className="fa fa-camera text-gray-300 text-xl"></i>
-                  )}
-                </div>
-                <label htmlFor="avatar_field" className="absolute -bottom-1 -right-1 bg-blue-600 text-white w-6 h-6 rounded-md flex items-center justify-center cursor-pointer shadow-md">
-                  <i className="fa fa-plus text-[10px]"></i>
+        <form onSubmit={submitHandler} className="space-y-6">
+          {/* Section 1: Account Credentials */}
+          <AppCard title={t("Account Credentials")} icon="fa-lock">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <AppInput
+                label={t("Full Name")}
+                name="name"
+                value={name}
+                onChange={onChange}
+                required
+              />
+              <AppInput
+                label={t("Email Address")}
+                type="email"
+                name="email"
+                value={email}
+                onChange={onChange}
+                required
+              />
+              <AppInput
+                label={t("Password")}
+                type="password"
+                name="password"
+                value={password}
+                onChange={onChange}
+                required
+                minLength="6"
+              />
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-500 uppercase mb-1">
+                  {t("Role")} *
                 </label>
-                <input
-                  type="file"
-                  id="avatar_field"
-                  accept="image/*"
+                <select
+                  name="role"
+                  value={role}
                   onChange={onChange}
-                  name="avatar"
-                  className="hidden"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-white"
+                  required
+                >
+                  <option value="">Select Role</option>
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                  <option value="teacher">Teacher</option>
+                  <option value="student">Student</option>
+                  <option value="finance">Finance</option>
+                  <option value="principle">Principle</option>
+                  <option value="counsellor">Counsellor</option>
+                </select>
+              </div>
+            </div>
+          </AppCard>
+
+          {/* Section 2: Personal Information */}
+          <AppCard
+            title={t("Personal Information")}
+            icon="fa-user"
+            footer={
+              <div className="flex justify-end gap-2">
+                <AppCancelButton backUrl="/admin/users" />
+                <AppSubmitButton
+                  label="Create User"
+                  isLoading={isLoading}
+                  icon="fa-user-plus"
                 />
               </div>
-              <div>
-                <h4 className="text-xs font-bold text-gray-800">{t('Profile Picture')}</h4>
-                <p className="text-[10px] text-gray-500">Max size 2MB (JPG/PNG)</p>
+            }
+          >
+            {/* Row 1: Gender, DOB, Age, Nationality */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <GenderRadio value={gender} onChange={onChange} />
+
+              <AppInput
+                label={t("Date of Birth")}
+                type="date"
+                name="dateOfBirth"
+                value={dateOfBirth}
+                onChange={handleDateOfBirthChange}
+                required
+                max={getMaxDate()}
+                min={getMinDate()}
+                helperText="Must be at least 5 years old"
+              />
+
+              <AppInput
+                label={t("Age")}
+                type="number"
+                name="age"
+                value={age}
+                onChange={onChange}
+                min="5"
+                max="100"
+                helperText="Auto-calculated"
+              />
+
+              <NationalitySelect value={nationality} onChange={onChange} />
+            </div>
+
+            {/* Row 2: Grade, Passport, Primary Contact, Emergency Contact */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+              <SearchableSelect
+                label={t("Grade")}
+                placeholder="Search grade..."
+                searchValue={gradeSearch}
+                onSearchChange={(e) => {
+                  setGradeSearch(e.target.value);
+                  setGradePage(1);
+                }}
+                showDropdown={showGradeDropdown}
+                setShowDropdown={setShowGradeDropdown}
+                loading={gradeLoading}
+                items={gradesList}
+                onSelect={handleGradeSelect}
+                selectedId={grade}
+                selectedName={selectedGradeName}
+                onClear={() => {
+                  setUser({ ...user, grade: "" });
+                  setGradeSearch("");
+                }}
+                lastElementRef={lastGradeElementRef}
+                inputRef={gradeInputRef}
+                dropdownRef={gradeDropdownRef}
+              />
+
+              <AppInput
+                label={t("Passport No")}
+                name="passportNumber"
+                value={passportNumber}
+                onChange={onChange}
+                placeholder="Min 8 characters"
+                pattern="[a-zA-z0-9]{8,14}"
+                minLength="8"
+                maxLength="14"
+              />
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">
+                  {t("Primary Contact")}
+                </label>
+                <PhoneInput
+                  country={"tr"}
+                  value={phoneNumber}
+                  onChange={(val) => setUser({ ...user, phoneNumber: val })}
+                  inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg"
+                  containerClass="!w-full"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">
+                  {t("Emergency Contact")}
+                </label>
+                <PhoneInput
+                  country={"tr"}
+                  value={secondaryPhoneNumber}
+                  onChange={(val) => setUser({ ...user, secondaryPhoneNumber: val })}
+                  inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg"
+                  containerClass="!w-full"
+                />
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="px-5 py-3 bg-gray-50 border-t border-gray-200 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => navigate("/admin/users")}
-                className="px-4 py-2 text-xs font-medium text-gray-600 hover:underline"
-              >
-                {t('cancel')}
-              </button>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className={`px-6 py-2 rounded-lg text-xs font-bold text-white transition-all ${isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700 shadow-md"}`}
-              >
-                {isLoading ? (
-                  <>
-                    <i className="fa fa-spinner fa-spin mr-1"></i> {t('creating')}
-                  </>
-                ) : (
-                  t('Create User')
-                )}
-              </button>
+            {/* Row 3: Avatar, Address, Status */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+              <AvatarUpload
+                preview={avatarPreview}
+                onChange={onChange}
+                title={t("Profile Picture")}
+                subtitle="Max size 2MB (JPG/PNG)"
+              />
+
+              <AppInput
+                label={t("Residential Address")}
+                name="address"
+                value={address}
+                onChange={onChange}
+                type="textarea"
+                rows={2}
+              />
+
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-500 uppercase mb-1">
+                  {t("Status")}
+                </label>
+                <div className="flex items-center gap-4 mt-1">
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="status"
+                      value={true}
+                      checked={status === true || status === "true"}
+                      onChange={onChange}
+                      className="w-3.5 h-3.5 text-green-600"
+                    />
+                    <span className="text-xs text-gray-700">Active</span>
+                  </label>
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="status"
+                      value={false}
+                      checked={status === false || status === "false"}
+                      onChange={onChange}
+                      className="w-3.5 h-3.5 text-red-600"
+                    />
+                    <span className="text-xs text-gray-700">Inactive</span>
+                  </label>
+                </div>
+              </div>
             </div>
-          </div>
+          </AppCard>
         </form>
       </div>
     </AdminLayout>

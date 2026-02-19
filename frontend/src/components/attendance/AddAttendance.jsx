@@ -6,7 +6,7 @@ import Loader from '../layout/Loader';
 import { useGetAttendanceMutation, useUpdateAttendanceMutation } from '../../redux/api/attendanceApi.js';
 
 import { useTranslation } from 'react-i18next';
-import AdminLayout from '../GUI/AdminLayout.jsx';
+import AdminLayout from '../layout/AdminLayout.jsx';
 import { useGetCoursesByRoleQuery } from '../../redux/api/courseApi.js';
 
 const AddAttendance = () => {

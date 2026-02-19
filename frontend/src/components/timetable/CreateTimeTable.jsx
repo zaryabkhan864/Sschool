@@ -16,7 +16,7 @@ import {
 } from "../../redux/api/timeTableSlotApi";
 
 // ===== UI COMPONENTS =====
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 import SearchableDropdown from "../layout/SearchableDropdown";
 
 // ========== SLOT CELL COMPONENT ==========

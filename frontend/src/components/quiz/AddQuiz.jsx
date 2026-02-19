@@ -7,7 +7,7 @@ import Loader from '../layout/Loader';
 
 import { useGetStudentsQuizDetailsByQuizDataMutation, useUpdateQuizMarksMutation } from '../../redux/api/quizApi';
 import { useTranslation } from 'react-i18next';
-import AdminLayout from '../GUI/AdminLayout';
+import AdminLayout from '../layout/AdminLayout';
 import { useGetCoursesByRoleQuery } from '../../redux/api/courseApi';
 
 const AddQuiz = () => {

@@ -11,7 +11,7 @@ import {
   useGetTeacherLeaveDetailsQuery,
   useUpdateTeacherLeaveMutation,
 } from "../../redux/api/teacherLeaveApi";
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 
 const UpdateTeacherLeave = () => {
   const params = useParams();

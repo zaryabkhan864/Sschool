@@ -10,7 +10,7 @@ import {
 import Loader from '../../layout/Loader';
 import MetaData from '../../layout/MetaData';
 import PrintLayout from '../../GUI/PrintLayout';
-import AdminLayout from '../../GUI/AdminLayout';
+import AdminLayout from '../../layout/AdminLayout';
 import { useGetCoursesByRoleQuery } from '../../../redux/api/courseApi';
 
 

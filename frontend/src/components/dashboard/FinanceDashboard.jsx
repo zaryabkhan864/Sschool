@@ -16,7 +16,7 @@ import {
   AreaChart,
   Area
 } from "recharts";
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 import { useGetRevenueVsExpensesQuery } from "../../redux/api/revenueApi";
 import { useGetFeesByCurrencyQuery } from "../../redux/api/feesApi";

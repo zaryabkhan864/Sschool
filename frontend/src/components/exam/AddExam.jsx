@@ -7,7 +7,7 @@ import Loader from '../layout/Loader';
 
 import { useGetStudentsExamDetailsByExamDataMutation, useUpdateExamMarksMutation } from '../../redux/api/examApi';
 import { useTranslation } from 'react-i18next';
-import AdminLayout from '../GUI/AdminLayout';
+import AdminLayout from '../layout/AdminLayout';
 import { useGetCoursesByRoleQuery } from '../../redux/api/courseApi';
 
 const AddExam = () => {

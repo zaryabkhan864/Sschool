@@ -9,7 +9,7 @@ import {
 
 import { useGetCampusQuery } from "../../redux/api/campusApi";
 
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 import { useTranslation } from "react-i18next";
 

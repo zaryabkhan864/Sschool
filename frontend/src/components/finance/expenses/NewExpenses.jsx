@@ -7,7 +7,7 @@ import { useGetCampusQuery } from "../../../redux/api/campusApi";
 
 import MetaData from "../../layout/MetaData";
 import { useTranslation } from "react-i18next";
-import AdminLayout from "../../GUI/AdminLayout";
+import AdminLayout from "../../layout/AdminLayout";
 
 const NewExpenses = () => {
     const { t } = useTranslation();

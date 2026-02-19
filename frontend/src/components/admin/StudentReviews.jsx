@@ -4,7 +4,7 @@ import { toast } from "react-hot-toast";
 import { MDBDataTable } from "mdbreact";
 import MetaData from "../layout/MetaData";
 
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 import {
   useDeleteReviewMutation,
   useLazyGetStudentReviewsQuery,

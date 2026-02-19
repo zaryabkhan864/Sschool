@@ -5,12 +5,8 @@ import { useTranslation } from "react-i18next";
 import { useCreateGradeMutation } from "../../redux/api/gradesApi";
 import { useGetAcademicLevelsQuery } from "../../redux/api/academicLevelApi";
 
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
-
-// Import reusable UI components
-
-
 import AppPageHeader from "../layout/AppPageHeader";
 import AppCard from "../GUI/AppCard";
 import AppInput from "../GUI/AppInput";
@@ -18,14 +14,15 @@ import AppSelect from "../GUI/AppSelect";
 import AppCheckbox from "../GUI/AppCheckbox";
 import AppTextarea from "../GUI/AppTextarea";
 import AppInfoBox from "../layout/AppInfoBox";
+// New Buttons
+import AppSubmitButton from "../GUI/AppSubmitButton";
+import AppCancelButton from "../GUI/AppCancelButton";
 
 const NewGrade = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  // Fetch Academic Levels for Dropdown
   const { data: levelsData, isLoading: levelsLoading } = useGetAcademicLevelsQuery();
-
   const [createGrade, { isLoading: isCreating, error, isSuccess }] = useCreateGradeMutation();
 
   const [grade, setGrade] = useState({
@@ -57,22 +54,12 @@ const NewGrade = () => {
 
   const submitHandler = (e) => {
     e.preventDefault();
-
     if (!gradeName.trim() || !description.trim() || !academicLevel) {
-      return toast.error("Please fill all required fields including Academic Level");
+      return toast.error("Please fill all required fields");
     }
-
-    const payload = {
-      gradeName: gradeName.trim(),
-      description: description.trim(),
-      academicLevel,
-      status,
-    };
-
-    createGrade(payload);
+    createGrade({ gradeName: gradeName.trim(), description: description.trim(), academicLevel, status });
   };
 
-  // Prepare options for select dropdown
   const levelOptions = levelsData?.levels?.map((level) => ({
     value: level._id,
     label: level.name,
@@ -91,39 +78,21 @@ const NewGrade = () => {
 
         <form onSubmit={submitHandler} className="space-y-4">
           <AppCard
-            header={
-              <div className="flex items-center gap-2 mb-4">
-                <i className="fa fa-graduation-cap text-blue-500 text-sm"></i>
-                <h3 className="font-bold text-sm text-gray-800">
-                  {t("Grade Information")}
-                </h3>
-              </div>
-            }
+            title={t("Grade Information")}
+            icon="fa-graduation-cap"
             footer={
               <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => navigate("/admin/grades")}
-                  className="px-4 py-2 text-xs font-medium text-gray-600 hover:underline"
-                >
-                  {t("cancel")}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCreating}
-                  className={`px-6 py-2 rounded-lg text-xs font-bold text-white transition-all ${
-                    isCreating
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-700 shadow-md"
-                  }`}
-                >
-                  {isCreating ? t("Creating...") : t("Create Grade")}
-                </button>
+                <AppCancelButton backUrl="/admin/grades" />
+                <AppSubmitButton 
+                  label="Create Grade" 
+                  loadingLabel="Creating..." 
+                  isLoading={isCreating} 
+                  icon="fa-plus-circle"
+                />
               </div>
             }
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Grade Name */}
               <AppInput
                 name="gradeName"
                 value={gradeName}
@@ -133,7 +102,6 @@ const NewGrade = () => {
                 required
               />
 
-              {/* Academic Level Dropdown */}
               <AppSelect
                 name="academicLevel"
                 value={academicLevel}
@@ -145,7 +113,6 @@ const NewGrade = () => {
                 required
               />
 
-              {/* Status Checkbox */}
               <AppCheckbox
                 name="status"
                 checked={status}
@@ -154,7 +121,6 @@ const NewGrade = () => {
                 className="md:mt-6"
               />
 
-              {/* Description */}
               <div className="md:col-span-2">
                 <AppTextarea
                   name="description"

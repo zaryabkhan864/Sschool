@@ -10,7 +10,7 @@ import {
 import { useGetAcademicLevelsQuery } from "../../redux/api/academicLevelApi";
 import { useGetGradesQuery } from "../../redux/api/gradesApi";
 
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import ConfirmationModal from "../GUI/ConfirmationModal";

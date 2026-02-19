@@ -1,21 +1,28 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import {
   useDeleteUserMutation,
-  useGetAdminUsersQuery, // Assuming your API supports params like page, limit, keyword
+  useGetAdminUsersQuery,
 } from "../../redux/api/userApi";
 
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import ConfirmationModal from "../GUI/ConfirmationModal";
 import { DataTableContainer } from "../GUI/DataTableContainer";
 import AddButton from "../layout/AddButton";
 import RefreshButton from "../layout/RefreshButton";
+import ActionButtons from "../GUI/ActionButtons";
+import FilterDropdown from "../GUI/FilterDropdown";
+import EmptyState from "../GUI/EmptyState";
+import TruncatedCell from "../GUI/TruncatedCell";
+import GenderBadge from "../GUI/GenderBadge";
+import StatusBadge from "../GUI/StatusBadge";
+import RoleBadge from "../GUI/RoleBadge";
 
 const ListUsers = () => {
   const { t } = useTranslation();
@@ -27,11 +34,10 @@ const ListUsers = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [showFilters, setShowFilters] = useState(false);
   const [genderFilter, setGenderFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  // ✅ Debounced search term
+  // Debounced search term
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchTerm(search);
@@ -40,13 +46,19 @@ const ListUsers = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // ✅ API Query with Pagination and Filters
-  const { data, isLoading, error, refetch, isFetching } = useGetAdminUsersQuery({
+  // API Query with Pagination and Filters
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+    isFetching
+  } = useGetAdminUsersQuery({
     page: currentPage,
     limit,
     keyword: searchTerm,
     gender: genderFilter || undefined,
-    status: statusFilter !== "" ? statusFilter : undefined,
+    status: statusFilter || undefined, // now "active" or "deactive"
   });
 
   const [
@@ -60,19 +72,16 @@ const ListUsers = () => {
   useEffect(() => {
     if (error) toast.error(error?.data?.message);
     if (deleteError) toast.error(deleteError?.data?.message);
-
     if (location.state?.shouldRefetch) {
       refetch();
       window.history.replaceState({}, document.title);
     }
-
     if (isSuccess) {
       toast.success(t("User Deleted"));
       refetch();
       setShowModal(false);
       setSelectedUserId(null);
     }
-
     if (user?.role === "admin") setUserRole("admin");
   }, [error, deleteError, isSuccess, user, t, refetch, location.state]);
 
@@ -90,7 +99,7 @@ const ListUsers = () => {
     toast.success(t("Refreshed"));
   };
 
-  // ✅ Columns Definition
+  // Columns using shared components
   const columns = [
     {
       header: t("Name"),
@@ -98,10 +107,14 @@ const ListUsers = () => {
       width: "25%",
       render: (value, row) => (
         <div className="truncate">
-          <p className="font-medium text-gray-800 truncate" title={value}>
+          <TruncatedCell lines={1} className="font-medium text-gray-800">
             {value}
-          </p>
-          <p className="text-xs text-gray-500 truncate">{row?.email}</p>
+          </TruncatedCell>
+          {row?.email && (
+            <TruncatedCell lines={1} className="text-xs text-gray-500">
+              {row.email}
+            </TruncatedCell>
+          )}
         </div>
       ),
     },
@@ -109,53 +122,43 @@ const ListUsers = () => {
       header: t("Role"),
       accessor: "role",
       width: "15%",
-      render: (value) => (
-        <span className="capitalize px-2 py-1 bg-gray-100 rounded text-xs border border-gray-200">
-          {value}
-        </span>
-      ),
+      render: (value) => <RoleBadge role={value} />,
     },
     {
       header: t("Gender"),
       accessor: "gender",
       width: "12%",
-      render: (value) => {
-        const genderLower = value?.toLowerCase() || "";
-        const colorClass = 
-          genderLower === 'male' ? "bg-blue-100 text-blue-800" : 
-          genderLower === 'female' ? "bg-pink-100 text-pink-800" : "bg-gray-100 text-gray-800";
-        return (
-          <span className={`text-xs px-2.5 py-1 rounded-full border ${colorClass}`}>
-            {value || t("N/A")}
-          </span>
-        );
-      },
+      render: (value) => <GenderBadge gender={value} />,
     },
     {
       header: t("Status"),
       accessor: "status",
       width: "15%",
-      render: (value) => {
-        const isActive = value === true || value === "true" || value === "active";
-        return (
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
-            isActive ? "bg-green-100 text-green-800 border-green-200" : "bg-red-100 text-red-800 border-red-200"
-          }`}>
-            <span className={`w-2 h-2 rounded-full mr-1.5 ${isActive ? "bg-green-500" : "bg-red-500"}`}></span>
-            {isActive ? t("Active") : t("Inactive")}
-          </span>
-        );
-      },
+      render: (value) => <StatusBadge active={value} dot />,
     },
   ];
 
-  // ✅ Stats Configuration
+  // Stats using pagination counts (like teacher list)
+  const counts = data?.pagination?.counts || { total: 0, active: 0, deactive: 0 };
+
   const stats = [
     {
       label: t("Total Users"),
-      value: data?.usersCount || data?.users?.length || 0,
+      value: counts.total,
       icon: "users",
       color: "blue"
+    },
+    {
+      label: t("Active"),
+      value: counts.active,
+      icon: "check-circle",
+      color: "green"
+    },
+    {
+      label: t("Deactive"),
+      value: counts.deactive,
+      icon: "times-circle",
+      color: "red"
     },
     {
       label: t("Total Pages"),
@@ -165,61 +168,108 @@ const ListUsers = () => {
     }
   ];
 
-  const filters = (
-    <div className="relative">
-      <button
-        onClick={() => setShowFilters(!showFilters)}
-        className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 flex items-center gap-2"
-      >
-        <i className="fa fa-sliders-h"></i>
-        <span>{t("Filters")}</span>
-      </button>
+  const addButton = userRole === "admin" ? (
+    <AddButton to="/admin/user/new" text={t("Add New User")} icon="plus" />
+  ) : null;
 
-      {showFilters && (
-        <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-20 p-4">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">{t("Status")}</label>
-              <select
-                className="w-full p-2 border rounded text-sm"
-                value={statusFilter}
-                onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              >
-                <option value="">{t("All Status")}</option>
-                <option value="true">{t("Active")}</option>
-                <option value="false">{t("Inactive")}</option>
-              </select>
-            </div>
-            <button
-              onClick={() => { setStatusFilter(""); setGenderFilter(""); setSearch(""); }}
-              className="w-full py-2 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
-            >
-              {t("Reset All")}
-            </button>
-          </div>
-        </div>
+  const refreshButton = (
+    <RefreshButton
+      onClick={handleRefresh}
+      text={t("Refresh")}
+      icon="sync-alt"
+      disabled={isFetching}
+      className="ml-2"
+    />
+  );
+
+  // Filters using FilterDropdown (status values now "active"/"deactive")
+  const filters = (
+    <FilterDropdown
+      onReset={() => {
+        setSearch("");
+        setSearchTerm("");
+        setGenderFilter("");
+        setStatusFilter("");
+        setCurrentPage(1);
+        setLimit(10);
+      }}
+    >
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {t("Gender")}
+        </label>
+        <select
+          value={genderFilter}
+          onChange={(e) => {
+            setGenderFilter(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="w-full p-2 border border-gray-300 rounded-md"
+        >
+          <option value="">{t("All Genders")}</option>
+          <option value="male">{t("Male")}</option>
+          <option value="female">{t("Female")}</option>
+          <option value="other">{t("Other")}</option>
+        </select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {t("Status")}
+        </label>
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="w-full p-2 border border-gray-300 rounded-md"
+        >
+          <option value="">{t("All Status")}</option>
+          <option value="active">{t("Active")}</option>
+          <option value="deactive">{t("Deactive")}</option>
+        </select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {t("Items per page")}
+        </label>
+        <select
+          value={limit}
+          onChange={(e) => {
+            setLimit(Number(e.target.value));
+            setCurrentPage(1);
+          }}
+          className="w-full p-2 border border-gray-300 rounded-md"
+        >
+          {[5, 8, 10, 15, 20, 50].map(n => (
+            <option key={n} value={n}>{n} {t("items")}</option>
+          ))}
+        </select>
+      </div>
+    </FilterDropdown>
+  );
+
+  const emptyState = (
+    <EmptyState
+      icon="users"
+      title={searchTerm ? t("No users found matching your search") : t("No users found")}
+      message={searchTerm ? t("Try adjusting your search or filter to find what you're looking for") : t("Add your first user to get started")}
+    >
+      {!searchTerm && userRole === "admin" && (
+        <AddButton to="/admin/user/new" text={t("Add New User")} icon="plus" />
       )}
-    </div>
+    </EmptyState>
   );
 
   const renderRowActions = (row) => (
-    <div className="flex justify-end gap-2">
-      <Link
-        to={`/admin/users/${row?._id}`}
-        className="p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
-        title={t("Edit")}
-      >
-        <i className="fa fa-pencil-alt text-sm"></i>
-      </Link>
-      <button
-        className="p-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100"
-        onClick={() => handleDeleteClick(row?._id)}
-        disabled={isDeleteLoading}
-        title={t("Delete")}
-      >
-        <i className="fa fa-trash-alt text-sm"></i>
-      </button>
-    </div>
+    <ActionButtons
+      id={row?._id}
+      userRole={userRole}
+      onDelete={handleDeleteClick}
+      isDeleteLoading={isDeleteLoading}
+      editLink={`/admin/users/${row?._id}`}
+      // viewLink={`/admin/user/${row?._id}/details`} // uncomment if details page exists
+    />
   );
 
   if (isLoading) return <Loader />;
@@ -242,13 +292,27 @@ const ListUsers = () => {
         setLimit={setLimit}
         search={search}
         setSearch={setSearch}
-        searchPlaceholder={t("Search users...")}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        searchPlaceholder={t("Search users by name or email...")}
         onRefresh={handleRefresh}
-        refreshButton={<RefreshButton onClick={handleRefresh} disabled={isFetching} />}
-        addButton={userRole === "admin" && <AddButton to="/admin/user/new" text="Add User" />}
+        refreshButton={refreshButton}
+        addButton={addButton}
+        emptyState={emptyState}
         filters={filters}
         stats={stats}
+        userRole={userRole}
         renderRowActions={renderRowActions}
+        renderHeaderInfo={() => (
+          <p className="text-sm text-gray-500 mt-1">
+            <i className="fa fa-info-circle mr-2"></i>
+            {t("Last updated")}: {new Date().toLocaleTimeString()}
+          </p>
+        )}
+        className="user-table-container"
+        showSearch={true}
+        showStats={true}
+        showPagination={true}
       />
 
       <ConfirmationModal
@@ -257,6 +321,7 @@ const ListUsers = () => {
         confirmDelete={confirmDelete}
         isDeleteLoading={isDeleteLoading}
         message={t("Are you sure you want to delete this user?")}
+        title={t("Confirm Delete")}
       />
     </AdminLayout>
   );

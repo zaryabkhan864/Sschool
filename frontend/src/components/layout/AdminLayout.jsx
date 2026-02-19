@@ -1,6 +1,6 @@
 import React from "react";
 import { useSelector } from "react-redux";
-import SideMenu from "../layout/SideMenu";
+import SideMenu from "./SideMenu";
 
 const AdminLayout = ({ children }) => {
   const { user } = useSelector((state) => state.auth);

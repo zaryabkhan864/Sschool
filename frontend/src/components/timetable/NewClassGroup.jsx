@@ -14,7 +14,7 @@ import { useGetCoursesQuery } from "../../redux/api/courseApi";
 
 import MetaData from "../layout/MetaData";
 import Loader from "../layout/Loader";
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 import BackButton from "../../components/layout/BackButton";
 
 // Import reusable components

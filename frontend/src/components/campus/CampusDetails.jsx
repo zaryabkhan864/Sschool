@@ -4,7 +4,7 @@ import { toast } from "react-hot-toast";
 import { useParams } from "react-router-dom";
 import { useGetCampusDetailsQuery } from "../../redux/api/campusApi";
 
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 

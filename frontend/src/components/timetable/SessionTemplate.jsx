@@ -15,7 +15,7 @@ import Loader from "../layout/Loader";
 import ConfirmationModal from "../GUI/ConfirmationModal";
 import { DataTableContainer } from "../GUI/DataTableContainer";
 import RefreshButton from "../layout/RefreshButton";
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 import WarningBanner from "../../components/GUI/WarningBanner";
 import InfoBanner from "../../components/GUI/InfoBanner";
 

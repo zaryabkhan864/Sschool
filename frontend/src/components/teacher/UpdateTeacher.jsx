@@ -13,7 +13,7 @@ import {
 } from "../../redux/api/userApi";
 import MetaData from "../layout/MetaData";
 import Loader from "../layout/Loader";
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 
 const UpdateTeacher = () => {
   const { t } = useTranslation();

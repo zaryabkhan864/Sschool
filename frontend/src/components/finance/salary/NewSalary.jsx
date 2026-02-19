@@ -6,7 +6,7 @@ import { useCreateSalaryMutation } from "../../../redux/api/salaryApi";
 import MetaData from "../../layout/MetaData";
 import { useGetUserByTypeQuery } from "../../../redux/api/userApi";
 import { useTranslation } from "react-i18next";
-import AdminLayout from "../../GUI/AdminLayout";
+import AdminLayout from "../../layout/AdminLayout";
 
 const NewSalary = () => {
     const { t } = useTranslation();

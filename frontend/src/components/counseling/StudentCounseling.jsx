@@ -5,7 +5,7 @@ import {
   useCreateCounselingMutation,
   useGetCounselingsQuery,
 } from "../../redux/api/counselingApi";
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import { useTranslation } from "react-i18next";

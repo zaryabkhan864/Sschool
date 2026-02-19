@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { useParams } from "react-router-dom";
 import { useGetCounselingDetailsQuery } from "../../redux/api/counselingApi";
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import PrintLayout from "../GUI/PrintLayout";

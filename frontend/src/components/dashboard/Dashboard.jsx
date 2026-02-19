@@ -1,5 +1,5 @@
 import React from "react";
-import AdminLayout from "../GUI/AdminLayout";
+import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 import Slider from "../layout/Slider";
 import { useGetUserByTypeQuery } from "../../redux/api/userApi";
