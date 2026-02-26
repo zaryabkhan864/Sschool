@@ -8,14 +8,14 @@ const NationalitySelect = ({ value, onChange, name = "nationality" }) => {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[11px] font-semibold text-gray-500 uppercase">
+      <label className="text-xs-custom font-semibold text-gray-700 uppercase tracking-wider">
         {t("Nationality")}
       </label>
       <select
         name={name}
         value={value}
         onChange={onChange}
-        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full px-4 py-2.5 text-sm-custom border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all bg-white placeholder:text-gray-400"
       >
         <option value="">{t("Select Country")}</option>
         {countries?.map(({ name }) => (

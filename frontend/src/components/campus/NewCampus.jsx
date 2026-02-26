@@ -10,17 +10,17 @@ import MetaData from "../layout/MetaData";
 import AppPageHeader from "../layout/AppPageHeader";
 import AppCard from "../GUI/AppCard";
 import AppInput from "../GUI/AppInput";
-import AppTextarea from "../GUI/AppTextarea";
 import AppInfoBox from "../layout/AppInfoBox";
-import AppSubmitButton from "../GUI/AppSubmitButton";
-import AppCancelButton from "../GUI/AppCancelButton";
+import AppButton from "../GUI/AppButton";
 
 import { useCreateCampusMutation, useGetCampusQuery } from "../../redux/api/campusApi";
 
 const NewCampus = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+
   const { refetch } = useGetCampusQuery();
+  const [createCampus, { isLoading, error, isSuccess }] = useCreateCampusMutation();
 
   const [campus, setCampus] = useState({
     name: "",
@@ -29,8 +29,6 @@ const NewCampus = () => {
   });
 
   const { name, location, contactNumber } = campus;
-
-  const [createCampus, { isLoading, error, isSuccess }] = useCreateCampusMutation();
 
   useEffect(() => {
     if (error) {
@@ -54,7 +52,7 @@ const NewCampus = () => {
 
   const submitHandler = (e) => {
     e.preventDefault();
-    if (!name.trim()) {
+    if (!name.trim() || !contactNumber) {
       return toast.error(t("Please fill all required fields"));
     }
     createCampus({
@@ -68,21 +66,22 @@ const NewCampus = () => {
     <AdminLayout>
       <MetaData title={t("Create New Campus")} />
 
-      <div className="max-w-6xl mx-auto py-4">
+      <div className="max-w-6xl mx-auto">
         <AppPageHeader
           title={t("New Campus")}
           subtitle={t("Create a new campus")}
           backUrl="/admin/campuses"
         />
 
-        <form onSubmit={submitHandler} className="space-y-4">
+        <form onSubmit={submitHandler} className="space-y-6">
           <AppCard
             title={t("Campus Information")}
             icon="fa-building"
             footer={
-              <div className="flex justify-end gap-2">
-                <AppCancelButton backUrl="/admin/campuses" />
-                <AppSubmitButton
+              <div className="flex justify-end gap-3">
+                <AppButton backUrl="/admin/campuses" />
+                <AppButton
+                  type="submit"
                   label={t("Create Campus")}
                   loadingLabel={t("Creating...")}
                   isLoading={isLoading}
@@ -91,7 +90,7 @@ const NewCampus = () => {
               </div>
             }
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <AppInput
                 name="name"
                 value={name}
@@ -120,7 +119,8 @@ const NewCampus = () => {
               </div>
 
               <div className="md:col-span-2">
-                <AppTextarea
+                <AppInput
+                  type="textarea"
                   name="location"
                   value={location}
                   onChange={onChange}

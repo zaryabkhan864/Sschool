@@ -5,7 +5,8 @@ import {
   getGrades, 
   getGradeDetails, 
   updateGrade, 
-  deleteGrade 
+  deleteGrade, 
+  getGradesByAcademicLevel
 } from "../controllers/gradeControllers.js";
 import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 
@@ -27,5 +28,7 @@ router.route("/admin/grades")
 router.route("/admin/grades/:id")
   .put(isAuthenticatedUser, authorizeRoles("admin"), updateGrade)
   .delete(isAuthenticatedUser, authorizeRoles("admin"), deleteGrade);
+
+  router.get("/grades/by-academic-level/:academicLevelId", getGradesByAcademicLevel);
 
 export default router;

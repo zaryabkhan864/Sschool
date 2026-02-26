@@ -1,33 +1,30 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import {
   useDeleteUserMutation,
   useGetUserByTypeQuery,
-} from "../../redux/api/userApi";
+} from "../../redux/api/authApi";
 
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import ConfirmationModal from "../GUI/ConfirmationModal";
 import { DataTableContainer } from "../GUI/DataTableContainer";
-import AddButton from "../layout/AddButton";
-import RefreshButton from "../layout/RefreshButton";
+import AppButton from "../GUI/AppButton";
 import ActionButtons from "../GUI/ActionButtons";
 import FilterDropdown from "../GUI/FilterDropdown";
 import EmptyState from "../GUI/EmptyState";
 import TruncatedCell from "../GUI/TruncatedCell";
-import GenderBadge from "../GUI/GenderBadge";
-import CountryBadge from "../GUI/CountryBadge";
-import StatusBadge from "../GUI/StatusBadge";
-import GradeBadge from "../GUI/GradeBadge";
+import AppBadge from "../GUI/AppBadge";
 
 const ListStudents = () => {
   const { t } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
 
   const [userRole, setUserRole] = useState("");
@@ -39,6 +36,14 @@ const ListStudents = () => {
   const [statusFilter, setStatusFilter] = useState("");
   const [campusFilter, setCampusFilter] = useState(""); // kept for API, no UI
 
+  // Toast from navigation (e.g., after creating a student)
+  useEffect(() => {
+    if (location.state?.showSuccessToast) {
+      toast.success(t("Student created successfully!"));
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, t]);
+
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -48,13 +53,13 @@ const ListStudents = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // API Query
+  // API query
   const {
     data,
     isLoading,
     error,
     refetch,
-    isFetching
+    isFetching,
   } = useGetUserByTypeQuery({
     type: "student",
     page: currentPage,
@@ -63,31 +68,37 @@ const ListStudents = () => {
     gender: genderFilter || undefined,
     status: statusFilter || undefined,
     campus: campusFilter || undefined,
+  }, {
+    refetchOnMountOrArgChange: true,
   });
 
   const [
     deleteUser,
-    { isLoading: isDeleteLoading, error: deleteError, isSuccess },
+    { isLoading: isDeleteLoading, error: deleteError, isSuccess: deleteSuccess },
   ] = useDeleteUserMutation();
 
   const [showModal, setShowModal] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
 
+  // Global error / success handling
   useEffect(() => {
-    if (error) toast.error(error?.data?.message);
-    if (deleteError) toast.error(deleteError?.data?.message);
-    if (location.state?.shouldRefetch) {
-      refetch();
-      window.history.replaceState({}, document.title);
-    }
-    if (isSuccess) {
-      toast.success(t("studentDeleted"));
-      refetch();
+    if (error) toast.error(error?.data?.message || t("Something went wrong"));
+    if (deleteError) toast.error(deleteError?.data?.message || t("Failed to delete student"));
+    if (deleteSuccess) {
+      toast.success(t("Student deleted successfully"));
       setShowModal(false);
       setSelectedStudentId(null);
     }
     if (user?.role === "admin") setUserRole("admin");
-  }, [error, deleteError, isSuccess, user, t, refetch, location.state]);
+  }, [error, deleteError, deleteSuccess, user, t]);
+
+  // Refetch when requested from navigation state (e.g., after edit)
+  useEffect(() => {
+    if (location.state?.shouldRefetch) {
+      refetch();
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, refetch]);
 
   const handleDeleteClick = (id) => {
     setSelectedStudentId(id);
@@ -103,80 +114,85 @@ const ListStudents = () => {
     toast.success(t("Refreshed"));
   };
 
-  // Columns using shared components
+  const handleEditStudent = (id) => {
+    navigate(`/admin/students/${id}`);
+  };
+
+  const handleViewDetails = (id) => {
+    navigate(`/admin/student/${id}/details`);
+  };
+
+  // Columns using AppBadge
   const columns = [
     {
       header: t("Student Name"),
       accessor: "name",
-      width: "25%",
+      width: "40%",
       minWidth: "200px",
-      render: (value, row) => {
-        if (!value) return <span className="text-xs text-gray-400 italic">{t("N/A")}</span>;
-        return (
-          <div className="truncate">
-            <TruncatedCell lines={1} className="font-medium text-gray-800">
-              {value}
-            </TruncatedCell>
-            {row?.email && (
-              <TruncatedCell lines={1} className="text-xs text-gray-500">
-                {row.email}
-              </TruncatedCell>
-            )}
-          </div>
-        );
-      }
+      render: (value) => <TruncatedCell maxChars={35}>{value}</TruncatedCell>
+    },
+    {
+      header: t("Nationality"),
+      accessor: "nationality",
+      width: "30%",
+      minWidth: "120px",
+      render: (value) => <TruncatedCell maxChars={33}>{value}</TruncatedCell>
     },
     {
       header: t("Grade"),
-      width: "18%",
-      minWidth: "150px",
+      accessor: "grade",
+      width: "10%",
+      minWidth: "120px",
       render: (_, row) => {
         const gradeName = row?.grade?.[0]?.gradeDetails?.gradeName;
-        return <GradeBadge gradeName={gradeName} />;
+        return gradeName ? <AppBadge type="grade" value={gradeName} /> : <span className="text-gray-400">—</span>;
       }
     },
     {
       header: t("Gender"),
       accessor: "gender",
-      width: "12%",
+      width: "10%",
       minWidth: "100px",
-      render: (value) => <GenderBadge gender={value} />
+      render: (value) => <AppBadge type="gender" value={value} />
     },
-    {
-      header: t("Nationality"),
-      accessor: "nationality",
-      width: "13%",
-      minWidth: "120px",
-      render: (value) => <CountryBadge country={value} />
-    },
+ 
     {
       header: t("Status"),
       accessor: "status",
-      width: "12%",
+      width: "10%",
       minWidth: "100px",
-      render: (value) => <StatusBadge active={value} dot />
+      render: (value) => {
+        // Normalize to boolean
+        const isActive = 
+          value === true ||
+          value === "active" ||
+          value === "Active" ||
+          value === "ACTIVE" ||
+          value === 1;
+          return <AppBadge type="booleanStatus" active={isActive} />;
+      }
     }
   ];
 
   // Stats
-  const counts = data?.pagination?.counts || data?.counts || { total: 0, active: 0, inactive: 0 };
+  const counts = data?.pagination?.counts || data?.counts || { total: 0, active: 0, deactive: 0 };
 
   const stats = [
     {
       label: t("Total Students"),
-      value: counts.total || 0,
+      value: counts.total,
       icon: "users",
       color: "blue"
     },
     {
       label: t("Active"),
-      value: counts.active || 0,
+      value: counts.active,
       icon: "check-circle",
       color: "green"
     },
     {
-      label: t("Inactive"),
-      value: counts.inactive || 0,
+      label: t("Deactive"),
+      value: counts.deactive,
       icon: "times-circle",
       color: "red"
     },
@@ -189,11 +205,11 @@ const ListStudents = () => {
   ];
 
   const addButton = userRole === "admin" ? (
-    <AddButton to="/admin/student/new" text={t("Add New Student")} icon="plus" />
+    <AppButton to="/admin/student/new" label={t("Add New Student")} icon="plus" />
   ) : null;
 
   const refreshButton = (
-    <RefreshButton
+    <AppButton
       onClick={handleRefresh}
       text={t("Refresh")}
       icon="sync-alt"
@@ -202,9 +218,14 @@ const ListStudents = () => {
     />
   );
 
-  // Filters using FilterDropdown
+  // Filter dropdown using shared component
   const filters = (
     <FilterDropdown
+      limit={limit}
+      onLimitChange={(newLimit) => {
+        setLimit(newLimit);
+        setCurrentPage(1);
+      }}
       onReset={() => {
         setSearch("");
         setSearchTerm("");
@@ -229,6 +250,7 @@ const ListStudents = () => {
           <option value="">{t("All Genders")}</option>
           <option value="male">{t("Male")}</option>
           <option value="female">{t("Female")}</option>
+          <option value="other">{t("Other")}</option>
         </select>
       </div>
 
@@ -246,56 +268,30 @@ const ListStudents = () => {
         >
           <option value="">{t("All Status")}</option>
           <option value="active">{t("Active")}</option>
-          <option value="inactive">{t("Inactive")}</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t("Items per page")}
-        </label>
-        <select
-          value={limit}
-          onChange={(e) => {
-            setLimit(Number(e.target.value));
-            setCurrentPage(1);
-          }}
-          className="w-full p-2 border border-gray-300 rounded-md"
-        >
-          {[5, 8, 10, 15, 20, 50].map(n => (
-            <option key={n} value={n}>{n} {t("items")}</option>
-          ))}
+          <option value="inactive">{t("Deactive")}</option>
         </select>
       </div>
     </FilterDropdown>
+  );
+
+  const renderRowActions = (row) => (
+    <ActionButtons
+      id={row._id}
+      userRole={userRole}
+      onDelete={handleDeleteClick}
+      isDeleteLoading={isDeleteLoading}
+      onView={handleViewDetails}
+      onEdit={handleEditStudent}
+    />
   );
 
   const emptyState = (
     <EmptyState
       icon="user-graduate"
       title={searchTerm ? t("No students found matching your search") : t("No students found")}
-      message={searchTerm ? t("Try adjusting your search or filter to find what you're looking for") : t("Add your first student to get started")}
-    >
-      {!searchTerm && userRole === "admin" && (
-        <AddButton to="/admin/student/new" text={t("Add New Student")} icon="plus" />
-      )}
-    </EmptyState>
+      message={t("Try adjusting your search or filters to find what you're looking for.")}
+    />
   );
-
-  const renderRowActions = (row) => {
-    const studentId = row?._id;
-    if (!studentId) return null;
-    return (
-      <ActionButtons
-        id={studentId}
-        userRole={userRole}
-        onDelete={handleDeleteClick}
-        isDeleteLoading={isDeleteLoading}
-        viewLink={`/admin/student/${studentId}/details`}
-        editLink={`/admin/students/${studentId}`}
-      />
-    );
-  };
 
   if (isLoading) return <Loader />;
 
@@ -304,7 +300,7 @@ const ListStudents = () => {
       <MetaData title={t("allStudents")} />
 
       <DataTableContainer
-        title={t("All Students")}
+        title={t("Student Management")}
         subtitle={t("Manage student enrollments and information")}
         data={data?.users || []}
         columns={columns}
@@ -331,20 +327,8 @@ const ListStudents = () => {
         renderHeaderInfo={() => (
           <p className="text-sm text-gray-500 mt-1">
             <i className="fa fa-info-circle mr-2"></i>
-            {t("Last updated")}: {new Date().toLocaleTimeString()}
+            {t("Showing")}: {data?.users?.length || 0} {t("students")}
           </p>
-        )}
-        renderFooterInfo={() => (
-          <div className="text-center mt-4">
-            <p className="text-sm text-gray-500">
-              {userRole === "admin" && (
-                <span className="text-blue-600">
-                  <i className="fa fa-user-shield mr-1"></i>
-                  {t("Admin Mode")}
-                </span>
-              )}
-            </p>
-          </div>
         )}
         className="student-table-container"
         showSearch={true}
@@ -357,7 +341,7 @@ const ListStudents = () => {
         setShowModal={setShowModal}
         confirmDelete={confirmDelete}
         isDeleteLoading={isDeleteLoading}
-        message={t("Do you want to delete this student?")}
+        message={t("Are you sure you want to delete this student?")}
         title={t("Confirm Delete")}
       />
     </AdminLayout>

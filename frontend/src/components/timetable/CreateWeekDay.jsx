@@ -10,44 +10,42 @@ import {
   useDeleteWeekDayMutation,
 } from "../../redux/api/weekDayApi";
 
+// Core Layout & UI Components (same as in NewAcademicLevel)
+import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 import Loader from "../layout/Loader";
+import AppCard from "../GUI/AppCard";
+import AppInput from "../GUI/AppInput";
+import AppCheckbox from "../GUI/AppCheckbox";
+import AppButton from "../GUI/AppButton";
 import ConfirmationModal from "../GUI/ConfirmationModal";
 import { DataTableContainer } from "../GUI/DataTableContainer";
-import RefreshButton from "../layout/RefreshButton";
-import AdminLayout from "../layout/AdminLayout";
-
-// Reusable components
-import FormSection from "../../components/GUI/FormSection";
-import FormInput from "../../components/GUI/FormInput";
-import FormCheckbox from "../../components/GUI/FormCheckbox";
-import FormActions from "../../components/GUI/FormActions";
-import TableRowActions from "../../components/GUI/TableRowActions";
-import StatsCards from "../../components/GUI/StatsCards";
+import ActionButtons from "../GUI/ActionButtons";
+import EmptyState from "../GUI/EmptyState";
 
 const CreateWeekDay = () => {
   const { t } = useTranslation();
   const { user } = useSelector((state) => state.auth);
 
-  // ---------- Form State ----------
+  // ------------------ Form State ------------------
   const [weekDay, setWeekDay] = useState({
     name: "",
     shortName: "",
     order: "",
     isWorkingDay: true,
   });
+  const [editMode, setEditMode] = useState(false);
+  const [editId, setEditId] = useState(null);
 
-  // ---------- Table & UI State ----------
+  // ------------------ Table & UI State ------------------
   const [search, setSearch] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(8);
-  const [editMode, setEditMode] = useState(false);
-  const [editId, setEditId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [selectedDayId, setSelectedDayId] = useState(null);
 
-  // ---------- Debounced Search ----------
+  // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchTerm(search);
@@ -56,53 +54,56 @@ const CreateWeekDay = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // ---------- RTK Queries & Mutations ----------
+  // ------------------ RTK Queries ------------------
   const {
     data,
     isLoading,
     isFetching,
     refetch,
-  } = useGetWeekDaysQuery({
-    page: currentPage,
-    limit,
-    keyword: searchTerm,
-    paginate: "true", // backend pagination enable
-  });
+    error: fetchError,
+  } = useGetWeekDaysQuery(
+    {
+      page: currentPage,
+      limit,
+      keyword: searchTerm,
+      paginate: "true", // if needed
+    },
+    { refetchOnMountOrArgChange: true }
+  );
 
-  const [createWeekDay, { isLoading: createLoading, isSuccess: createSuccess, error: createError }] =
+  const [createWeekDay, { isLoading: createLoading }] =
     useCreateWeekDayMutation();
-  const [updateWeekDay, { isLoading: updateLoading, isSuccess: updateSuccess, error: updateError }] =
+  const [updateWeekDay, { isLoading: updateLoading }] =
     useUpdateWeekDayMutation();
-  const [deleteWeekDay, { isLoading: deleteLoading, isSuccess: deleteSuccess, error: deleteError }] =
+  const [deleteWeekDay, { isLoading: deleteLoading }] =
     useDeleteWeekDayMutation();
 
   const { name, shortName, order, isWorkingDay } = weekDay;
 
-  // ---------- Handle API Responses ----------
+  // ------------------ Side Effects (API feedback) ------------------
   useEffect(() => {
-    if (createError || updateError || deleteError) {
-      const err = createError || updateError || deleteError;
+    if (fetchError) {
+      toast.error(fetchError?.data?.message || t("Failed to load week days"));
+    }
+  }, [fetchError, t]);
+
+  // Handlers for mutation responses (success/error)
+  const handleMutationResponse = async (promise, successMessage) => {
+    try {
+      const result = await promise;
+      if (result.error) {
+        toast.error(result.error.data?.message || t("Operation failed"));
+      } else {
+        toast.success(t(successMessage));
+        resetForm();
+        refetch();
+      }
+    } catch (err) {
       toast.error(err?.data?.message || t("Something went wrong"));
     }
-    if (createSuccess) {
-      toast.success(t("Week day created successfully"));
-      resetForm();
-      refetch();
-    }
-    if (updateSuccess) {
-      toast.success(t("Week day updated successfully"));
-      resetForm();
-      refetch();
-    }
-    if (deleteSuccess) {
-      toast.success(t("Week day deleted successfully"));
-      setShowModal(false);
-      setSelectedDayId(null);
-      refetch();
-    }
-  }, [createError, updateError, deleteError, createSuccess, updateSuccess, deleteSuccess, t, refetch]);
+  };
 
-  // ---------- Handlers ----------
+  // ------------------ Form Handlers ------------------
   const onChange = (e) => {
     const { name, value, type, checked } = e.target;
     setWeekDay((prev) => ({
@@ -112,12 +113,7 @@ const CreateWeekDay = () => {
   };
 
   const resetForm = () => {
-    setWeekDay({
-      name: "",
-      shortName: "",
-      order: "",
-      isWorkingDay: true,
-    });
+    setWeekDay({ name: "", shortName: "", order: "", isWorkingDay: true });
     setEditMode(false);
     setEditId(null);
   };
@@ -137,9 +133,15 @@ const CreateWeekDay = () => {
     };
 
     if (editMode) {
-      updateWeekDay({ id: editId, body: payload });
+      handleMutationResponse(
+        updateWeekDay({ id: editId, body: payload }),
+        "Week day updated successfully"
+      );
     } else {
-      createWeekDay(payload);
+      handleMutationResponse(
+        createWeekDay(payload),
+        "Week day created successfully"
+      );
     }
   };
 
@@ -160,9 +162,20 @@ const CreateWeekDay = () => {
     setShowModal(true);
   };
 
-  const confirmDelete = () => {
-    if (selectedDayId) {
-      deleteWeekDay(selectedDayId);
+  const confirmDelete = async () => {
+    if (!selectedDayId) return;
+    try {
+      const result = await deleteWeekDay(selectedDayId);
+      if (result.error) {
+        toast.error(result.error.data?.message || t("Failed to delete"));
+      } else {
+        toast.success(t("Week day deleted successfully"));
+        setShowModal(false);
+        setSelectedDayId(null);
+        refetch();
+      }
+    } catch (err) {
+      toast.error(err?.data?.message || t("Something went wrong"));
     }
   };
 
@@ -171,7 +184,7 @@ const CreateWeekDay = () => {
     toast.success(t("Refreshed"));
   };
 
-  // ---------- Table Columns ----------
+  // ------------------ Table Columns ------------------
   const columns = [
     {
       header: t("Full Name"),
@@ -202,9 +215,7 @@ const CreateWeekDay = () => {
       render: (val) => (
         <span
           className={`px-3 py-1 rounded-full text-xs font-semibold ${
-            val
-              ? "bg-green-100 text-green-700"
-              : "bg-gray-100 text-gray-700"
+            val ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
           }`}
         >
           {val ? t("Yes") : t("No")}
@@ -213,23 +224,20 @@ const CreateWeekDay = () => {
     },
   ];
 
-  // ---------- Row Actions ----------
+  // Row actions using ActionButtons component
   const renderRowActions = (row) => (
-    <TableRowActions
-      itemId={row._id}
+    <ActionButtons
+      id={row._id}
+      userRole={user?.role}
+      requiredRole="admin"
       onEdit={() => handleEdit(row)}
       onDelete={() => handleDeleteClick(row._id)}
       isDeleteLoading={deleteLoading}
-      userRole={user?.role}
-      requiredRole="admin"
       showView={false}
-      showEdit={true}
-      showDelete={true}
-      customActions={[]}
     />
   );
 
-  // ---------- Stats Cards ----------
+  // ------------------ Stats for DataTableContainer ------------------
   const stats = [
     {
       label: t("Total Days"),
@@ -257,7 +265,32 @@ const CreateWeekDay = () => {
     },
   ];
 
-  // ---------- Add Button ----------
+  // Custom empty state
+  const emptyState = (
+    <EmptyState
+      icon="calendar-alt"
+      title={
+        searchTerm
+          ? t("No week days found")
+          : t("No week days created yet")
+      }
+      message={t(
+        "Get started by creating your first week day using the form above."
+      )}
+    />
+  );
+
+  // Custom header info (optional)
+  const renderHeaderInfo = () => (
+    <p className="text-sm text-gray-500 mt-1">
+      <i className="fa fa-info-circle mr-2"></i>
+      {editMode
+        ? t("Edit mode active – Scroll up to see the form")
+        : t("Fill the form above to create new week days")}
+    </p>
+  );
+
+  // Add button (scrolls to form)
   const addButton = (
     <button
       type="button"
@@ -269,160 +302,123 @@ const CreateWeekDay = () => {
     </button>
   );
 
-  // ---------- Empty State ----------
-  const emptyState = (
-    <div className="flex flex-col items-center justify-center py-12">
-      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-        <i className="fa fa-calendar-alt text-gray-400 text-2xl"></i>
-      </div>
-      <h3 className="text-lg font-medium text-gray-700 mb-2">
-        {searchTerm
-          ? t("No week days found")
-          : t("No week days created yet")}
-      </h3>
-      <p className="text-sm text-gray-500 text-center max-w-md">
-        {t("Get started by creating your first week day using the form above.")}
-      </p>
-    </div>
-  );
-
   if (isLoading) return <Loader />;
 
   return (
     <AdminLayout>
       <MetaData title={editMode ? t("Edit Week Day") : t("Create Week Day")} />
 
-      {/* ---------- Form Section ---------- */}
-      <FormSection
-        title={editMode ? t("Edit Week Day") : t("Create New Week Day")}
-        icon={editMode ? "edit" : "plus-circle"}
-        iconColor="blue"
-        border={true}
-        background="white"
-        padding="p-6"
-        className="mb-8 shadow-sm"
-      >
-        <form onSubmit={submitHandler}>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            <FormInput
-              label={t("Full Name")}
-              name="name"
-              value={name}
-              onChange={onChange}
-              placeholder={t("e.g., Monday")}
-              required={true}
-              className="md:col-span-1"
-            />
+      {/* ---------- Form Card ---------- */}
+      <div className="max-w-6xl mx-auto py-4 px-4">
+        <AppCard
+          title={editMode ? t("Edit Week Day") : t("Create New Week Day")}
+          icon={editMode ? "edit" : "plus-circle"}
+          className="mb-8"
+        >
+          <form onSubmit={submitHandler}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              <AppInput
+                label={t("Full Name")}
+                name="name"
+                value={name}
+                onChange={onChange}
+                placeholder={t("e.g., Monday")}
+                required
+              />
+              <AppInput
+                label={t("Short Name")}
+                name="shortName"
+                value={shortName}
+                onChange={onChange}
+                placeholder={t("e.g., Mon")}
+                required
+              />
+              <AppInput
+                label={t("Order")}
+                name="order"
+                value={order}
+                onChange={onChange}
+                placeholder={t("1–7")}
+                required
+                type="number"
+                min="1"
+                max="7"
+              />
+            </div>
 
-            <FormInput
-              label={t("Short Name")}
-              name="shortName"
-              value={shortName}
-              onChange={onChange}
-              placeholder={t("e.g., Mon")}
-              required={true}
-              className="md:col-span-1"
-            />
+            <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between">
+              <AppCheckbox
+                name="isWorkingDay"
+                checked={isWorkingDay}
+                onChange={onChange}
+                label={t("Working Day")}
+              />
 
-            <FormInput
-              label={t("Order")}
-              name="order"
-              value={order}
-              onChange={onChange}
-              placeholder={t("1–7")}
-              required={true}
-              type="number"
-              min="1"
-              max="7"
-              className="md:col-span-1"
-            />
-          </div>
+              <div className="flex gap-2">
+                {editMode && (
+                  <AppButton
+                    label={t("Cancel")}
+                    onClick={resetForm}
+                    icon="times"
+                  />
+                )}
+                <AppButton
+                  label={editMode ? t("Update Day") : t("Save Day")}
+                  isLoading={createLoading || updateLoading}
+                  icon={editMode ? "save" : "plus"}
+                />
+              </div>
+            </div>
+          </form>
+        </AppCard>
 
-          <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between">
-            <FormCheckbox
-              label={t("Working Day")}
-              name="isWorkingDay"
-              checked={isWorkingDay}
-              onChange={onChange}
-              className="text-sm"
-            />
+        {/* ---------- Data Table ---------- */}
+        <DataTableContainer
+          title={t("Week Days")}
+          subtitle={t("View and manage your organization's week days")}
+          data={data?.days || []}
+          columns={columns}
+          isLoading={isLoading}
+          isFetching={isFetching}
+          pagination={data?.pagination}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          limit={limit}
+          setLimit={setLimit}
+          search={search}
+          setSearch={setSearch}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          searchPlaceholder={t("Search by name or short name...")}
+          onRefresh={handleRefresh}
+          refreshButton={<AppButton onClick={handleRefresh} disabled={isFetching} />}
+          addButton={addButton}
+          emptyState={emptyState}
+          userRole={user?.role}
+          renderRowActions={renderRowActions}
+          renderHeaderInfo={renderHeaderInfo}
+          stats={stats}
+          showSearch={true}
+          showStats={true}
+          showPagination={true}
+          className="weekday-table"
+        />
 
-            <FormActions
-              onSubmit={submitHandler}
-              onCancel={editMode ? resetForm : undefined}
-              submitLabel={editMode ? t("Update Day") : t("Save Day")}
-              cancelLabel={t("Cancel")}
-              isLoading={createLoading || updateLoading}
-              submitIcon={editMode ? "save" : "plus"}
-              cancelIcon="times"
-              submitColor="blue"
-              cancelColor="gray"
-              align="right"
-              showCancel={editMode}
-            />
-          </div>
-        </form>
-      </FormSection>
-
-      {/* ---------- Stats Cards ---------- */}
-      <StatsCards stats={stats} columns={4} className="mb-6" />
-
-      {/* ---------- Data Table Container ---------- */}
-      <DataTableContainer
-        title={t("Week Days")}
-        subtitle={t("View and manage your organization's week days")}
-        data={data?.days || []}
-        columns={columns}
-        isLoading={isLoading}
-        isFetching={isFetching}
-        // Pagination
-        pagination={data?.pagination}
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        limit={limit}
-        setLimit={setLimit}
-        // Search
-        search={search}
-        setSearch={setSearch}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        searchPlaceholder={t("Search by name or short name...")}
-        // Actions
-        onRefresh={handleRefresh}
-        refreshButton={<RefreshButton onClick={handleRefresh} disabled={isFetching} />}
-        addButton={addButton}
-        emptyState={emptyState}
-        userRole={user?.role}
-        // Row actions
-        renderRowActions={renderRowActions}
-        // Header info
-        renderHeaderInfo={() => (
-          <p className="text-sm text-gray-500 mt-1">
-            <i className="fa fa-info-circle mr-2"></i>
-            {editMode
-              ? t("Edit mode active - Scroll up to see form")
-              : t("Fill the form above to create new week days")}
-          </p>
-        )}
-        // Custom styling
-        showSearch={true}
-        showStats={false}
-        showPagination={true}
-        className="weekday-table"
-      />
-
-      {/* ---------- Confirmation Modal ---------- */}
-      <ConfirmationModal
-        showModal={showModal}
-        setShowModal={setShowModal}
-        confirmDelete={confirmDelete}
-        isDeleteLoading={deleteLoading}
-        message={t("Are you sure you want to delete this week day? This action cannot be undone.")}
-        title={t("Delete Week Day")}
-        confirmText={t("Delete")}
-        cancelText={t("Cancel")}
-        confirmColor="red"
-      />
+        {/* ---------- Delete Confirmation Modal ---------- */}
+        <ConfirmationModal
+          showModal={showModal}
+          setShowModal={setShowModal}
+          confirmDelete={confirmDelete}
+          isDeleteLoading={deleteLoading}
+          message={t(
+            "Are you sure you want to delete this week day? This action cannot be undone."
+          )}
+          title={t("Delete Week Day")}
+          confirmText={t("Delete")}
+          cancelText={t("Cancel")}
+          confirmColor="red"
+        />
+      </div>
     </AdminLayout>
   );
 };

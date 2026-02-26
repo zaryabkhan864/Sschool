@@ -1,8 +1,22 @@
-import React, { useRef } from 'react';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import AppButton from './AppButton'; // adjust import path
 
-const PrintLayout = ({ contentRef, documentName, children }) => {
+const PrintLayout = ({
+  title,
+  subtitle,
+  backUrl,
+  editUrl,
+  documentName,
+  contentRef,
+  children
+}) => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+
   // PDF download
   const downloadPDF = () => {
     const input = contentRef.current;
@@ -55,25 +69,69 @@ const PrintLayout = ({ contentRef, documentName, children }) => {
   };
 
   return (
-    <div className="flex justify-end gap-4 mb-6 px-6">
-      <button
-        onClick={printDocument}
-        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center text-sm"
-      >
-        Print
-      </button>
-      <button
-        onClick={downloadPDF}
-        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center text-sm"
-      >
-        PDF
-      </button>
-      <button
-        onClick={downloadPNG}
-        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center text-sm"
-      >
-        PNG
-      </button>
+    <div className="max-w-4xl mx-auto my-8 print:m-0">
+      {/* Header - hidden when printing */}
+      <div className="flex justify-between items-center mb-6 print:hidden">
+        <div>
+          <h1 className="text-xl-custom font-bold text-gray-800">{title}</h1>
+          {subtitle && <p className="text-xs-custom text-gray-500 mt-0.5">{subtitle}</p>}
+        </div>
+        <div className="flex gap-2 items-center">
+          {/* Back button */}
+          {backUrl && (
+            <AppButton
+              label="Back"
+              icon="arrow-left"
+              variant="ghost"
+              className="border border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-lg px-4 py-2 transition-all duration-200"
+              onClick={() => navigate(backUrl)}
+            />
+          )}
+
+          {/* Edit button */}
+          {editUrl && (
+            <AppButton
+              label="Edit"
+              icon="edit"
+              variant="primary"
+              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md hover:shadow-lg rounded-lg px-4 py-2 transition-all duration-200"
+              to={editUrl}
+            />
+          )}
+
+          {/* Print button */}
+          <AppButton
+            label="Print"
+            icon="print"
+            variant="secondary"
+            className="bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-md hover:shadow-lg rounded-lg px-4 py-2 transition-all duration-200"
+            onClick={printDocument}
+          />
+
+          {/* PDF button */}
+          <AppButton
+            label="PDF"
+            icon="file-pdf"
+            variant="danger"
+            className="bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md hover:shadow-lg rounded-lg px-4 py-2 transition-all duration-200"
+            onClick={downloadPDF}
+          />
+
+          {/* PNG button */}
+          <AppButton
+            label="PNG"
+            icon="file-image"
+            variant="success"
+            className="bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md hover:shadow-lg rounded-lg px-4 py-2 transition-all duration-200"
+            onClick={downloadPNG}
+          />
+        </div>
+      </div>
+
+      {/* Content to be captured - ref attached here */}
+      <div ref={contentRef}>
+        {children}
+      </div>
     </div>
   );
 };

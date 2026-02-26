@@ -17,13 +17,13 @@ const AppCheckbox = ({
         name={name}
         checked={checked}
         onChange={onChange}
-        className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+        className="h-5 w-5 text-brand-500 rounded focus:ring-brand-500 border-gray-300"
         {...rest}
       />
       {label && (
         <label
           htmlFor={`checkbox-${name}`}
-          className="ml-2 block text-sm font-medium text-gray-700"
+          className="ml-2 block text-sm-custom font-medium text-gray-700"
         >
           {label}
         </label>

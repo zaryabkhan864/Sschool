@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useGetMeQuery } from "../../redux/api/userApi";
 import { useSelector } from "react-redux";
 import { Link, useLocation } from "react-router-dom";
-import { useLazyLogoutQuery } from "../../redux/api/authApi";
+import { useLazyLogoutQuery ,useGetMeQuery} from "../../redux/api/authApi";
 import { Cog6ToothIcon, ChevronDownIcon, Bars3Icon, XMarkIcon, CalendarIcon } from "@heroicons/react/24/outline";
 import LanguageSwitcher from "../LanguageSwitcher";
 import { useGetCampusQuery, useSetCampusTokenMutation } from "../../redux/api/campusApi";
@@ -23,18 +22,22 @@ const Header = () => {
 
   const location = useLocation();
   const { isLoading } = useGetMeQuery();
-  const { data: CampusData, isLoading: CampusLoading } = useGetCampusQuery();
+  // ✅ Fetch ALL campuses for the dropdown (limit=0 disables pagination)
+  const { data: campusData, isLoading: campusLoading } = useGetCampusQuery({ limit: 0 });
   const [setCampusToken] = useSetCampusTokenMutation();
   const [logout] = useLazyLogoutQuery();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [selectedCampus, setSelectedCampus] = useState(getCookie('campus'));
-  const [selectedCampusName, setSelectedCampusName] = useState(user?.campus?.name || 'N/A');
-
   const [selectedYear, setSelectedYear] = useState('');
   const dropdownTimeoutRef = useRef(null);
+
+  // Campus selection state – initialize from cookie, fallback to user's campus if cookie missing
+  const [selectedCampus, setSelectedCampus] = useState(() => {
+    const cookieCampus = getCookie('campus');
+    return cookieCampus || user?.campus?._id || '';
+  });
 
   const currentYear = dayjs().year();
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
@@ -51,6 +54,7 @@ const Header = () => {
 
   const dashboardTitle = roleTitles[user?.role] || t("Dashboard");
 
+  // Year cookie handling
   useEffect(() => {
     const storedYear = getCookie('selectedYear');
     if (storedYear) {
@@ -60,7 +64,14 @@ const Header = () => {
       setSelectedYear(defaultYear);
       document.cookie = `selectedYear=${encodeURIComponent(defaultYear)}; path=/; max-age=${60 * 60 * 24 * 365}`;
     }
-  }, [currentYear, user]);
+  }, [currentYear]);
+
+  // If user object loads later, ensure selectedCampus is set (in case cookie was missing)
+  useEffect(() => {
+    if (!selectedCampus && user?.campus?._id) {
+      setSelectedCampus(user.campus._id);
+    }
+  }, [user, selectedCampus]);
 
   const handleMouseEnter = () => {
     clearTimeout(dropdownTimeoutRef.current);
@@ -73,7 +84,7 @@ const Header = () => {
     }, 300);
   };
 
-  const handleChange = (value) => {
+  const handleCampusChange = (value) => {
     setSelectedCampus(value);
     setCampusToken(value)
       .unwrap()
@@ -159,20 +170,36 @@ const Header = () => {
               <ChevronDownIcon className="w-3 h-3 absolute right-2 top-2.5 text-gray-400 pointer-events-none" />
             </div>
 
-            {/* Campus Selector */}
-            {isAuthenticated && user?.role === "admin" && (
-              <div className="relative hidden md:block">
-                <select
-                  className="appearance-none bg-blue-600 text-white py-1.5 px-3 pr-8 rounded-lg focus:outline-none shadow-md shadow-blue-200 cursor-pointer text-xs font-bold"
-                  value={selectedCampus}
-                  onChange={(e) => handleChange(e.target.value)}
-                >
-                  {CampusLoading ? <option>...</option> : CampusData?.campus?.map((c) => (
-                    <option key={c._id} value={c._id}>{c.name}</option>
-                  ))}
-                </select>
-                <ChevronDownIcon className="w-3 h-3 absolute right-2 top-2.5 text-blue-200 pointer-events-none" />
-              </div>
+            {/* Campus selector / display */}
+            {isAuthenticated && (
+              <>
+                {user?.role === "admin" ? (
+                  // Admin: dropdown with all campuses
+                  <div className="relative hidden md:block">
+                    <select
+                      className="appearance-none bg-blue-600 text-white py-1.5 px-3 pr-8 rounded-lg focus:outline-none shadow-md shadow-blue-200 cursor-pointer text-xs font-bold"
+                      value={selectedCampus}
+                      onChange={(e) => handleCampusChange(e.target.value)}
+                    >
+                      {campusLoading ? (
+                        <option>{t("Loading...")}</option>
+                      ) : (
+                        campusData?.campuses?.map((c) => (
+                          <option key={c._id} value={c._id}>{c.name}</option>
+                        ))
+                      )}
+                    </select>
+                    <ChevronDownIcon className="w-3 h-3 absolute right-2 top-2.5 text-blue-200 pointer-events-none" />
+                  </div>
+                ) : (
+                  // Non-admin: show campus name as text (if available)
+                  user?.campus?.name && (
+                    <span className="hidden md:inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold">
+                      {user.campus.name}
+                    </span>
+                  )
+                )}
+              </>
             )}
           </div>
 

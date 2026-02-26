@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 
-import { useGetUserByTypeQuery } from "../../redux/api/userApi";
+import { useGetUserByTypeQuery } from "../../redux/api/authApi";
 
 import {
   useCreateTeacherLeaveMutation,

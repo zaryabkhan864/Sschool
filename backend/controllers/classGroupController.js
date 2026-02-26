@@ -57,128 +57,126 @@ export const newClassGroup = catchAsyncErrors(async (req, res) => {
 });
 
 // 2. READ - ALL ====================================
-// models/classGroup.js (same as aap ka diya hua, no change needed)
-// controllers/classGroupController.js
 
 export const getClassGroups = catchAsyncErrors(async (req, res) => {
   // 1. Cookies se data
   const { campus: cookieCampus, selectedYear: cookieYear } = req.cookies;
 
-  // 2. Pagination flag
-  const isPaginationDisabled = req.query.paginate === 'false';
-  const shouldPaginate = !isPaginationDisabled;
-
-  console.log("   Should Paginate:", shouldPaginate);
-
-  // 3. IMPORTANT: Parameters normalize karo
+  // 2. Query parameters normalize karo
   let {
     campus,
     year,
     academicLevel,
     academicLevelId,
-    grade,          // optional filter by grade ObjectId
-    section,        // optional filter by section (A, B, ENG, etc.)
+    grade,
+    section,
     status,
     keyword,
-    ...otherParams
+    page,
+    limit,
+    sort,
+    paginate,
   } = req.query;
 
-  // academicLevelId ko academicLevel me convert (backward compatibility)
+  // 3. Pagination decision
+  const isDropdownRequest = Number(limit) === 0;              // limit = 0 → dropdown (no pagination, no cookies)
+  const shouldPaginate = !isDropdownRequest && paginate !== 'false';
+
+  // 4. Backward compatibility: academicLevelId → academicLevel
   if (academicLevelId && !academicLevel) {
     academicLevel = academicLevelId;
   }
 
-  // Agar pagination enabled hai to cookies use karo
-  if (shouldPaginate) {
-    if (cookieCampus && !campus) campus = cookieCampus;
-    if (cookieYear && !year) year = cookieYear;
+  // 5. Cookies ka istemal sirf tab jab pagination enabled ho aur dropdown na ho
+  if (!isDropdownRequest && shouldPaginate) {
+    if (!campus && cookieCampus) campus = cookieCampus;
+    if (!year && cookieYear) year = cookieYear;
   }
 
-  // Year ko number me convert
-  if (year) {
-    year = parseInt(year);
+  // 6. Type conversions
+  if (year) year = parseInt(year);
+  if (status === 'active') status = true;
+  else if (status === 'deactive') status = false;
+  else if (status && status !== 'all') status = undefined;   // invalid value ignore
+
+  // 7. APIFilters ke liye query object tayyar karo (section ko exclude rakha, baad mein handle hoga)
+  const apiQuery = {
+    ...(campus && { campus }),
+    ...(year && { year }),
+    ...(academicLevel && { academicLevel }),
+    ...(grade && { grade }),
+    ...(status !== undefined && { status }),
+    keyword: keyword || undefined,
+    page,
+    limit,
+    sort: sort || 'displayName',      // default sort by displayName ASC
+  };
+
+  // 8. APIFilters initialize karo
+  const apiFilters = new APIFilters(ClassGroup, apiQuery)
+    .setSearchFields(['displayName', 'section'])   // keyword in dono fields mein search karega
+    .search()
+    .filters()
+    .sort();                                       // apne set kiye hue sort (ya default) apply hoga
+
+  // 9. Pagination apply / disable
+  if (!shouldPaginate || isDropdownRequest) {
+    apiFilters.disablePagination();
+  } else {
+    apiFilters.pagination();                       // limit = 0 ho to ye bhi disable kar dega
   }
 
-  // Status mapping: "active" -> true, "deactive" -> false
-  if (status === "active") {
-    status = true;
-  } else if (status === "deactive") {
-    status = false;
-  } else if (status && status !== "all") {
-    // agar koi aur value aaye to ignore kar do
-    status = undefined;
+  // 10. Sort specification nikal lo (displayName default)
+  const sortString = apiFilters.queryStr.sort || 'displayName';
+  const sortSpec = sortString.split(',').join(' ');   // e.g. "displayName,-createdAt" → "displayName -createdAt"
+
+  // 11. Base conditions tayyar karo (filters + search) aur section filter manually add karo
+  const baseConditions = { ...apiFilters.query._conditions };
+  if (section) {
+    baseConditions.section = { $regex: new RegExp(`^${section}$`, 'i') };
   }
 
-  // 4. Build query object
-  const query = {};
+  // 12. Count totals (active/deactive sab filters ke saath)
+  const total = await ClassGroup.countDocuments(baseConditions);
+  const active = await ClassGroup.countDocuments({ ...baseConditions, status: true });
+  const deactive = await ClassGroup.countDocuments({ ...baseConditions, status: false });
 
-  if (campus) query.campus = campus;
-  if (year) query.year = year;
-  if (academicLevel) query.academicLevel = academicLevel;
-  if (grade) query.grade = grade;
-  if (section) query.section = { $regex: new RegExp(`^${section}$`, 'i') }; // exact match case-insensitive
-  if (status !== undefined) query.status = status;
-
-  // Search keyword handle karo (displayName ya section me search)
-  if (keyword) {
-    query.$or = [
-      { displayName: { $regex: keyword, $options: 'i' } },
-      { section: { $regex: keyword, $options: 'i' } }
-    ];
-  }
-
-  console.log("   Final Query Object:", query);
-
-  // 5. Count total documents
-  const total = await ClassGroup.countDocuments(query);
-  const active = await ClassGroup.countDocuments({ ...query, status: true });
-  const deactive = await ClassGroup.countDocuments({ ...query, status: false });
-
-  console.log("   Counts - Total:", total, "Active:", active, "Deactive:", deactive);
-
-  // 6. Find documents with population
-  let classGroupsQuery = ClassGroup.find(query)
-    .populate('grade', '_id gradeName')            // assume Grade model has gradeName
+  // 13. Data query build karo with same conditions
+  let classGroupsQuery = ClassGroup.find(baseConditions)
+    .populate('grade', '_id gradeName')
     .populate('academicLevel', '_id name code')
     .populate('campus', '_id name')
-    .populate('courses', '_id name code')          // optional, jitna zaroori ho
-    .sort({ displayName: 1 });                     // alphabetical order
+    .populate('courses', '_id name code')
+    .sort(sortSpec);   // YAHI SORT APPLY HOGA
 
-  // 7. Apply pagination if needed
-  if (shouldPaginate) {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-
-    classGroupsQuery = classGroupsQuery.skip(skip).limit(limit);
-
-    console.log("   Pagination - Page:", page, "Limit:", limit, "Skip:", skip);
+  // 14. Pagination agar enabled hai to skip/limit lagao
+  if (apiFilters.shouldPaginate) {
+    const skip = (apiFilters.page - 1) * apiFilters.limit;
+    classGroupsQuery = classGroupsQuery.skip(skip).limit(apiFilters.limit);
   }
 
   const classGroups = await classGroupsQuery;
 
-  console.log("   ClassGroups found:", classGroups.length);
-
-  // 8. Build response
+  // 15. Response tayyar karo – bilkul courses controller jaisa
   const response = {
     success: true,
     classGroups,
   };
 
-  if (shouldPaginate) {
+  if (apiFilters.shouldPaginate) {
+    const totalPages = Math.ceil(total / apiFilters.limit);
     response.pagination = {
       total,
       active,
       deactive,
-      page: parseInt(req.query.page) || 1,
-      limit: parseInt(req.query.limit) || 10,
-      totalPages: Math.ceil(total / (parseInt(req.query.limit) || 10)),
+      page: apiFilters.page,
+      limit: apiFilters.limit,
+      totalPages,
     };
   } else {
     response.counts = { total, active, deactive };
   }
 
-  console.log("   Sending response with", classGroups.length, "classGroups");
   res.status(200).json(response);
 });
 

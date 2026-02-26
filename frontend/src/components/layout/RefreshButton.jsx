@@ -2,7 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import PropTypes from "prop-types";
 
-const RefreshButton = ({ onClick, text = "Refresh", icon = "sync-alt", className = "", disabled = false, showIcon = true }) => {
+const AppButton = ({ onClick, text = "Refresh", icon = "sync-alt", className = "", disabled = false, showIcon = true }) => {
   const { t } = useTranslation();
 
   return (
@@ -17,7 +17,7 @@ const RefreshButton = ({ onClick, text = "Refresh", icon = "sync-alt", className
   );
 };
 
-RefreshButton.propTypes = {
+AppButton.propTypes = {
   onClick: PropTypes.func.isRequired,
   text: PropTypes.string,
   icon: PropTypes.string,
@@ -26,4 +26,4 @@ RefreshButton.propTypes = {
   showIcon: PropTypes.bool,
 };
 
-export default RefreshButton;
+export default AppButton;

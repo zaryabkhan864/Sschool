@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useCountries } from "react-countries";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
@@ -8,7 +8,7 @@ import "react-phone-input-2/lib/style.css";
 
 // Redux
 import { useRegisterMutation } from "../../redux/api/authApi";
-import { useGetUserByTypeQuery } from "../../redux/api/userApi";
+import { useGetUserByTypeQuery } from "../../redux/api/authApi";
 import { useGetGradesQuery } from "../../redux/api/gradesApi";
 
 // Shared GUI Components
@@ -17,12 +17,11 @@ import MetaData from "../layout/MetaData";
 import AppPageHeader from "../layout/AppPageHeader";
 import AppCard from "../GUI/AppCard";
 import AppInput from "../GUI/AppInput";
-import AppSubmitButton from "../GUI/AppSubmitButton";
-import AppCancelButton from "../GUI/AppCancelButton";
-import SearchableSelect from "../GUI/SearchableSelect";
+import AppButton from "../GUI/AppButton";
 import GenderRadio from "../GUI/GenderRadio";
 import NationalitySelect from "../GUI/NationalitySelect";
 import AvatarUpload from "../GUI/AvatarUpload";
+import SearchableDropdown from "../layout/SearchableDropdown";
 
 const Register = () => {
   const { t } = useTranslation();
@@ -30,16 +29,11 @@ const Register = () => {
   const { countries } = useCountries();
   const { refetch } = useGetUserByTypeQuery({ type: "user" });
 
-  // Grade search & infinite scroll states
-  const [gradeSearch, setGradeSearch] = useState("");
-  const [showGradeDropdown, setShowGradeDropdown] = useState(false);
+  // Grade search state
+  const [gradeSearchTerm, setGradeSearchTerm] = useState("");
   const [gradePage, setGradePage] = useState(1);
   const [gradesList, setGradesList] = useState([]);
   const [hasMore, setHasMore] = useState(true);
-
-  const gradeDropdownRef = useRef(null);
-  const gradeInputRef = useRef(null);
-  const gradeObserver = useRef();
 
   const [user, setUser] = useState({
     role: "user",
@@ -57,6 +51,7 @@ const Register = () => {
     email: "",
     password: "",
     avatar: "",
+    siblings: [], // will hold array of student IDs
   });
 
   const [avatarPreview, setAvatarPreview] = useState("");
@@ -75,6 +70,7 @@ const Register = () => {
     status,
     email,
     password,
+    siblings,
   } = user;
 
   const [register, { isLoading, error, isSuccess }] = useRegisterMutation();
@@ -88,12 +84,9 @@ const Register = () => {
     {
       page: gradePage,
       limit: 10,
-      keyword: gradeSearch,
-    },
-    {
-      refetchOnMountOrArgChange: true,
-      skip: !showGradeDropdown && gradeSearch === "",
+      keyword: gradeSearchTerm,
     }
+    // No skip – we want data ready when dropdown opens
   );
 
   // Age calculation
@@ -124,77 +117,22 @@ const Register = () => {
     setUser({ ...user, age: e.target.value });
   };
 
-  // Infinite scroll observer
-  const lastGradeElementRef = useCallback(
-    (node) => {
-      if (gradeLoading) return;
-      if (gradeObserver.current) gradeObserver.current.disconnect();
-      gradeObserver.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && hasMore && !gradeLoading) {
-          setGradePage((prevPage) => prevPage + 1);
-        }
-      });
-      if (node) gradeObserver.current.observe(node);
-    },
-    [gradeLoading, hasMore]
-  );
-
-  // Sync grades list
+  // Sync grades list when data arrives
   useEffect(() => {
-    if (gradesData?.grades || gradesData?.data?.grades) {
-      const grades = gradesData.grades || gradesData.data.grades;
-      if (gradePage === 1 || gradeSearch) {
-        setGradesList(grades);
-      } else {
-        setGradesList((prev) => {
-          const combined = [...prev, ...grades];
-          const uniqueMap = new Map();
-          combined.forEach((gradeItem) => {
-            const id = gradeItem._id || gradeItem.id;
-            uniqueMap.set(id, gradeItem);
-          });
-          return Array.from(uniqueMap.values());
-        });
-      }
-      setHasMore(grades.length === 10);
-    } else if (!gradeLoading) {
-      setGradesList([]);
-      setHasMore(false);
+    if (gradesData?.grades) {
+      const newGrades = gradesData.grades;
+      setGradesList((prev) => (gradePage === 1 ? newGrades : [...prev, ...newGrades]));
+      setHasMore(newGrades.length === 10);
     }
-  }, [gradesData, gradePage, gradeSearch, gradeLoading]);
+  }, [gradesData, gradePage]);
 
-  // Reset page on search
-  useEffect(() => {
-    if (gradeSearch) {
-      setGradePage(1);
-      setHasMore(true);
+  // Handle search/scroll from SearchableDropdown
+  const handleGradeSearch = useCallback((searchValue, page) => {
+    setGradeSearchTerm(searchValue);
+    setGradePage(page);
+    if (page === 1) {
+      setGradesList([]); // clear old results for new search
     }
-  }, [gradeSearch]);
-
-  // Get selected grade name
-  const selectedGradeName = useMemo(() => {
-    if (!grade) return "";
-    const foundGrade = gradesList.find((g) => {
-      const id = g._id || g.id;
-      return id === grade;
-    });
-    return foundGrade?.gradeName || foundGrade?.name || `Grade ${foundGrade?.level || foundGrade?.grade}` || "";
-  }, [grade, gradesList]);
-
-  // Click outside to close dropdown
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        gradeDropdownRef.current &&
-        !gradeDropdownRef.current.contains(event.target) &&
-        gradeInputRef.current &&
-        !gradeInputRef.current.contains(event.target)
-      ) {
-        setShowGradeDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Handle success/error
@@ -210,7 +148,7 @@ const Register = () => {
     }
   }, [error, isSuccess, navigate, refetch, t, gradeError]);
 
-  // General onChange handler (excluding dateOfBirth and age)
+  // General onChange handler
   const onChange = (e) => {
     const { name, value, type, files } = e.target;
 
@@ -229,16 +167,16 @@ const Register = () => {
       setUser({ ...user, [name]: value === "true" });
     } else if (name === "age") {
       handleAgeChange(e);
+    } else if (name === "role") {
+      // When role changes to non-student, clear siblings
+      if (value !== "student") {
+        setUser((prev) => ({ ...prev, role: value, siblings: [] }));
+      } else {
+        setUser((prev) => ({ ...prev, role: value }));
+      }
     } else {
       setUser({ ...user, [name]: value });
     }
-  };
-
-  // Grade select handler
-  const handleGradeSelect = (gradeId, gradeName) => {
-    setUser({ ...user, grade: gradeId });
-    setShowGradeDropdown(false);
-    setGradeSearch(gradeName);
   };
 
   // Date constraints
@@ -251,6 +189,48 @@ const Register = () => {
     const today = new Date();
     const minDate = new Date(today.setFullYear(today.getFullYear() - 100));
     return minDate.toISOString().split("T")[0];
+  };
+
+  // ------------------ Siblings management ------------------
+  const [siblingSearchTerm, setSiblingSearchTerm] = useState("");
+  const [siblingSearchResults, setSiblingSearchResults] = useState([]);
+
+  // Fetch students for sibling search (role=student, dropdown=true)
+  const { data: siblingData, isFetching: siblingLoading } = useGetUserByTypeQuery(
+    { type: "student", keyword: siblingSearchTerm, dropdown: true },
+    { skip: siblingSearchTerm.length < 2 || role !== "student" } // only search when role is student and at least 2 chars
+  );
+
+  // Update results when data arrives
+  useEffect(() => {
+    if (siblingData?.users) {
+      const alreadySelectedIds = new Set(siblings);
+      const available = siblingData.users.filter((u) => !alreadySelectedIds.has(u._id));
+      setSiblingSearchResults(available);
+    } else {
+      setSiblingSearchResults([]);
+    }
+  }, [siblingData, siblings]);
+
+  // Add a sibling
+  const addSibling = (studentId, studentName) => {
+    if (siblings.includes(studentId)) {
+      toast.error(t("Student already added as sibling"));
+      return;
+    }
+    setUser((prev) => ({
+      ...prev,
+      siblings: [...prev.siblings, studentId],
+    }));
+    setSiblingSearchTerm(""); // clear search after adding
+  };
+
+  // Remove a sibling
+  const removeSibling = (studentId) => {
+    setUser((prev) => ({
+      ...prev,
+      siblings: prev.siblings.filter((id) => id !== studentId),
+    }));
   };
 
   // Submit handler
@@ -279,10 +259,21 @@ const Register = () => {
       phoneNumber: phoneNumber ? `+${phoneNumber}` : "",
       secondaryPhoneNumber: secondaryPhoneNumber ? `+${secondaryPhoneNumber}` : "",
       age: age || calculateAgeFromDOB(dateOfBirth),
+      // siblings is already in user, will be sent only if role === "student"
     };
 
     register(userData);
   };
+
+  // Prepare options for SearchableDropdown
+  const gradeOptions = useMemo(
+    () =>
+      gradesList.map((g) => ({
+        value: g._id || g.id,
+        label: g.gradeName || g.name,
+      })),
+    [gradesList]
+  );
 
   return (
     <AdminLayout>
@@ -353,9 +344,11 @@ const Register = () => {
             icon="fa-user"
             footer={
               <div className="flex justify-end gap-2">
-                <AppCancelButton backUrl="/admin/users" />
-                <AppSubmitButton
+                <AppButton backUrl="/admin/users" />
+                <AppButton
+                  type="submit"
                   label="Create User"
+                  loadingLabel="Creating..."
                   isLoading={isLoading}
                   icon="fa-user-plus"
                 />
@@ -394,28 +387,17 @@ const Register = () => {
 
             {/* Row 2: Grade, Passport, Primary Contact, Emergency Contact */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-              <SearchableSelect
+              <SearchableDropdown
                 label={t("Grade")}
                 placeholder="Search grade..."
-                searchValue={gradeSearch}
-                onSearchChange={(e) => {
-                  setGradeSearch(e.target.value);
-                  setGradePage(1);
-                }}
-                showDropdown={showGradeDropdown}
-                setShowDropdown={setShowGradeDropdown}
-                loading={gradeLoading}
-                items={gradesList}
-                onSelect={handleGradeSelect}
-                selectedId={grade}
-                selectedName={selectedGradeName}
-                onClear={() => {
-                  setUser({ ...user, grade: "" });
-                  setGradeSearch("");
-                }}
-                lastElementRef={lastGradeElementRef}
-                inputRef={gradeInputRef}
-                dropdownRef={gradeDropdownRef}
+                value={grade}
+                onChange={(selectedValue) => setUser({ ...user, grade: selectedValue })}
+                onSearch={handleGradeSearch}
+                options={gradeOptions}
+                isLoading={gradeLoading}
+                hasMore={hasMore}
+                emptyMessage={t("No results found")}
+                loadingMessage={t("Loading...")}
               />
 
               <AppInput
@@ -456,6 +438,71 @@ const Register = () => {
               </div>
             </div>
 
+            {/* Siblings Section (only for students) */}
+            {role === "student" && (
+              <div className="mt-6 border-t pt-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <i className="fa fa-users text-gray-400"></i>
+                  {t("Siblings (Optional)")}
+                </h3>
+
+                {/* Search Input */}
+                <div className="relative">
+                  <AppInput
+                    label={t("Search for a student")}
+                    placeholder={t("Type at least 2 characters...")}
+                    value={siblingSearchTerm}
+                    onChange={(e) => setSiblingSearchTerm(e.target.value)}
+                  />
+                  {siblingLoading && (
+                    <div className="absolute right-3 top-9">
+                      <i className="fa fa-spinner fa-spin text-gray-400"></i>
+                    </div>
+                  )}
+                </div>
+
+                {/* Search Results Dropdown */}
+                {siblingSearchTerm.length >= 2 && siblingSearchResults.length > 0 && (
+                  <ul className="mt-1 border border-gray-200 rounded-md max-h-40 overflow-y-auto shadow-sm">
+                    {siblingSearchResults.map((s) => (
+                      <li
+                        key={s._id}
+                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center text-sm"
+                        onClick={() => addSibling(s._id, s.name)}
+                      >
+                        <span>{s.name}</span>
+                        <span className="text-gray-400 text-xs">{s.email}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {/* Selected Siblings Chips */}
+                {siblings.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {siblings.map((id) => {
+                      const sibling = siblingData?.users?.find((u) => u._id === id);
+                      return (
+                        <span
+                          key={id}
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
+                        >
+                          {sibling?.name || id}
+                          <button
+                            type="button"
+                            onClick={() => removeSibling(id)}
+                            className="ml-1 text-blue-500 hover:text-blue-700"
+                          >
+                            <i className="fa fa-times-circle"></i>
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Row 3: Avatar, Address, Status */}
             <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
               <AvatarUpload
@@ -483,7 +530,7 @@ const Register = () => {
                     <input
                       type="radio"
                       name="status"
-                      value={true}
+                      value="true"
                       checked={status === true || status === "true"}
                       onChange={onChange}
                       className="w-3.5 h-3.5 text-green-600"
@@ -494,7 +541,7 @@ const Register = () => {
                     <input
                       type="radio"
                       name="status"
-                      value={false}
+                      value="false"
                       checked={status === false || status === "false"}
                       onChange={onChange}
                       className="w-3.5 h-3.5 text-red-600"

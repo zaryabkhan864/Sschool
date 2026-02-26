@@ -33,11 +33,11 @@ export const courseApi = createApi({
 
     // CREATE new course
     createCourse: builder.mutation({
-      query({ courseName, description, code, teacher, grade, ...rest }) {
+      query({ courseName, description, code, teacher, ...rest }) {
         return {
           url: "/admin/courses",
           method: "POST",
-          body: { courseName, description, code, teacher, grade, ...rest },
+          body: { courseName, description, code, teacher, ...rest },
         };
       },
       invalidatesTags: [
@@ -48,11 +48,11 @@ export const courseApi = createApi({
 
     // UPDATE course – expects individual fields
     updateCourse: builder.mutation({
-      query({ id, courseName, description, code, teacher, grade, ...rest }) {
+      query({ id, courseName, description, code, teacher, ...rest }) {
         return {
           url: `/admin/courses/${id}`,
           method: "PUT",
-          body: { courseName, description, code, teacher, grade, ...rest },
+          body: { courseName, description, code, teacher, ...rest },
         };
       },
       invalidatesTags: (result, error, { id }) => [

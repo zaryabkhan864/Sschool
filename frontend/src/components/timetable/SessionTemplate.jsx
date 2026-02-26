@@ -14,20 +14,19 @@ import MetaData from "../layout/MetaData";
 import Loader from "../layout/Loader";
 import ConfirmationModal from "../GUI/ConfirmationModal";
 import { DataTableContainer } from "../GUI/DataTableContainer";
-import RefreshButton from "../layout/RefreshButton";
+import AppButton from "../GUI/AppButton";
 import AdminLayout from "../layout/AdminLayout";
-import WarningBanner from "../../components/GUI/WarningBanner";
-import InfoBanner from "../../components/GUI/InfoBanner";
+import WarningBanner from "../GUI/WarningBanner";
+import InfoBanner from "../GUI/InfoBanner";
+import StatsCards from "../GUI/StatsCards";
+import TableRowActions from "../GUI/TableRowActions";
 
-import FormSection from "../../components/GUI/FormSection";
-import FormInput from "../../components/GUI/FormInput";
-import FormSelect from "../../components/GUI/FormSelect";
-import FormActions from "../../components/GUI/FormActions";
-import TableRowActions from "../../components/GUI/TableRowActions";
-import StatsCards from "../../components/GUI/StatsCards";
-import Modal from "../../components/GUI/Modal";
+// New components
+import SessionFilters from "../GUI/SessionFilters";
+import SessionFormModal from "../GUI/SessionFormModal";
 
-// ✅ Cookie helper
+
+// Cookie helper
 const getCookie = (name) => {
   const cookieString = document.cookie;
   const cookies = cookieString.split('; ');
@@ -41,11 +40,11 @@ const getCookie = (name) => {
 const SessionTemplate = () => {
   const { t } = useTranslation();
 
-  // ✅ Cookies se campus aur year
+  // Cookies se campus aur year
   const [currentCampus, setCurrentCampus] = useState(null);
   const [currentYear, setCurrentYear] = useState(null);
 
-  // ✅ Form state – اب year aur campus موجود نہیں
+  // Form state
   const [formData, setFormData] = useState({
     name: "",
     type: "CLASS",
@@ -55,7 +54,7 @@ const SessionTemplate = () => {
     academicLevel: "",
   });
 
-  // UI state – pagination کی تمام state ہٹا دی گئی
+  // UI state
   const [editMode, setEditMode] = useState(false);
   const [editId, setEditId] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -63,7 +62,7 @@ const SessionTemplate = () => {
   const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [filterAcademicLevel, setFilterAcademicLevel] = useState("");
 
-  // ✅ Cookies load
+  // Cookies load
   useEffect(() => {
     const campus = getCookie('campus');
     const year = getCookie('selectedYear');
@@ -71,7 +70,7 @@ const SessionTemplate = () => {
     setCurrentYear(year ? parseInt(year) : new Date().getFullYear());
   }, []);
 
-  // ✅ Academic levels (campus ke hisaab se)
+  // Academic levels (campus ke hisaab se)
   const {
     data: academicLevelsData,
     isLoading: levelsLoading,
@@ -83,7 +82,7 @@ const SessionTemplate = () => {
     refetchOnMountOrArgChange: true,
   });
 
-  // ✅ Session templates – اب pagination کے بغیر (limit = 1000 تاکہ تمام ریکارڈز آ جائیں)
+  // Session templates – without pagination (limit = 1000)
   const {
     data: sessionTemplatesData,
     isLoading,
@@ -91,7 +90,7 @@ const SessionTemplate = () => {
     isError,
     refetch
   } = useGetSessionTemplatesQuery({
-    limit: 1000,                 // بہت بڑی limit – تمام ڈیٹا ایک بار میں
+    limit: 1000,
     year: currentYear,
     campus: currentCampus,
     academicLevel: filterAcademicLevel || undefined,
@@ -104,7 +103,7 @@ const SessionTemplate = () => {
   const [updateSessionTemplate, { isLoading: isUpdating }] = useUpdateSessionTemplateMutation();
   const [deleteSessionTemplate, { isLoading: isDeleting }] = useDeleteSessionTemplateMutation();
 
-  // ✅ Academic level options (filter dropdown ke liye)
+  // Academic level options (filter dropdown ke liye)
   const academicLevelOptions = useMemo(() => {
     if (!academicLevelsData?.levels) return [];
     return academicLevelsData.levels.map(l => ({
@@ -113,14 +112,14 @@ const SessionTemplate = () => {
     }));
   }, [academicLevelsData]);
 
-  // ✅ Academic level name (table display ke liye)
+  // Academic level name (table display ke liye)
   const getAcademicLevelName = (levelId) => {
     if (!levelId) return t("Not Set");
     const level = academicLevelsData?.levels?.find(l => l._id === (levelId._id || levelId));
     return level ? `${level.name} (${level.code || ''})` : levelId;
   };
 
-  // Sessions array extract – اب pagination آبجیکٹ کی ضرورت نہیں
+  // Sessions array extract
   const getSessionsArray = () => {
     if (!sessionTemplatesData) return [];
     if (Array.isArray(sessionTemplatesData)) return sessionTemplatesData;
@@ -198,7 +197,7 @@ const SessionTemplate = () => {
     }
   };
 
-  // ✅ Submit handler – payload mein year NAHI bhej rahe
+  // Submit handler – payload mein year NAHI bhej rahe
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -266,7 +265,7 @@ const SessionTemplate = () => {
     }
   };
 
-  // ✅ نئے کالمز – Campus ہٹایا، ترتیب بدلی (Session Name پہلے)
+  // Column definitions
   const columns = [
     {
       header: t("Session Name"),
@@ -340,37 +339,20 @@ const SessionTemplate = () => {
 
   const sessionsArray = getSessionsArray();
 
-  // ✅ Stats – اب "Total Pages" ہٹا دیا گیا
+  // Stats
   const stats = [
     { label: t("Total Sessions"), value: sessionsArray.length || 0, icon: "clock", color: "blue" },
     { label: t("Class Sessions"), value: sessionsArray.filter(s => s.type === 'CLASS').length || 0, icon: "chalkboard-teacher", color: "green" },
     { label: t("Break Sessions"), value: sessionsArray.filter(s => s.type === 'BREAK').length || 0, icon: "coffee", color: "orange" },
   ];
 
-  // ✅ صرف Academic Level کا فلٹر – Year والا فلٹر مکمل ہٹایا
+  // Filters component
   const filters = (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <FormSelect
-        label={t("Academic Level")}
-        value={filterAcademicLevel}
-        onChange={(e) => setFilterAcademicLevel(e.target.value)}
-        options={[
-          { value: "", label: t("All Levels") },
-          ...academicLevelOptions
-        ]}
-      />
-      <div className="flex items-end">
-        <button
-          onClick={() => {
-            setFilterAcademicLevel("");
-          }}
-          className="w-full px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center justify-center gap-2"
-        >
-          <i className="fa fa-refresh"></i>
-          {t("Reset Filters")}
-        </button>
-      </div>
-    </div>
+    <SessionFilters
+      filterAcademicLevel={filterAcademicLevel}
+      setFilterAcademicLevel={setFilterAcademicLevel}
+      academicLevelOptions={academicLevelOptions}
+    />
   );
 
   const addButton = (
@@ -437,9 +419,8 @@ const SessionTemplate = () => {
         columns={columns}
         isLoading={isLoading}
         isFetching={isFetching}
-        // ❌ pagination, currentPage, setCurrentPage, limit, setLimit – سب ہٹا دیے
         onRefresh={refetch}
-        refreshButton={<RefreshButton onClick={refetch} disabled={isFetching} />}
+        refreshButton={<AppButton onClick={refetch} disabled={isFetching} />}
         addButton={addButton}
         emptyState={emptyState}
         filters={filters}
@@ -453,114 +434,23 @@ const SessionTemplate = () => {
         )}
         showSearch={false}
         showStats={false}
-        showPagination={false}     // ✅ Pagination UI مکمل بند
+        showPagination={false}
         className="session-templates-table"
       />
 
-      {/* Modal – ویسا ہی ہے */}
-      <Modal
+      {/* Form Modal */}
+      <SessionFormModal
         isOpen={showModal}
         onClose={() => { setShowModal(false); resetForm(); }}
-        title={editMode ? t("Edit Session Template") : t("New Session Template")}
-        icon="clock"
-        iconColor="blue"
-        size="lg"
-      >
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-6">
-            <FormSection title={t("Session Details")} icon="info-circle" iconColor="blue" border={false} padding="p-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormInput
-                  label={t("Session Name")}
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder={t("e.g., 1st Period, Lunch Break")}
-                  required
-                />
-                <FormSelect
-                  label={t("Session Type")}
-                  name="type"
-                  value={formData.type}
-                  onChange={handleInputChange}
-                  options={[
-                    { value: "CLASS", label: "Class Session" },
-                    { value: "BREAK", label: "Break Time" }
-                  ]}
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <FormInput
-                  label={t("Order Number")}
-                  name="order"
-                  value={formData.order}
-                  onChange={handleInputChange}
-                  type="number"
-                  min="1"
-                  max="100"
-                  placeholder={t("e.g., 1, 2, 3")}
-                  required
-                  helperText={t("Determines sequence in schedule")}
-                />
-              </div>
-            </FormSection>
+        editMode={editMode}
+        formData={formData}
+        handleInputChange={handleInputChange}
+        handleSubmit={handleSubmit}
+        isLoading={isCreating || isUpdating}
+        academicLevelOptions={academicLevelOptions}
+      />
 
-            <FormSection title={t("Time Settings")} icon="clock" iconColor="green" border={false} padding="p-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormInput
-                  label={t("Start Time")}
-                  name="startTime"
-                  value={formData.startTime}
-                  onChange={handleInputChange}
-                  type="time"
-                  required
-                />
-                <FormInput
-                  label={t("End Time")}
-                  name="endTime"
-                  value={formData.endTime}
-                  onChange={handleInputChange}
-                  type="time"
-                  required
-                />
-              </div>
-            </FormSection>
-
-            <FormSection title={t("Academic Level")} icon="graduation-cap" iconColor="purple" border={false} padding="p-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormSelect
-                  label={t("Academic Level")}
-                  name="academicLevel"
-                  value={formData.academicLevel}
-                  onChange={handleInputChange}
-                  options={[
-                    { value: "", label: t("Select Academic Level") },
-                    ...academicLevelOptions
-                  ]}
-                  required
-                />
-              </div>
-            </FormSection>
-          </div>
-
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <FormActions
-              onSubmit={handleSubmit}
-              onCancel={() => { setShowModal(false); resetForm(); }}
-              submitLabel={editMode ? t("Update Template") : t("Create Template")}
-              cancelLabel={t("Cancel")}
-              isLoading={isCreating || isUpdating}
-              submitIcon={editMode ? "save" : "plus"}
-              cancelIcon="times"
-              submitColor="blue"
-              cancelColor="gray"
-              align="right"
-            />
-          </div>
-        </form>
-      </Modal>
-
+      {/* Delete Confirmation Modal */}
       <ConfirmationModal
         showModal={showDeleteModal}
         setShowModal={setShowDeleteModal}

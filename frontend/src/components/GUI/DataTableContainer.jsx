@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Table, Pagination, Dropdown } from 'flowbite-react';
+import { useTranslation } from 'react-i18next';
 
 const DataTableContainer = ({
   // Basic props
@@ -54,40 +55,50 @@ const DataTableContainer = ({
   actionColumnMinWidth = "80px",
   actionColumnMaxWidth = "120px" 
 }) => {
+  const { t } = useTranslation();
   const tableRef = useRef(null);
   const [columnWidths, setColumnWidths] = useState({});
   
-  // Default empty state
+  // Compute translated placeholder
+  const finalSearchPlaceholder = searchPlaceholder === "Search..." 
+    ? t("Search...") 
+    : searchPlaceholder;
+  
+  // Compute translated action column header
+  const finalActionColumnText = actionColumnText === "Action" 
+    ? t("Action") 
+    : actionColumnText;
+
+  // Default empty state with translations
   const defaultEmptyState = (
     <div className="text-center py-12">
       <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
         <i className="fa fa-inbox text-gray-400 text-2xl"></i>
       </div>
-      <h3 className="text-lg font-medium text-gray-700 mb-2">No data found</h3>
-      <p className="text-gray-500">No records to display</p>
+      <h3 className="text-lg font-medium text-gray-700 mb-2">{t("No data found")}</h3>
+      <p className="text-gray-500">{t("No records to display")}</p>
     </div>
   );
 
-  // ✅ FIXED: Handle both paginated and non-paginated stats
+  // Stats with translations
   const getStats = () => {
     if (stats && stats.length > 0) return stats;
     
-    // Default stats when not provided
     return [
       { 
-        label: "Total Records", 
+        label: t("Total Records"), 
         value: pagination?.total || pagination?.counts?.total || data?.length || 0, 
         icon: "database", 
         color: "blue" 
       },
       { 
-        label: "Current Page", 
+        label: t("Current Page"), 
         value: data?.length || 0, 
         icon: "list", 
         color: "green" 
       },
       { 
-        label: "Total Pages", 
+        label: t("Total Pages"), 
         value: pagination?.totalPages || 1, 
         icon: "file-alt", 
         color: "purple" 
@@ -145,10 +156,10 @@ const DataTableContainer = ({
               <button
                 onClick={onRefresh}
                 className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg shadow-md flex items-center gap-2 transition-all"
-                title="Refresh"
+                title={t("Refresh")}
               >
                 <i className="fa fa-refresh"></i>
-                <span className="hidden sm:inline">Refresh</span>
+                <span className="hidden sm:inline">{t("Refresh")}</span>
               </button>
             )}
             {addButton}
@@ -190,7 +201,7 @@ const DataTableContainer = ({
                     </div>
                     <input
                       type="text"
-                      placeholder={searchPlaceholder}
+                      placeholder={finalSearchPlaceholder}
                       className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                       value={search}
                       onChange={(e) => setSearch && setSearch(e.target.value)}
@@ -199,6 +210,7 @@ const DataTableContainer = ({
                       <button
                         className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                         onClick={handleClearSearch}
+                        title={t("Clear")}
                       >
                         <i className="fa fa-times"></i>
                       </button>
@@ -207,9 +219,12 @@ const DataTableContainer = ({
                   {searchTerm && (
                     <p className="text-sm text-gray-500 mt-2">
                       <i className="fa fa-filter mr-2"></i>
-                      Showing results for: "{searchTerm}"
-                      <button className="ml-2 text-blue-600 hover:text-blue-800" onClick={handleClearSearch}>
-                        Clear
+                      {t("Showing results for")}: "{searchTerm}"
+                      <button 
+                        className="ml-2 text-blue-600 hover:text-blue-800" 
+                        onClick={handleClearSearch}
+                      >
+                        {t("Clear")}
                       </button>
                     </p>
                   )}
@@ -227,7 +242,7 @@ const DataTableContainer = ({
           <div className="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center z-10">
             <div className="text-center">
               <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-3"></div>
-              <p className="text-gray-600">Loading...</p>
+              <p className="text-gray-600">{t("Loading...")}</p>
             </div>
           </div>
         )}
@@ -274,7 +289,7 @@ const DataTableContainer = ({
                     }}
                   >
                     <div className="truncate text-xs uppercase tracking-wider">
-                      {actionColumnText}
+                      {finalActionColumnText}
                     </div>
                   </th>
                 )}
@@ -342,18 +357,18 @@ const DataTableContainer = ({
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="text-sm text-gray-600">
                 <p>
-                  Showing{" "}
+                  {t("Showing")}{" "}
                   <span className="font-semibold">
                     {((currentPage - 1) * limit) + 1} -{" "}
                     {Math.min(currentPage * limit, pagination.total)}
                   </span>{" "}
-                  of{" "}
+                  {t("of")}{" "}
                   <span className="font-semibold">{pagination.total}</span>{" "}
-                  records
+                  {t("records")}
                 </p>
                 {setLimit && (
                   <div className="mt-2 flex items-center gap-2">
-                    <span>Show:</span>
+                    <span>{t("Show")}:</span>
                     <select
                       value={limit}
                       onChange={(e) => {
@@ -366,7 +381,7 @@ const DataTableContainer = ({
                         <option key={n} value={n}>{n}</option>
                       ))}
                     </select>
-                    <span>per page</span>
+                    <span>{t("per page")}</span>
                   </div>
                 )}
               </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-const FilterDropdown = ({ limit, onLimitChange, onReset }) => {
+const FilterDropdown = ({ limit, onLimitChange, onReset, children }) => {
   const { t } = useTranslation();
   const [showFilters, setShowFilters] = useState(false);
 
@@ -19,6 +19,15 @@ const FilterDropdown = ({ limit, onLimitChange, onReset }) => {
       {showFilters && (
         <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-10 p-4">
           <div className="space-y-4">
+            {/* Custom filters passed as children */}
+            {children && (
+              <>
+                <div className="space-y-2">{children}</div>
+                <div className="border-t border-gray-200"></div>
+              </>
+            )}
+
+            {/* Default items per page */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t('Items per page')}
@@ -36,7 +45,9 @@ const FilterDropdown = ({ limit, onLimitChange, onReset }) => {
                 ))}
               </select>
             </div>
-            <div className="pt-2 border-t">
+
+            {/* Reset button */}
+            <div className="pt-2">
               <button
                 onClick={() => {
                   onReset();

@@ -1,23 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { useCountries } from "react-countries";
-import toast from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 
 // Redux
-import { useRegisterMutation } from "../../redux/api/authApi";
-import { useGetUserByTypeQuery } from "../../redux/api/userApi";
+import { useRegisterMutation, useGetUserByTypeQuery } from "../../redux/api/authApi";
 
-// Shared GUI Components
+// Layout & GUI Components
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 import AppPageHeader from "../layout/AppPageHeader";
 import AppCard from "../GUI/AppCard";
 import AppInput from "../GUI/AppInput";
-import AppSubmitButton from "../GUI/AppSubmitButton";
-import AppCancelButton from "../GUI/AppCancelButton";
+import AppCheckbox from "../GUI/AppCheckbox";
+import AppButton from "../GUI/AppButton";
 import GenderRadio from "../GUI/GenderRadio";
 import NationalitySelect from "../GUI/NationalitySelect";
 import AvatarUpload from "../GUI/AvatarUpload";
@@ -34,6 +32,7 @@ const NewTeacher = () => {
     dateOfBirth: "",
     gender: "",
     passportNumber: "",
+    nationalID: "",
     nationality: "",
     phoneNumber: "",
     secondaryPhoneNumber: "",
@@ -51,17 +50,19 @@ const NewTeacher = () => {
     dateOfBirth,
     gender,
     passportNumber,
+    nationalID,
     nationality,
     phoneNumber,
     secondaryPhoneNumber,
     email,
     password,
     address,
+    status,
   } = teacher;
 
   const [register, { isLoading, error, isSuccess }] = useRegisterMutation();
 
-  // Age Calculation Logic
+  // Age calculation from DOB
   const calculateAgeFromDOB = (dob) => {
     if (!dob) return "";
     const today = new Date();
@@ -75,7 +76,9 @@ const NewTeacher = () => {
   };
 
   useEffect(() => {
-    if (error) toast.error(error?.data?.message);
+    if (error) {
+      toast.error(error?.data?.message || t("Error creating teacher"));
+    }
     if (isSuccess) {
       toast.success(t("New Teacher Created Successfully"));
       navigate("/admin/teachers");
@@ -84,7 +87,8 @@ const NewTeacher = () => {
   }, [error, isSuccess, navigate, refetch, t]);
 
   const onChange = (e) => {
-    const { name, value, type, files } = e.target;
+    const { name, value, type, checked, files } = e.target;
+
     if (name === "avatar") {
       const file = files[0];
       if (!file) return;
@@ -105,7 +109,7 @@ const NewTeacher = () => {
     } else {
       setTeacher({
         ...teacher,
-        [name]: type === "radio" ? (value === "true" ? true : value === "false" ? false : value) : value,
+        [name]: type === "checkbox" ? checked : value,
       });
     }
   };
@@ -113,7 +117,7 @@ const NewTeacher = () => {
   const submitHandler = (e) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !password.trim()) {
-      return toast.error(t("Please fill required fields"));
+      return toast.error(t("Please fill all required fields"));
     }
     register({
       ...teacher,
@@ -124,9 +128,9 @@ const NewTeacher = () => {
 
   return (
     <AdminLayout>
-      <MetaData title={t("New Teacher")} />
+      <MetaData title={t("Create New Teacher")} />
 
-      <div className="max-w-6xl mx-auto py-4 px-4">
+      <div className="max-w-6xl mx-auto">
         <AppPageHeader
           title={t("New Teacher")}
           subtitle={t("Onboard a new faculty member")}
@@ -134,7 +138,7 @@ const NewTeacher = () => {
         />
 
         <form onSubmit={submitHandler} className="space-y-6">
-          {/* Section 1: Account Info */}
+          {/* Account Credentials Card */}
           <AppCard title={t("Account Credentials")} icon="fa-lock">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <AppInput
@@ -164,22 +168,24 @@ const NewTeacher = () => {
             </div>
           </AppCard>
 
-          {/* Section 2: Personal Info */}
+          {/* Personal Information Card */}
           <AppCard
             title={t("Personal Information")}
             icon="fa-user"
             footer={
-              <div className="flex justify-end gap-2">
-                <AppCancelButton backUrl="/admin/teachers" />
-                <AppSubmitButton
-                  label="Create Teacher"
+              <div className="flex justify-end gap-3">
+                <AppButton backUrl="/admin/teachers" />
+                <AppButton
+                  type="submit"
+                  label={t("Create Teacher")}
+                  loadingLabel={t("Creating...")}
                   isLoading={isLoading}
                   icon="fa-user-plus"
                 />
               </div>
             }
           >
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
               <GenderRadio value={gender} onChange={onChange} />
 
               <AppInput
@@ -193,7 +199,6 @@ const NewTeacher = () => {
                   .toISOString()
                   .split("T")[0]}
               />
-
               <AppInput
                 label={t("Age")}
                 type="number"
@@ -201,21 +206,28 @@ const NewTeacher = () => {
                 value={age}
                 onChange={onChange}
                 readOnly
-                helperText="Auto-calculated"
+                helperText={t("Auto-calculated")}
               />
-
-              <NationalitySelect value={nationality} onChange={onChange} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+              <NationalitySelect value={nationality} onChange={onChange} />
               <AppInput
                 label={t("Passport No")}
                 name="passportNumber"
                 value={passportNumber}
                 onChange={onChange}
-                placeholder="Min 8 characters"
+                placeholder={t("Min 8 characters")}
               />
-
+              <AppInput
+                label={t("National ID")}
+                name="nationalID"
+                value={nationalID}
+                onChange={onChange}
+                placeholder={t("Min 11 Max 20 characters")}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-semibold text-gray-500 uppercase">
                   {t("Primary Contact")}
@@ -253,6 +265,15 @@ const NewTeacher = () => {
                 onChange={onChange}
                 type="textarea"
                 rows={2}
+              />
+            </div>
+            {/* Status checkbox matching NewGrade style */}
+            <div className="mt-4">
+              <AppCheckbox
+                name="status"
+                checked={status}
+                onChange={onChange}
+                label={t("Active")}
               />
             </div>
           </AppCard>

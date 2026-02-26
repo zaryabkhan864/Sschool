@@ -32,7 +32,20 @@ const SearchableDropdown = ({
   const observer = useRef();
   const lastElementRef = useRef();
 
-  // Handle click outside
+  // 🔁 Sync internal searchTerm with the label of the selected value
+  useEffect(() => {
+    if (value) {
+      const selectedOption = options.find(opt => opt.value === value);
+      if (selectedOption && selectedOption.label !== searchTerm) {
+        setSearchTerm(selectedOption.label);
+      }
+    } else {
+      // If value is cleared, optionally clear search term
+      if (searchTerm !== '') setSearchTerm('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, options]); // Only runs when value or options change
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
@@ -44,7 +57,6 @@ const SearchableDropdown = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Handle infinite scroll observer
   const lastOptionElementRef = useCallback(node => {
     if (isLoading) return;
     if (observer.current) observer.current.disconnect();
@@ -58,41 +70,54 @@ const SearchableDropdown = ({
     if (node) observer.current.observe(node);
   }, [isLoading, hasMore]);
 
-  // Get selected item label
   const selectedItem = useMemo(() => {
     if (!value) return "";
     return options.find(option => option.value === value)?.label || "";
   }, [value, options]);
 
-  // Handle search
   const handleSearch = (searchValue) => {
     setSearchTerm(searchValue);
     setLocalPage(1);
-    onSearch(searchValue, 1);
+    if (onSearch) {
+      onSearch(searchValue, 1);
+    }
   };
 
-  // Handle select
   const handleSelect = (optionValue, optionLabel) => {
     onChange(optionValue);
     setIsOpen(false);
-    setSearchTerm(optionLabel);
+    setSearchTerm(optionLabel); // immediate update
   };
 
-  // Handle clear
   const handleClear = () => {
     onChange("");
     setSearchTerm("");
-    onSearch("", 1);
+    if (onSearch) {
+      onSearch("", 1);
+    }
   };
 
-  const defaultInputClass = "w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all bg-white placeholder:text-gray-400";
-  const defaultLabelClass = "block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1";
+  const displayOptions = useMemo(() => {
+    if (onSearch) {
+      return options;
+    } else {
+      if (!searchTerm) return options;
+      const lower = searchTerm.toLowerCase();
+      return options.filter(opt => 
+        opt.label?.toLowerCase().includes(lower) ||
+        opt.subtitle?.toLowerCase().includes(lower)
+      );
+    }
+  }, [options, searchTerm, onSearch]);
+
+  const defaultInputClass = "w-full px-4 py-2.5 text-sm-custom border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all bg-white placeholder:text-gray-400";
+  const defaultLabelClass = "block text-xs-custom font-semibold text-gray-700 uppercase tracking-wider mb-1.5";
 
   return (
     <div className={`relative ${className}`}>
       {label && (
         <label className={defaultLabelClass}>
-          {label} {required && <span className="text-red-500">*</span>}
+          {label} {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
 
@@ -107,34 +132,39 @@ const SearchableDropdown = ({
           onFocus={() => !disabled && setIsOpen(true)}
           onClick={() => !disabled && setIsOpen(true)}
           required={required}
-          readOnly={!!value && showSelected}
+          readOnly={!!value && showSelected} // Kept as original
           disabled={disabled}
         />
         
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
+        <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-400">
           {isLoading ? (
-            <i className="fa fa-spinner fa-spin text-[10px]"></i>
+            <i className="fa fa-spinner fa-spin text-xs-custom"></i>
           ) : (
-            <i className={`fa ${isOpen ? 'fa-chevron-up' : 'fa-chevron-down'} text-[10px]`}></i>
+            <i className={`fa ${isOpen ? 'fa-chevron-up' : 'fa-chevron-down'} text-xs-custom`}></i>
           )}
         </div>
 
         {isOpen && !disabled && (
           <div 
             ref={dropdownRef}
-            className={`absolute left-0 right-0 z-[100] mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden flex flex-col ${dropdownClassName}`}
-            style={{ maxHeight: '300px' }}
+            className={`absolute left-0 z-[100] mt-1 bg-white border border-gray-200 rounded-xl shadow-premium overflow-hidden flex flex-col ${dropdownClassName}`}
+            style={{ 
+              maxHeight: '300px', 
+              minWidth: '300px',
+              width: 'auto',
+              maxWidth: 'min(90vw, 400px)'
+            }}
           >
             <div className="overflow-y-auto flex-1 custom-scrollbar">
-              {options.length > 0 ? (
-                <ul className="divide-y divide-gray-50">
-                  {options.map((option, index) => {
-                    const isLast = index === options.length - 1;
+              {displayOptions.length > 0 ? (
+                <ul className="divide-y divide-gray-100">
+                  {displayOptions.map((option, index) => {
+                    const isLast = index === displayOptions.length - 1;
                     return (
                       <li
                         key={`${option.value}-${index}`}
-                        ref={isLast && hasMore ? lastOptionElementRef : null}
-                        className={`px-4 py-3 hover:bg-blue-50 cursor-pointer transition-all flex items-center justify-between ${value === option.value ? 'bg-blue-50' : ''}`}
+                        ref={onSearch && isLast && hasMore ? lastOptionElementRef : null}
+                        className={`px-4 py-3 hover:bg-brand-50 cursor-pointer transition-all flex items-center justify-between ${value === option.value ? 'bg-brand-50' : ''}`}
                         onClick={() => handleSelect(option.value, option.label)}
                       >
                         {renderOption ? (
@@ -142,22 +172,22 @@ const SearchableDropdown = ({
                         ) : (
                           <>
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold shadow-sm">
+                              <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white text-xs-custom font-bold shadow-sm">
                                 {option.label?.charAt(0).toUpperCase() || '?'}
                               </div>
                               <div>
-                                <p className="text-sm font-semibold text-gray-700 leading-tight">
+                                <p className="text-sm-custom font-semibold text-gray-800 leading-tight">
                                   {option.label}
                                 </p>
                                 {option.subtitle && (
-                                  <p className="text-[10px] text-gray-500">
+                                  <p className="text-xs-custom text-gray-500">
                                     {option.subtitle}
                                   </p>
                                 )}
                               </div>
                             </div>
                             {value === option.value && (
-                              <i className="fa fa-check-circle text-blue-500 text-sm"></i>
+                              <i className="fa fa-check-circle text-brand-500 text-base-custom"></i>
                             )}
                           </>
                         )}
@@ -169,21 +199,21 @@ const SearchableDropdown = ({
                 <div className="p-8 text-center">
                   {isLoading ? (
                     <div className="flex flex-col items-center gap-2">
-                      <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                      <p className="text-[11px] text-gray-500">{loadingMessage}</p>
+                      <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-xs-custom text-gray-500">{loadingMessage}</p>
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-400 font-medium italic">
+                    <p className="text-xs-custom text-gray-400 font-medium italic">
                       {emptyMessage}
                     </p>
                   )}
                 </div>
               )}
 
-              {isLoading && options.length > 0 && (
-                <div className="p-3 flex justify-center items-center gap-2 bg-gray-50/50 border-t border-gray-50">
-                  <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-[10px] text-blue-600 font-semibold uppercase tracking-tighter">
+              {isLoading && displayOptions.length > 0 && (
+                <div className="p-3 flex justify-center items-center gap-2 bg-gray-50/50 border-t border-gray-100">
+                  <div className="w-3 h-3 border-2 border-brand-600 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-xs-custom text-brand-600 font-semibold uppercase tracking-tighter">
                     Loading more...
                   </span>
                 </div>
@@ -194,19 +224,19 @@ const SearchableDropdown = ({
       </div>
 
       {error && (
-        <p className="text-xs text-red-500 mt-1">{error}</p>
+        <p className="text-xs-custom text-red-500 mt-1.5">{error}</p>
       )}
 
       {value && showSelected && (
-        <div className="mt-2 flex items-center justify-between px-2 py-1 bg-blue-50 border border-blue-100 rounded-md">
-          <span className="text-[11px] text-blue-700 font-semibold">
-            <i className="fa fa-check-circle mr-1"></i> {selectedItem}
+        <div className="mt-3 flex items-center justify-between px-3 py-2 bg-brand-50 border border-brand-100 rounded-lg">
+          <span className="text-xs-custom text-brand-700 font-semibold">
+            <i className="fa fa-check-circle mr-1.5"></i> {selectedItem}
           </span>
           {clearable && !disabled && (
             <button 
               type="button" 
               onClick={handleClear}
-              className="text-[10px] text-red-500 hover:text-red-700 font-bold"
+              className="text-xs-custom text-red-500 hover:text-red-700 font-bold"
             >
               CLEAR
             </button>

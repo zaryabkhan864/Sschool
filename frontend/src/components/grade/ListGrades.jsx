@@ -5,8 +5,8 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
-  useDeleteGradeMutation,
   useGetGradesQuery,
+  useDeleteGradeMutation,
 } from "../../redux/api/gradesApi";
 
 import AdminLayout from "../layout/AdminLayout";
@@ -14,13 +14,11 @@ import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import ConfirmationModal from "../GUI/ConfirmationModal";
 import { DataTableContainer } from "../GUI/DataTableContainer";
-import AddButton from "../layout/AddButton";
-import RefreshButton from "../layout/RefreshButton";
-import StatusBadge from "../GUI/StatusBadge";
+import AppButton from "../GUI/AppButton";
 import ActionButtons from "../GUI/ActionButtons";
-import FilterDropdown from "../GUI/FilterDropdown";
 import EmptyState from "../GUI/EmptyState";
 import TruncatedCell from "../GUI/TruncatedCell";
+import AppBadge from "../GUI/AppBadge";
 
 const ListGrades = () => {
   const { t } = useTranslation();
@@ -33,6 +31,8 @@ const ListGrades = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(8);
+  const [statusFilter, setStatusFilter] = useState(""); // "active", "inactive", or ""
+  const [showFilters, setShowFilters] = useState(false); // filter dropdown visibility
 
   // Toast from navigation (e.g., after creating a grade)
   useEffect(() => {
@@ -62,8 +62,9 @@ const ListGrades = () => {
     page: currentPage,
     limit,
     keyword: searchTerm,
+    status: statusFilter || undefined,
   }, {
-    refetchOnMountOrArgChange: true,   // ensures fresh data after mutations
+    refetchOnMountOrArgChange: true,
   });
 
   const [
@@ -116,78 +117,95 @@ const ListGrades = () => {
     navigate(`/admin/grade/${id}/details`);
   };
 
-  // Columns using shared components
+  // Reset all filters
+  const resetFilters = () => {
+    setStatusFilter("");
+    setSearch("");
+    setSearchTerm("");
+    setCurrentPage(1);
+    setLimit(8);
+    setShowFilters(false);
+  };
+
+  // Columns
   const columns = [
     {
       header: t("Grade Name"),
       accessor: "gradeName",
       width: "25%",
-      minWidth: "180px",
-      render: (value) => <TruncatedCell lines={1}>{value}</TruncatedCell>
-    },
-    {
-      header: t("Description"),
-      accessor: "description",
-      width: "35%",
-      minWidth: "250px",
-      render: (value) => value ? (
-        <TruncatedCell lines={1} className="max-w-[300px]">{value}</TruncatedCell>
-      ) : (
-        <span className="text-sm text-gray-400 italic">{t("No description")}</span>
-      )
+      minWidth: "200px",
+      render: (value) => <TruncatedCell maxChars={55}>{value}</TruncatedCell>
     },
     {
       header: t("Academic Level"),
       accessor: "academicLevel",
       width: "20%",
       minWidth: "150px",
-      render: (value) => (
-        <TruncatedCell lines={1}>{value?.name || 'N/A'}</TruncatedCell>
+      render: (value) => value ? (
+        <div className="truncate">
+          <span className="text-sm text-gray-700 font-medium truncate block" title={value.name}>
+            {value.name}
+          </span>
+          {value.level && (
+            <p className="text-[10px] text-gray-400 truncate" title={value.level}>
+              {value.level}
+            </p>
+          )}
+        </div>
+      ) : (
+        <span className="text-sm text-gray-400 italic">{t("Not assigned")}</span>
       )
+    },
+    {
+      header: t("Description"),
+      accessor: "description",
+      width: "30%",
+      minWidth: "250px",
+      render: (value) => <TruncatedCell maxChars={70}>{value}</TruncatedCell>
     },
     {
       header: t("Status"),
       accessor: "status",
       width: "15%",
       minWidth: "100px",
-      render: (value) => <StatusBadge active={value} />
+      render: (value) => <AppBadge type="booleanStatus" active={value === true || value === 1} />
     }
   ];
 
-  // Stats
+  // Stats (based on counts from API response)
   const stats = [
     {
       label: t("Total Grades"),
       value: data?.pagination?.total || 0,
-      icon: "graduation-cap",
+      icon: "layer-group",
       color: "blue"
     },
     {
       label: t("Active Grades"),
-      value: data?.grades?.filter(grade => grade.status).length || 0,
+      value: data?.pagination?.counts?.active || 0,
       icon: "check-circle",
       color: "green"
+    },
+    {
+      label: t("Inactive Grades"),
+      value: data?.pagination?.counts?.deactive || 0,
+      icon: "times-circle",
+      color: "red"
     },
     {
       label: t("Items Shown"),
       value: data?.grades?.length || 0,
       icon: "list-ul",
       color: "purple"
-    },
-    {
-      label: t("Total Pages"),
-      value: data?.pagination?.totalPages || 1,
-      icon: "file-alt",
-      color: "orange"
     }
   ];
 
   const addButton = userRole === "admin" ? (
-    <AddButton to="/admin/grade/new" text={t("Add New Grade")} icon="plus" />
+    <AppButton to="/admin/grade/new" label={t("Add New Grade")} icon="plus" />
   ) : null;
 
   const refreshButton = (
-    <RefreshButton
+    <AppButton
       onClick={handleRefresh}
       text={t("Refresh")}
       icon="sync-alt"
@@ -196,21 +214,78 @@ const ListGrades = () => {
     />
   );
 
-  // Filter dropdown using shared component
+  // Single filter button with integrated dropdown
   const filters = (
-    <FilterDropdown
-      limit={limit}
-      onLimitChange={(newLimit) => {
-        setLimit(newLimit);
-        setCurrentPage(1);
-      }}
-      onReset={() => {
-        setSearch("");
-        setSearchTerm("");
-        setCurrentPage(1);
-        setLimit(8);
-      }}
-    />
+    <div className="relative">
+      <button
+        onClick={() => setShowFilters(!showFilters)}
+        className="px-4 py-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 flex items-center gap-2 shadow-soft"
+      >
+        <i className="fa fa-sliders-h"></i>
+        <span>{t("Filters")}</span>
+        <i className={`fa fa-chevron-${showFilters ? "up" : "down"} text-sm`}></i>
+      </button>
+
+      {showFilters && (
+        <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-premium z-20 p-5">
+          <h3 className="font-medium text-gray-700 mb-3">
+            {t("Filter Grades")}
+          </h3>
+          <div className="space-y-4">
+            {/* Items per page */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("Items per page")}
+              </label>
+              <select
+                value={limit}
+                onChange={(e) => {
+                  setLimit(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="w-full p-2 border border-gray-300 rounded-md text-sm"
+              >
+                {[5, 8, 10, 15, 20, 25, 50].map((n) => (
+                  <option key={n} value={n}>
+                    {n} {t("items")}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Status filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("Status")}
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full p-2 border border-gray-300 rounded-md text-sm"
+              >
+                <option value="">{t("All Status")}</option>
+                <option value="active">{t("Active")}</option>
+                <option value="inactive">{t("Inactive")}</option>
+              </select>
+            </div>
+
+            {/* Reset button */}
+            <div className="pt-2 border-t">
+              <button
+                onClick={resetFilters}
+                className="w-full px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md flex items-center justify-center gap-2"
+              >
+                <i className="fa fa-undo"></i>
+                {t("Reset Filters")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 
   const renderRowActions = (row) => (
@@ -227,8 +302,8 @@ const ListGrades = () => {
 
   const emptyState = (
     <EmptyState
-      icon="graduation-cap"
-      title={searchTerm ? t("No grades found matching your search") : t("No grades found")}
+      icon="layer-group"
+      title={searchTerm || statusFilter ? t("No grades found matching your criteria") : t("No grades found")}
       message={t("Try adjusting your search or filters to find what you're looking for.")}
     />
   );

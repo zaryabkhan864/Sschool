@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useCountries } from "react-countries";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
@@ -8,7 +8,7 @@ import "react-phone-input-2/lib/style.css";
 
 // Redux
 import { useRegisterMutation } from "../../redux/api/authApi";
-import { useGetUserByTypeQuery } from "../../redux/api/userApi";
+import { useGetUserByTypeQuery } from "../../redux/api/authApi";
 import { useGetGradesQuery } from "../../redux/api/gradesApi";
 
 // Shared GUI Components
@@ -17,12 +17,12 @@ import MetaData from "../layout/MetaData";
 import AppPageHeader from "../layout/AppPageHeader";
 import AppCard from "../GUI/AppCard";
 import AppInput from "../GUI/AppInput";
-import AppSubmitButton from "../GUI/AppSubmitButton";
-import AppCancelButton from "../GUI/AppCancelButton";
-import SearchableSelect from "../GUI/SearchableSelect";
+import AppButton from "../GUI/AppButton";
 import GenderRadio from "../GUI/GenderRadio";
 import NationalitySelect from "../GUI/NationalitySelect";
 import AvatarUpload from "../GUI/AvatarUpload";
+import SearchableDropdown from "../layout/SearchableDropdown";
+import AppCheckbox from "../GUI/AppCheckbox";
 
 const NewStudent = () => {
   const { t } = useTranslation();
@@ -30,17 +30,36 @@ const NewStudent = () => {
   const { countries } = useCountries();
   const { refetch } = useGetUserByTypeQuery({ type: "student" });
 
-  // Grade Selection Logic State
-  const [gradeSearch, setGradeSearch] = useState("");
-  const [showGradeDropdown, setShowGradeDropdown] = useState(false);
+  // ------------------ Grades (single select) ------------------
+  const [gradeSearchTerm, setGradeSearchTerm] = useState("");
   const [gradePage, setGradePage] = useState(1);
   const [gradesList, setGradesList] = useState([]);
   const [hasMore, setHasMore] = useState(true);
 
-  const gradeDropdownRef = useRef(null);
-  const gradeInputRef = useRef(null);
-  const gradeObserver = useRef();
+  const { data: gradesData, isFetching: gradeLoading } = useGetGradesQuery(
+    { page: gradePage, limit: 10, keyword: gradeSearchTerm }
+  );
 
+  useEffect(() => {
+    if (gradesData?.grades) {
+      const newGrades = gradesData.grades;
+      setGradesList((prev) => (gradePage === 1 ? newGrades : [...prev, ...newGrades]));
+      setHasMore(newGrades.length === 10);
+    }
+  }, [gradesData, gradePage]);
+
+  const handleGradeSearch = useCallback((searchValue, page) => {
+    setGradeSearchTerm(searchValue);
+    setGradePage(page);
+    if (page === 1) setGradesList([]);
+  }, []);
+
+  const gradeOptions = useMemo(
+    () => gradesList.map((g) => ({ value: g._id || g.id, label: g.gradeName || g.name })),
+    [gradesList]
+  );
+
+  // ------------------ Student state ------------------
   const [student, setStudent] = useState({
     role: "student",
     name: "",
@@ -49,6 +68,7 @@ const NewStudent = () => {
     gender: "",
     nationality: "",
     passportNumber: "",
+    nationalID: "",               // Added nationalID field
     phoneNumber: "",
     secondaryPhoneNumber: "",
     address: "",
@@ -57,7 +77,7 @@ const NewStudent = () => {
     email: "",
     password: "",
     avatar: "",
-    siblings: [],
+    siblings: [], // will hold array of student IDs
   });
 
   const [avatarPreview, setAvatarPreview] = useState("");
@@ -68,17 +88,17 @@ const NewStudent = () => {
     gender,
     nationality,
     passportNumber,
+    nationalID,                   // Destructure nationalID
     phoneNumber,
     secondaryPhoneNumber,
     address,
     grade,
     email,
     password,
+    siblings,
   } = student;
 
-  const [register, { isLoading, error, isSuccess }] = useRegisterMutation();
-
-  // Age Calculation
+  // ------------------ Age calculation ------------------
   const calculateAgeFromDOB = (dob) => {
     if (!dob) return "";
     const today = new Date();
@@ -91,44 +111,11 @@ const NewStudent = () => {
     return calculatedAge.toString();
   };
 
-  // Grades Fetching Logic
-  const { data: gradesData, isFetching: gradeLoading } = useGetGradesQuery(
-    {
-      page: gradePage,
-      limit: 10,
-      keyword: gradeSearch,
-    },
-    { skip: !showGradeDropdown && gradeSearch === "" }
-  );
-
-  const lastGradeElementRef = useCallback(
-    (node) => {
-      if (gradeLoading) return;
-      if (gradeObserver.current) gradeObserver.current.disconnect();
-      gradeObserver.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && hasMore) setGradePage((prev) => prev + 1);
-      });
-      if (node) gradeObserver.current.observe(node);
-    },
-    [gradeLoading, hasMore]
-  );
+  // ------------------ Registration mutation ------------------
+  const [register, { isLoading, error, isSuccess }] = useRegisterMutation();
 
   useEffect(() => {
-    if (gradesData?.grades) {
-      const grades = gradesData.grades;
-      setGradesList((prev) => (gradePage === 1 ? grades : [...prev, ...grades]));
-      setHasMore(grades.length === 10);
-    }
-  }, [gradesData, gradePage]);
-
-  const selectedGradeName = useMemo(() => {
-    const found = gradesList.find((g) => (g._id || g.id) === grade);
-    return found?.gradeName || found?.name || "";
-  }, [grade, gradesList]);
-
-  // Handle Success/Error
-  useEffect(() => {
-    if (error) toast.error(error?.data?.message);
+    if (error) toast.error(error?.data?.message || t("Error creating student"));
     if (isSuccess) {
       toast.success(t("New Student Enrolled Successfully"));
       navigate("/admin/students");
@@ -136,6 +123,7 @@ const NewStudent = () => {
     }
   }, [error, isSuccess, navigate, refetch, t]);
 
+  // ------------------ Form change handler ------------------
   const onChange = (e) => {
     const { name, value, type, files } = e.target;
     if (name === "avatar") {
@@ -170,10 +158,58 @@ const NewStudent = () => {
     }
   };
 
+  // ------------------ Siblings management ------------------
+  // Search state for sibling picker
+  const [siblingSearchTerm, setSiblingSearchTerm] = useState("");
+  const [siblingSearchResults, setSiblingSearchResults] = useState([]);
+
+  // Fetch students for sibling search (role=student, dropdown=true to bypass pagination & cookie filters)
+  const { data: siblingData, isFetching: siblingLoading } = useGetUserByTypeQuery(
+    { type: "student", keyword: siblingSearchTerm, dropdown: true },
+    { skip: siblingSearchTerm.length < 2 } // only search after 2 chars
+  );
+
+  // Update results when data arrives
+  useEffect(() => {
+    if (siblingData?.users) {
+      // Filter out already selected siblings
+      const alreadySelectedIds = new Set(siblings);
+      const available = siblingData.users.filter(
+        (u) => !alreadySelectedIds.has(u._id) && u._id !== "current-student-id" // if editing, exclude self
+      );
+      setSiblingSearchResults(available);
+    } else {
+      setSiblingSearchResults([]);
+    }
+  }, [siblingData, siblings]);
+
+  // Add a sibling
+  const addSibling = (studentId, studentName) => {
+    if (siblings.includes(studentId)) {
+      toast.error(t("Student already added as sibling"));
+      return;
+    }
+    setStudent((prev) => ({
+      ...prev,
+      siblings: [...prev.siblings, studentId],
+    }));
+    setSiblingSearchTerm(""); // clear search after adding
+  };
+
+  // Remove a sibling
+  const removeSibling = (studentId) => {
+    setStudent((prev) => ({
+      ...prev,
+      siblings: prev.siblings.filter((id) => id !== studentId),
+    }));
+  };
+
+  // ------------------ Submit handler ------------------
   const submitHandler = (e) => {
     e.preventDefault();
     if (!grade) return toast.error(t("Please select a grade"));
 
+    // Format phone numbers and send
     register({
       ...student,
       phoneNumber: phoneNumber ? `+${phoneNumber}` : "",
@@ -185,7 +221,7 @@ const NewStudent = () => {
     <AdminLayout>
       <MetaData title={t("New Student")} />
 
-      <div className="max-w-6xl mx-auto py-4 px-4">
+      <div className="max-w-6xl mx-auto ">
         <AppPageHeader
           title={t("New Student")}
           subtitle={t("Enroll a new student to the academy")}
@@ -193,7 +229,7 @@ const NewStudent = () => {
         />
 
         <form onSubmit={submitHandler} className="space-y-6">
-          {/* Section 1: Account Info */}
+          {/* Account Credentials Card */}
           <AppCard title={t("Student Credentials")} icon="fa-lock">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <AppInput
@@ -223,15 +259,17 @@ const NewStudent = () => {
             </div>
           </AppCard>
 
-          {/* Section 2: Academic & Personal Info */}
+          {/* Academic & Personal Details Card */}
           <AppCard
             title={t("Academic & Personal Details")}
             icon="fa-graduation-cap"
             footer={
               <div className="flex justify-end gap-2">
-                <AppCancelButton backUrl="/admin/students" />
-                <AppSubmitButton
-                  label="Enroll Student"
+                <AppButton backUrl="/admin/students" />
+                <AppButton
+                  type="submit"
+                  label={t("Enroll Student")}
+                  loadingLabel={t("Enrolling...")}
                   isLoading={isLoading}
                   icon="fa-user-plus"
                 />
@@ -249,10 +287,9 @@ const NewStudent = () => {
                 value={dateOfBirth}
                 onChange={onChange}
                 required
-                // Optional: set a max date for students (e.g., min age 3)
-                // max={new Date(new Date().setFullYear(new Date().getFullYear() - 3))
-                //   .toISOString()
-                //   .split("T")[0]}
+                max={new Date(new Date().setFullYear(new Date().getFullYear() - 4))
+                  .toISOString()
+                  .split("T")[0]}
               />
 
               <AppInput
@@ -261,41 +298,44 @@ const NewStudent = () => {
                 name="age"
                 value={age}
                 readOnly
-                helperText="Auto-calculated"
+                helperText={t("Auto-calculated")}
               />
 
               <NationalitySelect value={nationality} onChange={onChange} />
             </div>
 
+            {/* NEW ROW: Passport Number and National ID (optional) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+              <AppInput
+                label={t("Passport No")}
+                name="passportNumber"
+                value={passportNumber}
+                onChange={onChange}
+                placeholder={t("Min 8 characters")}
+              />
+              <AppInput
+                label={t("National ID")}
+                name="nationalID"
+                value={nationalID}
+                onChange={onChange}
+                placeholder={t("Min 11 Max 20 characters")}
+              />
+            </div>
+
             {/* Row 2: Grade, Primary Contact, Emergency Contact */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-              <SearchableSelect
+              <SearchableDropdown
                 label={t("Grade")}
-                placeholder="Search grade..."
-                searchValue={gradeSearch}
-                onSearchChange={(e) => {
-                  setGradeSearch(e.target.value);
-                  setGradePage(1);
-                }}
-                showDropdown={showGradeDropdown}
-                setShowDropdown={setShowGradeDropdown}
-                loading={gradeLoading}
-                items={gradesList}
-                onSelect={(id, name) => {
-                  setStudent({ ...student, grade: id });
-                  setShowGradeDropdown(false);
-                  setGradeSearch(name);
-                }}
-                selectedId={grade}
-                selectedName={selectedGradeName}
-                onClear={() => {
-                  setStudent({ ...student, grade: "" });
-                  setGradeSearch("");
-                }}
-                lastElementRef={lastGradeElementRef}
-                inputRef={gradeInputRef}
-                dropdownRef={gradeDropdownRef}
+                placeholder={t("Search grade...")}
+                value={grade}
+                onChange={(selectedValue) => setStudent({ ...student, grade: selectedValue })}
+                onSearch={handleGradeSearch}
+                options={gradeOptions}
+                isLoading={gradeLoading}
+                hasMore={hasMore}
                 required
+                emptyMessage={t("No results found")}
+                loadingMessage={t("Loading...")}
               />
 
               <div className="flex flex-col gap-1.5">
@@ -325,6 +365,71 @@ const NewStudent = () => {
               </div>
             </div>
 
+            {/* Siblings Section */}
+            <div className="mt-6 border-t pt-4">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <i className="fa fa-users text-gray-400"></i>
+                {t("Siblings (Optional)")}
+              </h3>
+
+              {/* Search Input */}
+              <div className="relative">
+                <AppInput
+                  label={t("Search for a student")}
+                  placeholder={t("Type at least 2 characters...")}
+                  value={siblingSearchTerm}
+                  onChange={(e) => setSiblingSearchTerm(e.target.value)}
+                />
+                {siblingLoading && (
+                  <div className="absolute right-3 top-9">
+                    <i className="fa fa-spinner fa-spin text-gray-400"></i>
+                  </div>
+                )}
+              </div>
+
+              {/* Search Results Dropdown */}
+              {siblingSearchTerm.length >= 2 && siblingSearchResults.length > 0 && (
+                <ul className="mt-1 border border-gray-200 rounded-md max-h-40 overflow-y-auto shadow-sm">
+                  {siblingSearchResults.map((s) => (
+                    <li
+                      key={s._id}
+                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center text-sm"
+                      onClick={() => addSibling(s._id, s.name)}
+                    >
+                      <span>{s.name}</span>
+                      <span className="text-gray-400 text-xs">{s.email}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/* Selected Siblings Chips */}
+              {siblings.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {siblings.map((id) => {
+                    // Find the student name from search results if available,
+                    // otherwise just show ID (could be enhanced with a cache)
+                    const sibling = siblingData?.users?.find((u) => u._id === id);
+                    return (
+                      <span
+                        key={id}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
+                      >
+                        {sibling?.name || id}
+                        <button
+                          type="button"
+                          onClick={() => removeSibling(id)}
+                          className="ml-1 text-blue-500 hover:text-blue-700"
+                        >
+                          <i className="fa fa-times-circle"></i>
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* Row 3: Avatar and Address */}
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
               <AvatarUpload
@@ -341,6 +446,16 @@ const NewStudent = () => {
                 onChange={onChange}
                 type="textarea"
                 rows={2}
+              />
+            </div>
+
+            {/* Status Checkbox */}
+            <div className="mt-4">
+              <AppCheckbox
+                name="status"
+                checked={student.status}
+                onChange={onChange}
+                label={t("Active")}
               />
             </div>
           </AppCard>

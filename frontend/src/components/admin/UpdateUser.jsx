@@ -12,7 +12,7 @@ import { useTranslation } from "react-i18next";
 import {
   useGetUserDetailsQuery,
   useUpdateUserMutation,
-} from "../../redux/api/userApi";
+} from "../../redux/api/authApi";
 import { useGetGradesQuery } from "../../redux/api/gradesApi";
 
 const UpdateUser = () => {

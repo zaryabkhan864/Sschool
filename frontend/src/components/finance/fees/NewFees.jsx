@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useCreateFeeMutation } from "../../../redux/api/feesApi";
 
 import MetaData from "../../layout/MetaData";
-import { useGetUserByTypeQuery } from "../../../redux/api/userApi";
+import { useGetUserByTypeQuery } from "../../../redux/api/authApi";
 import { useTranslation } from "react-i18next";
 import AdminLayout from "../../layout/AdminLayout";
 

@@ -1,33 +1,31 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import {
   useDeleteUserMutation,
   useGetUserByTypeQuery,
-} from "../../redux/api/userApi";
+} from "../../redux/api/authApi";
 
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import ConfirmationModal from "../GUI/ConfirmationModal";
 import { DataTableContainer } from "../GUI/DataTableContainer";
-import AddButton from "../layout/AddButton";
-import RefreshButton from "../layout/RefreshButton";
+import AppButton from "../GUI/AppButton";
 import ActionButtons from "../GUI/ActionButtons";
 import FilterDropdown from "../GUI/FilterDropdown";
 import EmptyState from "../GUI/EmptyState";
 import TruncatedCell from "../GUI/TruncatedCell";
-import GenderBadge from "../GUI/GenderBadge";
-import CountryBadge from "../GUI/CountryBadge";
 import PhoneLink from "../GUI/PhoneLink";
-import StatusBadge from "../GUI/StatusBadge";
+import AppBadge from "../GUI/AppBadge";
 
 const ListTeachers = () => {
   const { t } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
 
   const [userRole, setUserRole] = useState("");
@@ -38,7 +36,15 @@ const ListTeachers = () => {
   const [genderFilter, setGenderFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  // Debounced search term with page reset
+  // Toast from navigation (e.g., after creating a teacher)
+  useEffect(() => {
+    if (location.state?.showSuccessToast) {
+      toast.success(t("Teacher created successfully!"));
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, t]);
+
+  // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchTerm(search);
@@ -47,13 +53,13 @@ const ListTeachers = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // API Query
+  // API query
   const {
     data,
     isLoading,
     error,
     refetch,
-    isFetching
+    isFetching,
   } = useGetUserByTypeQuery({
     type: "teacher",
     page: currentPage,
@@ -61,31 +67,37 @@ const ListTeachers = () => {
     keyword: searchTerm,
     gender: genderFilter || undefined,
     status: statusFilter || undefined,
+  }, {
+    refetchOnMountOrArgChange: true,
   });
 
   const [
     deleteUser,
-    { isLoading: isDeleteLoading, error: deleteError, isSuccess },
+    { isLoading: isDeleteLoading, error: deleteError, isSuccess: deleteSuccess },
   ] = useDeleteUserMutation();
 
   const [showModal, setShowModal] = useState(false);
   const [selectedTeacherId, setSelectedTeacherId] = useState(null);
 
+  // Global error / success handling
   useEffect(() => {
-    if (error) toast.error(error?.data?.message);
-    if (deleteError) toast.error(deleteError?.data?.message);
-    if (location.state?.shouldRefetch) {
-      refetch();
-      window.history.replaceState({}, document.title);
-    }
-    if (isSuccess) {
-      toast.success(t("teacherDeleted"));
-      refetch();
+    if (error) toast.error(error?.data?.message || t("Something went wrong"));
+    if (deleteError) toast.error(deleteError?.data?.message || t("Failed to delete teacher"));
+    if (deleteSuccess) {
+      toast.success(t("Teacher deleted successfully"));
       setShowModal(false);
       setSelectedTeacherId(null);
     }
     if (user?.role === "admin") setUserRole("admin");
-  }, [error, deleteError, isSuccess, user, t, refetch, location.state]);
+  }, [error, deleteError, deleteSuccess, user, t]);
+
+  // Refetch when requested from navigation state (e.g., after edit)
+  useEffect(() => {
+    if (location.state?.shouldRefetch) {
+      refetch();
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, refetch]);
 
   const handleDeleteClick = (id) => {
     setSelectedTeacherId(id);
@@ -101,55 +113,61 @@ const ListTeachers = () => {
     toast.success(t("Refreshed"));
   };
 
+  const handleEditTeacher = (id) => {
+    navigate(`/admin/teachers/${id}`);
+  };
+
   const handleViewDetails = (id) => {
-    // navigate is not directly available; we'll use Link in ActionButtons
+    navigate(`/admin/teacher/${id}/details`);
   };
 
-  const handleEdit = (id) => {
-    // navigate is not directly available; we'll use Link in ActionButtons
-  };
-
-  // Columns using shared components
+  // Columns using AppBadge for status, gender, country
   const columns = [
     {
       header: t("Teacher Name"),
       accessor: "name",
-      width: "25%",
-      minWidth: "180px",
-      render: (value, row) => (
-        <div className="truncate">
-          <p className="font-medium text-gray-800 truncate">{value}</p>
-          <p className="text-xs text-gray-500 truncate">{row.email}</p>
-        </div>
-      )
+      width: "30%",
+      minWidth: "200px",
+      render: (value) => <TruncatedCell maxChars={30}>{value}</TruncatedCell>
     },
     {
       header: t("Gender"),
       accessor: "gender",
       width: "12%",
       minWidth: "100px",
-      render: (value) => <GenderBadge gender={value} />
+      render: (value) => <AppBadge type="gender" value={value} />
+
     },
     {
       header: t("Country"),
       accessor: "nationality",
-      width: "13%",
-      minWidth: "110px",
-      render: (value) => <CountryBadge country={value} />
+      width: "15%",
+      minWidth: "120px",
+      render: (value) => <TruncatedCell maxChars={18}>{value}</TruncatedCell>
     },
     {
       header: t("Contact Number"),
       accessor: "phoneNumber",
-      width: "15%",
-      minWidth: "130px",
+      width: "20%",
+      minWidth: "150px",
       render: (value) => <PhoneLink number={value} />
     },
     {
       header: t("Status"),
-      accessor: "status",
-      width: "12%",
+      accessor: "status", // assume the field is named "status"
+      width: "15%",
       minWidth: "100px",
-      render: (value) => <StatusBadge active={value} dot />
+      // FIX: robustly interpret the status value
+      render: (value) => {
+        // Normalize to boolean: true if value is truthy and matches common active representations
+        const isActive = 
+          value === true ||
+          value === "active" ||
+          value === "Active" ||
+          value === "ACTIVE" ||
+          value === 1;
+          return <AppBadge type="booleanStatus" active={isActive} />;
+      }
     }
   ];
 
@@ -184,11 +202,11 @@ const ListTeachers = () => {
   ];
 
   const addButton = userRole === "admin" ? (
-    <AddButton to="/admin/teacher/new" text={t("Add New Teacher")} icon="plus" />
+    <AppButton to="/admin/teacher/new" label={t("Add New Teacher")} icon="plus" />
   ) : null;
 
   const refreshButton = (
-    <RefreshButton
+    <AppButton
       onClick={handleRefresh}
       text={t("Refresh")}
       icon="sync-alt"
@@ -197,9 +215,14 @@ const ListTeachers = () => {
     />
   );
 
-  // Filters using FilterDropdown
+  // Filter dropdown using shared component
   const filters = (
     <FilterDropdown
+      limit={limit}
+      onLimitChange={(newLimit) => {
+        setLimit(newLimit);
+        setCurrentPage(1);
+      }}
       onReset={() => {
         setSearch("");
         setSearchTerm("");
@@ -245,24 +268,6 @@ const ListTeachers = () => {
           <option value="deactive">{t("Deactive")}</option>
         </select>
       </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t("Items per page")}
-        </label>
-        <select
-          value={limit}
-          onChange={(e) => {
-            setLimit(Number(e.target.value));
-            setCurrentPage(1);
-          }}
-          className="w-full p-2 border border-gray-300 rounded-md"
-        >
-          {[5, 8, 10, 15, 20, 50].map(n => (
-            <option key={n} value={n}>{n} {t("items")}</option>
-          ))}
-        </select>
-      </div>
     </FilterDropdown>
   );
 
@@ -272,8 +277,8 @@ const ListTeachers = () => {
       userRole={userRole}
       onDelete={handleDeleteClick}
       isDeleteLoading={isDeleteLoading}
-      viewLink={`/admin/teacher/${row._id}/details`}
-      editLink={`/admin/teachers/${row._id}`}
+      onView={handleViewDetails}
+      onEdit={handleEditTeacher}
     />
   );
 
@@ -281,12 +286,8 @@ const ListTeachers = () => {
     <EmptyState
       icon="chalkboard-teacher"
       title={searchTerm ? t("No teachers found matching your search") : t("No teachers found")}
-      message={searchTerm ? t("Try adjusting your search or filter to find what you're looking for") : t("Add your first teacher to get started")}
-    >
-      {!searchTerm && userRole === "admin" && (
-        <AddButton to="/admin/teacher/new" text={t("Add New Teacher")} icon="plus" />
-      )}
-    </EmptyState>
+      message={t("Try adjusting your search or filters to find what you're looking for.")}
+    />
   );
 
   if (isLoading) return <Loader />;
@@ -296,7 +297,7 @@ const ListTeachers = () => {
       <MetaData title={t("allTeachers")} />
 
       <DataTableContainer
-        title={t("All Teachers")}
+        title={t("Teacher Management")}
         subtitle={t("Manage faculty members and their assignments")}
         data={data?.users || []}
         columns={columns}
@@ -323,20 +324,8 @@ const ListTeachers = () => {
         renderHeaderInfo={() => (
           <p className="text-sm text-gray-500 mt-1">
             <i className="fa fa-info-circle mr-2"></i>
-            {t("Last updated")}: {new Date().toLocaleTimeString()}
+            {t("Showing")}: {data?.users?.length || 0} {t("teachers")}
           </p>
-        )}
-        renderFooterInfo={() => (
-          <div className="text-center mt-4">
-            <p className="text-sm text-gray-500">
-              {userRole === "admin" && (
-                <span className="text-blue-600">
-                  <i className="fa fa-user-shield mr-1"></i>
-                  {t("Admin Mode")}
-                </span>
-              )}
-            </p>
-          </div>
         )}
         className="teacher-table-container"
         showSearch={true}
@@ -349,7 +338,7 @@ const ListTeachers = () => {
         setShowModal={setShowModal}
         confirmDelete={confirmDelete}
         isDeleteLoading={isDeleteLoading}
-        message={t("Do you want to delete this teacher?")}
+        message={t("Are you sure you want to delete this teacher?")}
         title={t("Confirm Delete")}
       />
     </AdminLayout>

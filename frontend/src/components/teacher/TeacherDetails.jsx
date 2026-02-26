@@ -1,389 +1,217 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import toast from "react-hot-toast";
-import { useParams, Link } from "react-router-dom";
-import { useGetUserDetailsQuery } from "../../redux/api/userApi";
+import { useParams } from "react-router-dom";
+import { useGetUserDetailsQuery } from "../../redux/api/authApi";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import { useTranslation } from "react-i18next";
 import AdminLayout from "../layout/AdminLayout";
+import AppCard from "../GUI/AppCard";
+import PrintLayout from "../GUI/PrintLayout";
+import InfoBlock from "../GUI/InfoBlock"; // 👈 imported component
 
 const TeacherDetails = () => {
   const { t } = useTranslation();
   const params = useParams();
-  const { data, isLoading, error, refetch } = useGetUserDetailsQuery(params?.id);
+  const { data, isLoading, error } = useGetUserDetailsQuery(params?.id);
+  const contentRef = useRef(null);
 
   const [teacher, setTeacher] = useState({
     name: "",
-    dateOfBirth: "",
     age: "",
+    dateOfBirth: "",
     gender: "",
-    nationality: "",
     passportNumber: "",
+    nationalID: "",
+    nationality: "",
     phoneNumber: "",
     secondaryPhoneNumber: "",
-    year: "",
-    status: "",
     email: "",
+    address: "",
+    status: "",
     avatar: "",
+    createdAt: "",
   });
 
-  // Age calculate karne ka function
   const calculateAge = (dateOfBirth) => {
     if (!dateOfBirth) return "";
-    
     const birthDate = new Date(dateOfBirth);
     const today = new Date();
-    
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
-    
     return age;
   };
 
-  // Date format karne ka function (time hata ke)
   const formatDate = (dateString) => {
     if (!dateString) return "";
-    
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
   useEffect(() => {
     if (data?.user) {
-      const dateOfBirth = data?.user?.dateOfBirth;
-      const age = dateOfBirth ? calculateAge(dateOfBirth) : "";
-      
+      const userData = data.user;
+      const dob = userData.dateOfBirth;
+      const age = dob ? calculateAge(dob) : "";
+
       setTeacher({
-        name: data?.user?.name,
-        dateOfBirth: dateOfBirth ? formatDate(dateOfBirth) : "",
-        age: age,
-        gender: data?.user?.gender,
-        nationality: data?.user?.nationality,
-        passportNumber: data?.user?.passportNumber,
-        phoneNumber: data?.user?.phoneNumber,
-        secondaryPhoneNumber: data?.user?.secondaryPhoneNumber,
-        year: data?.user?.year,
-        status: data?.user?.status ? "Active" : "Inactive",
-        email: data?.user?.email,
-        avatar: data?.user?.avatar?.url || "https://via.placeholder.com/150",
+        name: userData.name || "",
+        age: age ? age.toString() : "",
+        dateOfBirth: dob ? formatDate(dob) : "",
+        gender: userData.gender || "",
+        passportNumber: userData.passportNumber || "",
+        nationalID: userData.nationalID || "",
+        nationality: userData.nationality || "",
+        phoneNumber: userData.phoneNumber || "",
+        secondaryPhoneNumber: userData.secondaryPhoneNumber || "",
+        email: userData.email || "",
+        address: userData.address || "",
+        status: userData.status ? "Active" : "Inactive",
+        avatar: userData.avatar?.url || "https://via.placeholder.com/150",
+        createdAt: userData.createdAt ? formatDate(userData.createdAt) : "",
       });
     }
     if (error) {
-      toast.error(error?.data?.message);
+      toast.error(error?.data?.message || t("Error loading teacher details"));
     }
-  }, [data, error]);
-
-  const handleRefresh = () => {
-    refetch();
-    toast.success(t("Refreshed"));
-  };
+  }, [data, error, t]);
 
   if (isLoading) {
-    return <Loader />;
+    return (
+      <AdminLayout>
+        <Loader />
+      </AdminLayout>
+    );
   }
 
   return (
     <AdminLayout>
-      <MetaData title={t("Teacher Details") || "Teacher Details"} />
-      
-      <div className="p-6">
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-          <div>
-            {/* ✅ FIX: Heading font style consistent with ListTeachers */}
-            <h1 className="text-2xl font-bold text-gray-800 tracking-tight">
-              {t("Teacher Details") || "Teacher Details"}
-            </h1>
-            <p className="text-sm text-gray-500 mt-1 font-normal">
-              <i className="fa fa-info-circle mr-2"></i>
-              {t("Viewing Teacher Profile") || "Viewing teacher profile and information"}
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleRefresh}
-              className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg shadow-md flex items-center gap-2 transition-all"
-            >
-              <i className="fa fa-refresh"></i>
-              <span>{t("refresh") || "Refresh"}</span>
-            </button>
-            
-            <Link
-              to="/admin/teachers"
-              className="px-6 py-2 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-2 transition-all"
-            >
-              <i className="fa fa-arrow-left"></i>
-              <span>{t("backToList") || "Back to List"}</span>
-            </Link>
-            
-            <Link
-              to={`/admin/teachers/${params?.id}`}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-md flex items-center gap-2 transition-all"
-            >
-              <i className="fa fa-edit"></i>
-              <span>{t("EditTeacher") || "Edit Teacher"}</span>
-            </Link>
-          </div>
-        </div>
+      <MetaData title={t("Teacher Details")} />
 
-        {/* Main Card Container */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-          {/* Profile Header */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 border-b border-gray-200">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-              <div className="relative">
-                <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-100">
-                  <img
-                    src={teacher.avatar}
-                    alt={teacher.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.src = "https://via.placeholder.com/150";
-                    }}
-                  />
-                </div>
-                <div className="absolute bottom-2 right-2">
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
-                    teacher.status === "Active" 
-                      ? "bg-green-100 text-green-800 border border-green-200" 
-                      : "bg-red-100 text-red-800 border border-red-200"
-                  }`}>
-                    <span className={`w-2 h-2 rounded-full mr-2 ${
-                      teacher.status === "Active" ? "bg-green-500" : "bg-red-500"
-                    }`}></span>
-                    {teacher.status}
-                  </span>
-                </div>
+      <PrintLayout
+        title={t("Teacher Profile")}
+        subtitle={t("Personnel Record & Faculty Profile")}
+        backUrl="/admin/teachers"
+        editUrl={`/admin/teachers/${params?.id}`}
+        documentName={teacher.name}
+        contentRef={contentRef}
+      >
+        {/* Printable Content */}
+        <AppCard className="bg-white p-12 border border-gray-200 shadow-sm print:shadow-none print:border-none">
+          <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
+            {/* Letterhead */}
+            <div className="flex justify-between items-start border-b-2 border-gray-800 pb-8 mb-8">
+              <div>
+                <h1 className="text-2xl font-black text-gray-900 tracking-tight uppercase leading-none">
+                  Academy Management System
+                </h1>
+                <p className="text-sm text-gray-500 mt-1 uppercase tracking-widest font-semibold">
+                  Personnel Record & Faculty Profile
+                </p>
               </div>
-              
-              <div className="flex-1">
-                {/* ✅ FIX: Teacher name font styling */}
-                <h2 className="text-3xl font-bold text-gray-800 mb-2 tracking-tight">
-                  {teacher.name}
-                </h2>
-                <div className="flex flex-wrap gap-3 mb-3">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-50 text-blue-700 border border-blue-100 font-medium">
-                    <i className="fa fa-envelope mr-2 text-xs"></i>
-                    {teacher.email}
-                  </span>
-                  {teacher.nationality && (
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-50 text-purple-700 border border-purple-100 font-medium">
-                      <i className="fa fa-globe mr-2 text-xs"></i>
-                      {teacher.nationality}
-                    </span>
-                  )}
-                  {teacher.gender && (
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                      teacher.gender.toLowerCase() === "male" 
-                        ? "bg-blue-100 text-blue-800 border border-blue-200" 
-                        : "bg-pink-100 text-pink-800 border border-pink-200"
-                    }`}>
-                      <i className={`fa ${teacher.gender.toLowerCase() === "male" ? "fa-male" : "fa-female"} mr-2 text-xs`}></i>
-                      {teacher.gender}
-                    </span>
-                  )}
-                </div>
-                {/* ✅ FIX: Passport info font style */}
-                <p className="text-gray-600 text-sm font-normal">
-                  <i className="fa fa-id-card mr-2 text-gray-400"></i>
-                  {teacher.passportNumber || t("noPassport") || "No passport information available"}
+              <div className="text-right">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-tighter italic">
+                  Ref No: TCH-{params?.id?.slice(-6).toUpperCase()}
+                </p>
+                <p className="text-sm font-medium text-gray-700">
+                  {new Date().toLocaleDateString('en-GB')}
                 </p>
               </div>
             </div>
-          </div>
 
-          {/* Details Grid */}
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Personal Information Card */}
-              <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-                {/* ✅ FIX: Card title font style */}
-                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center tracking-tight">
-                  <i className="fa fa-user-circle mr-3 text-blue-600 text-lg"></i>
-                  {t("Personal Information") || "Personal Information"}
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
-                      <i className="fa fa-birthday-cake mr-2 text-gray-400"></i>
-                      {t("Date Of Birth") || "Date of Birth"}
-                    </p>
-                    {/* ✅ FIX: Value font style consistent with ListTeachers */}
-                    <p className="text-lg font-semibold text-gray-800">
-                      {teacher.dateOfBirth || <span className="text-gray-400 font-normal">{t("N/A") || "N/A"}</span>}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
-                      <i className="fa fa-calculator mr-2 text-gray-400"></i>
-                      {t("age") || "Age"}
-                    </p>
-                    <p className="text-lg font-semibold text-gray-800">
-                      {teacher.age ? `${teacher.age} years` : <span className="text-gray-400 font-normal">{t("N/A") || "N/A"}</span>}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
-                      <i className="fa fa-venus-mars mr-2 text-gray-400"></i>
-                      {t("gender") || "Gender"}
-                    </p>
-                    <p className="text-lg font-semibold text-gray-800">
-                      {teacher.gender || <span className="text-gray-400 font-normal">{t("N/A") || "N/A"}</span>}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
-                      <i className="fa fa-flag mr-2 text-gray-400"></i>
-                      {t("nationality") || "Nationality"}
-                    </p>
-                    <p className="text-lg font-semibold text-gray-800">
-                      {teacher.nationality || <span className="text-gray-400 font-normal">{t("Global") || "Global"}</span>}
-                    </p>
-                  </div>
+            {/* Profile Section */}
+            <div className="flex items-center gap-10 mb-12">
+              <div className="relative">
+                <div className="w-40 h-40 border-2 border-gray-100 p-1 rounded-sm shadow-sm overflow-hidden bg-gray-50">
+                  <img
+                    src={teacher.avatar}
+                    alt={teacher.name}
+                    className="w-full h-full object-cover grayscale-[20%]"
+                  />
+                </div>
+                <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded border ${
+                  teacher.status === "Active" ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"
+                }`}>
+                  {teacher.status}
                 </div>
               </div>
 
-              {/* Contact Information Card */}
-              <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center tracking-tight">
-                  <i className="fa fa-address-book mr-3 text-green-600 text-lg"></i>
-                  {t("Contact Information") || "Contact Information"}
-                </h3>
-                <div className="space-y-4">
+              <div className="flex-1">
+                <h2 className="text-4xl font-bold text-gray-900 mb-2 leading-tight">
+                  {teacher.name}
+                </h2>
+                <div className="grid grid-cols-2 gap-y-2">
                   <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
-                      <i className="fa fa-phone mr-2 text-gray-400"></i>
-                      {t("Primary Contact") || "Primary Contact"}
-                    </p>
-                    <p className="text-lg font-semibold text-gray-800">
-                      {teacher.phoneNumber ? (
-                        <a href={`tel:${teacher.phoneNumber}`} className="text-blue-600 hover:text-blue-800 transition-colors">
-                          {teacher.phoneNumber}
-                        </a>
-                      ) : (
-                        <span className="text-gray-400 font-normal">{t("N/A") || "N/A"}</span>
-                      )}
-                    </p>
+                    <span className="text-[11px] block uppercase text-gray-400 font-bold tracking-wider">{t("Designation")}</span>
+                    <span className="text-md font-semibold text-gray-700">Senior Faculty Member</span>
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
-                      <i className="fa fa-mobile-alt mr-2 text-gray-400"></i>
-                      {t("Secondary/Emergency Contact") || "Secondary Contact"}
-                    </p>
-                    <p className="text-lg font-semibold text-gray-800">
-                      {teacher.secondaryPhoneNumber ? (
-                        <a href={`tel:${teacher.secondaryPhoneNumber}`} className="text-blue-600 hover:text-blue-800 transition-colors">
-                          {teacher.secondaryPhoneNumber}
-                        </a>
-                      ) : (
-                        <span className="text-gray-400 font-normal">{t("N/A") || "N/A"}</span>
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
-                      <i className="fa fa-envelope mr-2 text-gray-400"></i>
-                      {t("E-mail Address") || "Email Address"}
-                    </p>
-                    <p className="text-lg font-semibold text-gray-800 truncate">
-                      {teacher.email ? (
-                        <a href={`mailto:${teacher.email}`} className="text-blue-600 hover:text-blue-800 transition-colors">
-                          {teacher.email}
-                        </a>
-                      ) : (
-                        <span className="text-gray-400 font-normal">{t("N/A") || "N/A"}</span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Professional Information Card */}
-              <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center tracking-tight">
-                  <i className="fa fa-briefcase mr-3 text-purple-600 text-lg"></i>
-                  {t("Professional Information") || "Professional Information"}
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
-                      <i className="fa fa-calendar-alt mr-2 text-gray-400"></i>
-                      {t("year") || "Year"}
-                    </p>
-                    <p className="text-lg font-semibold text-gray-800">
-                      {teacher.year || <span className="text-gray-400 font-normal">{t("N/A") || "N/A"}</span>}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
-                      <i className="fa fa-passport mr-2 text-gray-400"></i>
-                      {t("Passport Number") || "Passport Number"}
-                    </p>
-                    <p className="text-lg font-semibold text-gray-800">
-                      {teacher.passportNumber || <span className="text-gray-400 font-normal">{t("N/A") || "N/A"}</span>}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
-                      <i className="fa fa-user-shield mr-2 text-gray-400"></i>
-                      {t("Status") || "Status"}
-                    </p>
-                    <div className="flex items-center">
-                      <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-bold ${
-                        teacher.status === "Active" 
-                          ? "bg-green-100 text-green-800 border border-green-200" 
-                          : "bg-red-100 text-red-800 border border-red-200"
-                      }`}>
-                        <span className={`w-2 h-2 rounded-full mr-2 ${
-                          teacher.status === "Active" ? "bg-green-500" : "bg-red-500"
-                        }`}></span>
-                        {teacher.status}
-                      </span>
-                    </div>
+                    <span className="text-[11px] block uppercase text-gray-400 font-bold tracking-wider">{t("Official Email")}</span>
+                    <span className="text-md font-semibold text-gray-700">{teacher.email}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Additional Notes Section */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-sm text-gray-500 font-normal">
-                <div className="mb-4 sm:mb-0">
-                  <p>
-                    <i className="fa fa-clock mr-2 text-gray-400"></i>
-                    {t("lastUpdated") || "Last updated"}: {new Date().toLocaleString()}
-                  </p>
+            {/* Information Grid */}
+            <div className="space-y-8">
+              <section>
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-blue-900 mb-4 border-b border-gray-100 pb-2">
+                  Personal Information
+                </h3>
+                <div className="grid grid-cols-3 gap-8">
+                  <InfoBlock label={t("Date of Birth")} value={teacher.dateOfBirth} />
+                  <InfoBlock label={t("Age")} value={`${teacher.age} Years`} />
+                  <InfoBlock label={t("Gender")} value={teacher.gender} />
+                  <InfoBlock label={t("Nationality")} value={teacher.nationality} />
+                  <InfoBlock label={t("National ID")} value={teacher.nationalID} />
+                  <InfoBlock label={t("Passport Number")} value={teacher.passportNumber} />
                 </div>
-                <div className="flex items-center gap-4">
-                  <Link
-                    to={`/admin/teachers/${params?.id}/classes`}
-                    className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold flex items-center gap-2 transition-colors"
-                  >
-                    <i className="fa fa-chalkboard"></i>
-                    {t("viewClasses") || "View Assigned Classes"}
-                  </Link>
-                  <Link
-                    to={`/admin/teachers/${params?.id}/schedule`}
-                    className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold flex items-center gap-2 transition-colors"
-                  >
-                    <i className="fa fa-calendar"></i>
-                    {t("viewSchedule") || "View Schedule"}
-                  </Link>
+              </section>
+
+              <section>
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-blue-900 mb-4 border-b border-gray-100 pb-2">
+                  Contact & Communication
+                </h3>
+                <div className="grid grid-cols-3 gap-8">
+                  <InfoBlock label={t("Primary Phone")} value={teacher.phoneNumber} />
+                  <InfoBlock label={t("Emergency Contact")} value={teacher.secondaryPhoneNumber} />
+                  <div className="col-span-2">
+                    <InfoBlock label={t("Residential Address")} value={teacher.address} />
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            {/* Footer */}
+            <div className="mt-20 pt-12 border-t border-gray-100">
+              <div className="flex justify-between items-end">
+                <div className="text-left space-y-1">
+                  <p className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">System Generated On</p>
+                  <p className="text-xs font-medium text-gray-600">{new Date().toLocaleString()}</p>
+                </div>
+                <div className="text-center w-64">
+                  <div className="h-px bg-gray-300 w-full mb-2"></div>
+                  <p className="text-[11px] font-bold text-gray-800 uppercase tracking-widest leading-none">Authorized Signature</p>
+                  <p className="text-[9px] text-gray-400 mt-1 italic">Administrative Office Stamp Required</p>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </AppCard>
+
+        {/* Confidential Footer (visible only when printing) */}
+        <p className="text-center text-[10px] text-gray-400 mt-6 hidden print:block">
+          Confidential Document. Any unauthorized duplication is strictly prohibited.
+        </p>
+      </PrintLayout>
     </AdminLayout>
   );
 };

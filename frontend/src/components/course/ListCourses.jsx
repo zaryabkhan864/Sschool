@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
-import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import {
   useDeleteCourseMutation,
@@ -14,12 +14,12 @@ import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import ConfirmationModal from "../GUI/ConfirmationModal";
 import { DataTableContainer } from "../GUI/DataTableContainer";
-import AddButton from "../layout/AddButton";
-import RefreshButton from "../layout/RefreshButton";
+import AppButton from "../GUI/AppButton";
 import ActionButtons from "../GUI/ActionButtons";
 import FilterDropdown from "../GUI/FilterDropdown";
 import EmptyState from "../GUI/EmptyState";
 import TruncatedCell from "../GUI/TruncatedCell";
+// AppBadge import removed because status column is no longer used
 
 const ListCourses = () => {
   const { t } = useTranslation();
@@ -32,9 +32,8 @@ const ListCourses = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(8);
-  const [teacherFilter] = useState(""); // kept for API compatibility, no UI
 
-  // Toast from navigation
+  // Toast from navigation (e.g., after creating a course)
   useEffect(() => {
     if (location.state?.showSuccessToast) {
       toast.success(t("Course created successfully!"));
@@ -62,7 +61,6 @@ const ListCourses = () => {
     page: currentPage,
     limit,
     keyword: searchTerm,
-    teacherId: teacherFilter || undefined,
   }, {
     refetchOnMountOrArgChange: true,
   });
@@ -75,6 +73,7 @@ const ListCourses = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState(null);
 
+  // Global error / success handling
   useEffect(() => {
     if (error) toast.error(error?.data?.message || t("Something went wrong"));
     if (deleteError) toast.error(deleteError?.data?.message || t("Failed to delete course"));
@@ -86,6 +85,7 @@ const ListCourses = () => {
     if (user?.role === "admin") setUserRole("admin");
   }, [error, deleteError, deleteSuccess, user, t]);
 
+  // Refetch when requested from navigation state (e.g., after edit)
   useEffect(() => {
     if (location.state?.shouldRefetch) {
       refetch();
@@ -115,70 +115,50 @@ const ListCourses = () => {
     navigate(`/admin/course/${id}/details`);
   };
 
-  // Columns using shared components
+  // Columns (status column removed)
   const columns = [
     {
       header: t("Course Name"),
       accessor: "courseName",
-      width: "35%",
-      minWidth: "220px",
-      render: (value) => {
-        if (!value) return <span className="text-xs text-gray-400 italic">{t("No name")}</span>;
-        return <TruncatedCell lines={1}>{value}</TruncatedCell>;
-      }
+      width: "55%",
+      minWidth: "200px",
+      render: (value) => <TruncatedCell maxChars={55}>{value}</TruncatedCell>
     },
     {
       header: t("Course Code"),
       accessor: "code",
-      width: "15%",
+      width: "20%",
       minWidth: "120px",
       render: (value) => (
-        <div className="truncate">
-          <span className="text-sm font-mono font-medium text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100">
-            {value || <span className="text-gray-400 italic">{t("N/A")}</span>}
-          </span>
-        </div>
+        <TruncatedCell lines={1} className="font-mono font-medium text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100">
+          {value || <span className="text-gray-400 italic">{t("N/A")}</span>}
+        </TruncatedCell>
       )
-    },
-    {
-      header: t("Grade"),
-      accessor: "grade",
-      width: "15%",
-      minWidth: "100px",
-      render: (value) => {
-        if (!value || !value.gradeName) {
-          return <span className="text-xs text-gray-400 italic">{t("Not assigned")}</span>;
-        }
-        return (
-          <div className="flex items-center">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-              {value.gradeName}
-            </span>
-          </div>
-        );
-      }
     },
     {
       header: t("Teacher"),
       accessor: "teacher",
-      width: "20%",
-      minWidth: "150px",
-      render: (value) => (
+      width: "25%",
+      minWidth: "200px",
+      render: (value) => value ? (
         <div className="truncate">
-          <span className="text-sm text-gray-700 font-medium truncate block" title={value?.name}>
-            {value?.name || <span className="text-gray-400 italic">{t("Not assigned")}</span>}
+          <span className="text-sm text-gray-700 font-medium truncate block" title={value.name}>
+            {value.name}
           </span>
-          {value?.email && (
+          {value.email && (
             <p className="text-[10px] text-gray-400 truncate" title={value.email}>
               {value.email}
             </p>
           )}
         </div>
+      ) : (
+        <span className="text-sm text-gray-400 italic">{t("Not assigned")}</span>
       )
     }
+    // Status column was here and has been removed
   ];
 
-  // Stats
+  // Stats (still uses status for counting active courses)
   const stats = [
     {
       label: t("Total Courses"),
@@ -187,9 +167,9 @@ const ListCourses = () => {
       color: "blue"
     },
     {
-      label: t("Active Filters"),
-      value: teacherFilter ? 1 : 0,
-      icon: "filter",
+      label: t("Active Courses"),
+      value: data?.courses?.filter(course => course.status).length || 0,
+      icon: "check-circle",
       color: "green"
     },
     {
@@ -207,11 +187,11 @@ const ListCourses = () => {
   ];
 
   const addButton = userRole === "admin" ? (
-    <AddButton to="/admin/course/new" text={t("Add New Course")} icon="plus" />
+    <AppButton to="/admin/course/new" label={t("Add New Course")} icon="plus" />
   ) : null;
 
   const refreshButton = (
-    <RefreshButton
+    <AppButton
       onClick={handleRefresh}
       text={t("Refresh")}
       icon="sync-alt"
@@ -243,10 +223,9 @@ const ListCourses = () => {
       userRole={userRole}
       onDelete={handleDeleteClick}
       isDeleteLoading={isDeleteLoading}
-      editHref={`/admin/courses/${row._id}`} 
+      editHref={`/admin/courses/${row._id}`}
       onView={handleViewDetails}
       onEdit={handleEditCourse}
-      // No hrefs provided, so click handlers will be used
     />
   );
 
@@ -280,7 +259,7 @@ const ListCourses = () => {
         setSearch={setSearch}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
-        searchPlaceholder={t("Search courses by course name and course code...")}
+        searchPlaceholder={t("Search courses by name or code...")}
         onRefresh={handleRefresh}
         refreshButton={refreshButton}
         addButton={addButton}

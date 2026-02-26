@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUploadAvatarMutation } from "../../redux/api/userApi";
+import { useUploadAvatarMutation } from "../../redux/api/authApi";
 import toast from "react-hot-toast";
 import { useSelector } from "react-redux";
 import MetaData from "../layout/MetaData";

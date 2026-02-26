@@ -1,84 +1,295 @@
-import { Pagination, Table } from "flowbite-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
-import { Link, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+
 import {
-  useDeleteCounselingMutation,
   useGetCounselingsQuery,
+  useDeleteCounselingMutation,
 } from "../../redux/api/counselingApi";
+
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
-import { useTranslation } from "react-i18next";
 import ConfirmationModal from "../GUI/ConfirmationModal";
+import { DataTableContainer } from "../GUI/DataTableContainer";
+import AppButton from "../GUI/AppButton";
+import ActionButtons from "../GUI/ActionButtons";
+import FilterDropdown from "../GUI/FilterDropdown";
+import EmptyState from "../GUI/EmptyState";
+import TruncatedCell from "../GUI/TruncatedCell";
+import AppBadge from "../GUI/AppBadge";
 
 const ListStudentCounselings = () => {
   const { t } = useTranslation();
+  const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
 
-  const { data, isLoading, error, refetch } = useGetCounselingsQuery();
-  const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [userRole, setUserRole] = useState("");
+  const [search, setSearch] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit, setLimit] = useState(8);
+  const [statusFilter, setStatusFilter] = useState("");
+
+  // Toast from navigation (e.g., after creating a counseling)
+  useEffect(() => {
+    if (location.state?.showSuccessToast) {
+      toast.success(t("Counseling created successfully!"));
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, t]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(search);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // API query
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+    isFetching,
+  } = useGetCounselingsQuery({
+    page: currentPage,
+    limit,
+    keyword: searchTerm,
+    status: statusFilter || undefined,
+  }, {
+    refetchOnMountOrArgChange: true,
+  });
 
   const [
     deleteCounseling,
-    { isLoading: isDeleteLoading, error: deleteError, isSuccess },
+    { isLoading: isDeleteLoading, error: deleteError, isSuccess: deleteSuccess },
   ] = useDeleteCounselingMutation();
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
-
-  // For delete confirmation modal
   const [showModal, setShowModal] = useState(false);
   const [selectedCounselingId, setSelectedCounselingId] = useState(null);
 
+  // Global error / success handling
   useEffect(() => {
-    if (error) {
-      toast.error(error?.data?.message);
-    }
-
-    if (deleteError) {
-      toast.error(deleteError?.data?.message);
-    }
-
-    if (isSuccess) {
-      toast.success(t("counselingDeleted"));
-      refetch();
+    if (error) toast.error(error?.data?.message || t("Something went wrong"));
+    if (deleteError) toast.error(deleteError?.data?.message || t("Failed to delete counseling"));
+    if (deleteSuccess) {
+      toast.success(t("Counseling deleted successfully"));
       setShowModal(false);
       setSelectedCounselingId(null);
     }
+    if (user?.role === "admin") setUserRole("admin");
+  }, [error, deleteError, deleteSuccess, user, t]);
 
-    if (user?.role === "admin") setUserRole(user?.role);
-  }, [error, deleteError, isSuccess, navigate, refetch, user, t]);
+  // Refetch when requested from navigation state (e.g., after edit)
+  useEffect(() => {
+    if (location.state?.shouldRefetch) {
+      refetch();
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, refetch]);
 
-  // Delete click handler (open modal)
   const handleDeleteClick = (id) => {
     setSelectedCounselingId(id);
     setShowModal(true);
   };
 
-  // Confirm delete action
   const confirmDelete = () => {
-    if (selectedCounselingId) {
-      deleteCounseling(selectedCounselingId);
-    }
+    if (selectedCounselingId) deleteCounseling(selectedCounselingId);
   };
 
-  // Filter and paginate the counselings
-  const filteredCounselings = data?.counselings?.filter((counseling) =>
-    counseling?.student?.name
-      ?.toLowerCase()
-      .includes(searchTerm.toLowerCase())
+  const handleRefresh = () => {
+    refetch();
+    toast.success(t("Refreshed"));
+  };
+
+  const handleEditCounseling = (id) => {
+    navigate(`/admin/counselings/${id}`);
+  };
+
+  const handleViewDetails = (id) => {
+    navigate(`/admin/counseling/${id}/details`);
+  };
+
+  // Status normalization for AppBadge
+  const getStatusValue = (value) => {
+    const validStatuses = ["pending", "under_review", "resolved", "closed"];
+    if (!value) return "pending";
+    const normalized = value.toLowerCase().trim();
+    return validStatuses.includes(normalized) ? normalized : "pending";
+  };
+
+  // Columns using AppBadge
+  const columns = [
+    {
+      header: t("Student Name"),
+      accessor: "student.name",
+      width: "30%",
+      minWidth: "200px",
+      render: (_, row) => {
+        const name = row?.student?.name;
+        return name ? (
+          <TruncatedCell maxChars={25}>{name}</TruncatedCell>
+        ) : (
+          <span className="text-gray-400">—</span>
+        );
+      }
+    },
+    {
+      header: t("Issue Type"),
+      accessor: "issueType",
+      width: "25%",
+      minWidth: "150px",
+      render: (value) => (
+        <TruncatedCell maxChars={30}>{value || "—"}</TruncatedCell>
+      )
+    },
+    {
+      header: t("Incident Date"),
+      accessor: "incidentDate",
+      width: "20%",
+      minWidth: "150px",
+      render: (value) => {
+        if (!value) return <span className="text-gray-400">—</span>;
+        const formattedDate = new Date(value).toLocaleDateString(undefined, {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+        return <span>{formattedDate}</span>;
+      }
+    },
+    {
+      header: t("Status"),
+      accessor: "status",
+      width: "15%",
+      minWidth: "120px",
+      render: (value) => {
+        const safeStatus = getStatusValue(value);
+        return <AppBadge type="counselingStatus" value={safeStatus} />;
+      }
+    }
+  ];
+
+  // Stats
+  const counts = data?.pagination?.counts || data?.counts || { 
+    total: 0, pending: 0, under_review: 0, resolved: 0, closed: 0 
+  };
+
+  const stats = [
+    {
+      label: t("Total Counselings"),
+      value: counts.total,
+      icon: "comments",
+      color: "blue"
+    },
+    {
+      label: t("Pending"),
+      value: counts.pending,
+      icon: "hourglass-half",
+      color: "yellow"
+    },
+    {
+      label: t("Under Review"),
+      value: counts.under_review || 0,
+      icon: "search",        // or "eye"
+      color: "orange"
+    },
+    {
+      label: t("Resolved"),
+      value: counts.resolved,
+      icon: "check-circle",
+      color: "green"
+    },
+    {
+      label: t("Closed"),
+      value: counts.closed || 0,
+      icon: "archive",       // or "times-circle"
+      color: "gray"
+    },
+    {
+      label: t("Total Pages"),
+      value: data?.pagination?.totalPages || 1,
+      icon: "file-alt",
+      color: "purple"
+    }
+  ];
+
+  const addButton = userRole === "admin" ? (
+    <AppButton to="/admin/counseling/new" label={t("Add New Counseling")} icon="plus" />
+  ) : null;
+
+  const refreshButton = (
+    <AppButton
+      onClick={handleRefresh}
+      text={t("Refresh")}
+      icon="sync-alt"
+      disabled={isFetching}
+      className="ml-2"
+    />
   );
 
-  const totalPages = Math.ceil(
-    (filteredCounselings?.length || 0) / itemsPerPage
+  // Filter dropdown using shared component
+  const filters = (
+    <FilterDropdown
+      limit={limit}
+      onLimitChange={(newLimit) => {
+        setLimit(newLimit);
+        setCurrentPage(1);
+      }}
+      onReset={() => {
+        setSearch("");
+        setSearchTerm("");
+        setStatusFilter("");
+        setCurrentPage(1);
+        setLimit(8);
+      }}
+    >
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {t("Status")}
+        </label>
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="w-full p-2 border border-gray-300 rounded-md"
+        >
+          <option value="">{t("All Status")}</option>
+          <option value="pending">{t("Pending")}</option>
+          <option value="under_review">{t("Under Review")}</option>
+          <option value="resolved">{t("Resolved")}</option>
+          <option value="closed">{t("Closed")}</option>
+        </select>
+      </div>
+    </FilterDropdown>
   );
-  const paginatedCounselings = filteredCounselings?.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+
+  const renderRowActions = (row) => (
+    <ActionButtons
+      id={row._id}
+      userRole={userRole}
+      onDelete={handleDeleteClick}
+      isDeleteLoading={isDeleteLoading}
+      onView={handleViewDetails}
+      onEdit={handleEditCounseling}
+    />
+  );
+
+  const emptyState = (
+    <EmptyState
+      icon="comments"
+      title={searchTerm ? t("No counselings found matching your search") : t("No counselings found")}
+      message={t("Try adjusting your search or filters to find what you're looking for.")}
+    />
   );
 
   if (isLoading) return <Loader />;
@@ -86,127 +297,51 @@ const ListStudentCounselings = () => {
   return (
     <AdminLayout>
       <MetaData title={t("allCounselings")} />
-      <div className="flex justify-center items-center pt-5 pb-10">
-        <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">
-            {data?.counselings?.length} {t("Counselings")}
-          </h2>
 
-          {/* Controls Section */}
-          <div className="flex flex-col md:flex-row justify-between items-center mb-4">
-            {/* Search Bar */}
-            <input
-              type="text"
-              placeholder={t("search")}
-              className="block w-full md:w-1/3 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+      <DataTableContainer
+        title={t("Counseling Management")}
+        subtitle={t("Manage student counselings and track resolutions")}
+        data={data?.counselings || []}
+        columns={columns}
+        isLoading={isLoading}
+        isFetching={isFetching}
+        pagination={data?.pagination}
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        limit={limit}
+        setLimit={setLimit}
+        search={search}
+        setSearch={setSearch}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        searchPlaceholder={t("Search by student name or issue type...")}
+        onRefresh={handleRefresh}
+        refreshButton={refreshButton}
+        addButton={addButton}
+        emptyState={emptyState}
+        filters={filters}
+        stats={stats}
+        userRole={userRole}
+        renderRowActions={renderRowActions}
+        renderHeaderInfo={() => (
+          <p className="text-sm text-gray-500 mt-1">
+            <i className="fa fa-info-circle mr-2"></i>
+            {t("Showing")}: {data?.counselings?.length || 0} {t("counselings")}
+          </p>
+        )}
+        className="counseling-table-container"
+        showSearch={true}
+        showStats={true}
+        showPagination={true}
+      />
 
-            {/* Records per Page Dropdown */}
-            <div className="flex items-center mt-2 md:mt-0">
-              <label
-                htmlFor="itemsPerPage"
-                className="mr-2 text-sm font-medium"
-              >
-                {t("entriesPerPage")}:
-              </label>
-              <select
-                id="itemsPerPage"
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                value={itemsPerPage}
-                onChange={(e) => setItemsPerPage(Number(e.target.value))}
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={20}>20</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Counselings Table */}
-          <Table hoverable={true} className="w-full">
-            <Table.Head>
-              <Table.HeadCell>{t("id")}</Table.HeadCell>
-              <Table.HeadCell>{t("Student Name")}</Table.HeadCell>
-              <Table.HeadCell>{t("Campus")}</Table.HeadCell>
-              <Table.HeadCell>{t("Grade")}</Table.HeadCell>
-              <Table.HeadCell>{t("Complain")}</Table.HeadCell>
-              <Table.HeadCell>{t("actions")}</Table.HeadCell>
-            </Table.Head>
-            <Table.Body>
-              {paginatedCounselings?.map((counseling) => (
-                <Table.Row
-                  key={counseling?._id}
-                  className="bg-white dark:bg-gray-800"
-                >
-                  <Table.Cell>{counseling?._id}</Table.Cell>
-                  <Table.Cell>{counseling?.student?.name || "N/A"}</Table.Cell>
-                  <Table.Cell>{counseling?.campus?.name || "N/A"}</Table.Cell>
-
-                  {/* Grade Column */}
-                  <Table.Cell>
-                    {counseling?.student?.grade?.length > 0
-                      ? counseling.student.grade
-                          .map((g) => g?.gradeId?.gradeName || "N/A")
-                          .join(", ")
-                      : "N/A"}
-                  </Table.Cell>
-
-                  <Table.Cell>{counseling?.complain}</Table.Cell>
-                  <Table.Cell>
-                    <div className="flex space-x-2">
-                      {userRole === "admin" && (
-                        <Link
-                          to={`/admin/counselings/${counseling?._id}`}
-                          className="px-3 py-2 text-blue-600 border border-blue-600 rounded hover:bg-blue-600 hover:text-white focus:outline-none"
-                        >
-                          <i className="fa fa-pencil"></i>
-                        </Link>
-                      )}
-                      <Link
-                        to={`/admin/counseling/${counseling?._id}/details`}
-                        className="px-3 py-2 text-green-600 border border-green-600 rounded hover:bg-green-600 hover:text-white focus:outline-none"
-                      >
-                        <i className="fa fa-eye"></i>
-                      </Link>
-                      {userRole === "admin" && (
-                        <button
-                          className="px-3 py-2 text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white focus:outline-none"
-                          onClick={() => handleDeleteClick(counseling?._id)}
-                          disabled={isDeleteLoading}
-                        >
-                          <i className="fa fa-trash"></i>
-                        </button>
-                      )}
-                    </div>
-                  </Table.Cell>
-                </Table.Row>
-              ))}
-            </Table.Body>
-          </Table>
-
-          {/* Pagination */}
-          <div className="flex justify-center mt-4">
-            <Pagination
-              currentPage={currentPage}
-              layout="navigation"
-              onPageChange={(page) => setCurrentPage(page)}
-              showIcons={true}
-              totalPages={totalPages}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Delete Confirmation Modal */}
       <ConfirmationModal
         showModal={showModal}
         setShowModal={setShowModal}
         confirmDelete={confirmDelete}
         isDeleteLoading={isDeleteLoading}
-        message={t("Do you want to delete this counseling?")}
+        message={t("Are you sure you want to delete this counseling?")}
+        title={t("Confirm Delete")}
       />
     </AdminLayout>
   );

@@ -16,7 +16,7 @@ import { quizApi } from "./api/quizApi";
 import { studentApi } from "./api/studentsApi";
 import { teacherApi } from "./api/teacherApi";
 import { teacherLeaveApi } from "./api/teacherLeaveApi";
-import { userApi } from "./api/userApi";
+
 import { commentApi } from "./api/commentApi";
 import { fileApi } from "./api/fileApi";
 import { revenueApi } from "./api/revenueApi";
@@ -49,7 +49,6 @@ export const store = configureStore({
     [teacherApi.reducerPath]: teacherApi.reducer,
     [eventApi.reducerPath]: eventApi.reducer,
     [authApi.reducerPath]: authApi.reducer,
-    [userApi.reducerPath]: userApi.reducer,
     [counselingApi.reducerPath]: counselingApi.reducer,
     [postingApi.reducerPath]: postingApi.reducer,
     [teacherLeaveApi.reducerPath]: teacherLeaveApi.reducer,
@@ -81,7 +80,6 @@ export const store = configureStore({
       teacherApi.middleware,
       eventApi.middleware,
       authApi.middleware,
-      userApi.middleware,
       counselingApi.middleware,
       postingApi.middleware,
       teacherLeaveApi.middleware,

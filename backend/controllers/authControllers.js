@@ -12,11 +12,13 @@ import { nanoid } from 'nanoid';
 import mongoose from "mongoose";
 import APIFilters from "../utils/apiFilters.js";
 
+import cloudinary from "cloudinary";
+
+
 // Register user   =>  /api/v1/register
 export const registerUser = catchAsyncErrors(async (req, res, next) => {
-  const { campus } = req.cookies
-  const {selectedYear} = req.cookies
-  
+  const { campus } = req.cookies;
+  const { selectedYear } = req.cookies;
 
   const {
     name,
@@ -29,6 +31,7 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
     status,
     nationality,
     passportNumber,
+    nationalID,
     siblings = [],
     phoneNumber,
     secondaryPhoneNumber,
@@ -38,45 +41,45 @@ export const registerUser = catchAsyncErrors(async (req, res, next) => {
     yearTo,
   } = req.body;
 
-  let gradeDetails = []
-
-  if (grade && yearFrom && yearTo) {
-    gradeDetails.push({
-      gradeId: grade,
-      yearFrom,
-      yearTo
-    })
+  // 🔥 Upload Avatar (if provided)
+  let avatarData = {};
+  if (avatar) {
+    avatarData = await upload_file(avatar);
   }
+
+  // Clean siblings
   const cleanSiblings = siblings.filter(
     (s) => s && mongoose.Types.ObjectId.isValid(s)
   );
+
   const user = await User.create({
     name,
     email,
     password,
-    avatar,
-    role, // Explicitly passing role from req.body
+    avatar: avatarData,
+    role,
     dateOfBirth,
     gender,
-    year:selectedYear,
+    year: selectedYear,
     status,
     nationality,
     passportNumber,
+    nationalID,
     siblings: cleanSiblings,
     phoneNumber,
     secondaryPhoneNumber,
     address,
-    // grade: gradeDetails,
-    grade: grade ? [{ gradeId: grade }] : [],
+    grade: grade ? [{ gradeId: grade, yearFrom, yearTo }] : [],
     campus,
-    userId: nanoid(10)
+    userId: nanoid(10),
   });
+
   res.status(201).json({
     success: true,
     user,
   });
-  // sendToken(user, 201, res);
 });
+
 
 // Login user   =>  /api/v1/login
 export const loginUser = catchAsyncErrors(async (req, res, next) => {
@@ -134,21 +137,33 @@ export const logout = catchAsyncErrors(async (req, res, next) => {
 
 // Upload user avatar   =>  /api/v1/me/upload_avatar
 export const uploadAvatar = catchAsyncErrors(async (req, res, next) => {
-  const avatarResponse = await upload_file(req.body.avatar, "shopit/avatars");
-
-  // Remove previous avatar
-  if (req?.user?.avatar?.url) {
-    await delete_file(req?.user?.avatar?.public_id);
+  if (!req.body.avatar) {
+    return res.status(400).json({
+      success: false,
+      message: "No avatar provided",
+    });
   }
 
-  const user = await User.findByIdAndUpdate(req?.user?._id, {
-    avatar: avatarResponse,
-  });
+  // 🔥 Upload new avatar
+  const avatarResponse = await upload_file(req.body.avatar);
+
+  // 🔥 Remove previous avatar if exists
+  if (req.user?.avatar?.public_id) {
+    await delete_file(req.user.avatar.public_id);
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { avatar: avatarResponse },
+    { new: true }
+  );
 
   res.status(200).json({
+    success: true,
     user,
   });
 });
+
 
 // Forgot password   =>  /api/v1/password/forgot
 export const forgotPassword = catchAsyncErrors(async (req, res, next) => {
@@ -262,7 +277,7 @@ export const updatePassword = catchAsyncErrors(async (req, res, next) => {
 export const updateProfile = catchAsyncErrors(async (req, res, next) => {
   const { campus } = req.cookies;
   const { selectedYear } = req.cookies;
-  
+  console.log("Yes i am hit ", campus,selectedYear)
   const newUserData = {
     name: req.body.name,
     email: req.body.email,
@@ -270,6 +285,7 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
     gender: req.body.gender,
     nationality: req.body.nationality,
     passportNumber: req.body.passportNumber,
+    nationalID:req.body.nationalID,
     phoneNumber: req.body.phoneNumber,
     secondaryPhoneNumber: req.body.secondaryPhoneNumber,
     year: req.body.year,
@@ -320,9 +336,8 @@ export const allUsers = catchAsyncErrors(async (req, res, next) => {
 });
 
 // Get User Details - ADMIN  =>  /api/v1/admin/users/:id
-// Get User Details - ADMIN  =>  /api/v1/admin/users/:id
 export const getUserDetails = catchAsyncErrors(async (req, res, next) => {
-  // ✅ Grade ko populate karo
+  // 1. User fetch karein aur grade/siblings populate karein
   const user = await User.findById(req.params.id)
     .populate({
       path: 'grade.gradeId',
@@ -332,7 +347,7 @@ export const getUserDetails = catchAsyncErrors(async (req, res, next) => {
     .populate({
       path: 'siblings',
       model: 'User',
-      select: 'name email grade userId'
+      select: 'name email grade userId avatar' // Siblings ka avatar bhi chahiye ho to yahan add karein
     });
 
   if (!user) {
@@ -341,24 +356,28 @@ export const getUserDetails = catchAsyncErrors(async (req, res, next) => {
     );
   }
 
-  // ✅ Grade data ko properly format karo (single grade ke liye)
-  let formattedUser = user.toObject ? user.toObject() : user;
-  
-  if (formattedUser.grade && Array.isArray(formattedUser.grade) && formattedUser.grade.length > 0) {
-    // Agar multiple grades hain to first grade use karo
-    const firstGrade = formattedUser.grade[0];
-    if (firstGrade.gradeId) {
-      formattedUser.grade = firstGrade.gradeId; // Grade object assign karo
-    } else {
-      formattedUser.grade = null;
-    }
+  // 2. Mongoose document ko plain JavaScript object mein convert karein
+  // Isse avatar property (public_id, url) accessible ho jayegi
+  let userObj = user.toObject();
+
+  // 3. Grade data ko format karein (Single object banane ke liye)
+  if (userObj.grade && Array.isArray(userObj.grade) && userObj.grade.length > 0) {
+    const firstGradeEntry = userObj.grade[0];
+    
+    // Grade details aur years ko merge kar rahe hain taake frontend pe asani ho
+    userObj.grade = {
+      ...(firstGradeEntry.gradeId || {}),
+      yearFrom: firstGradeEntry.yearFrom,
+      yearTo: firstGradeEntry.yearTo
+    };
   } else {
-    formattedUser.grade = null;
+    userObj.grade = null;
   }
 
+  // 4. Response send karein
   res.status(200).json({
     success: true,
-    user: formattedUser,
+    user: userObj, // Is user object mein ab 'avatar' lazmi hona chahiye
   });
 });
 
@@ -366,11 +385,6 @@ export const getUserDetails = catchAsyncErrors(async (req, res, next) => {
 export const updateUser = catchAsyncErrors(async (req, res, next) => {
   const { campus } = req.cookies;
   const { selectedYear } = req.cookies;
-  
-  // Temporary: Skip avatar handling to avoid errors
-  if (req.body.avatar) {
-    delete req.body.avatar;
-  }
 
   // Find the user
   const user = await User.findById(req.params.id).select("+password");
@@ -378,13 +392,36 @@ export const updateUser = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler(`User not found with id: ${req.params.id}`, 404));
   }
 
-  // ✅ Special handling for grade field
-  // Agar grade string mein aaya hai, to use array format mein convert karo
+  // ------------------- AVATAR HANDLING -------------------
+  if (req.body.avatar && typeof req.body.avatar === 'string') {
+    try {
+      // 1. Upload new avatar using helper
+      const avatarData = await upload_file(req.body.avatar);
+
+      // 2. Delete old avatar if exists
+      if (user.avatar && user.avatar.public_id) {
+        await delete_file(user.avatar.public_id);
+      }
+
+      // 3. Set new avatar data
+      req.body.avatar = avatarData;
+    } catch (error) {
+      console.error("Cloudinary upload error:", error);
+      return next(new ErrorHandler(`Avatar upload failed: ${error.message}`, 500));
+    }
+  } else if (req.body.avatar === null || req.body.avatar === '') {
+    // If avatar is explicitly cleared
+    if (user.avatar && user.avatar.public_id) {
+      await delete_file(user.avatar.public_id);
+    }
+    req.body.avatar = null;
+  }
+  // -------------------------------------------------------
+
+  // ✅ Grade field handling (unchanged)
   if (req.body.grade && typeof req.body.grade === 'string') {
-    // String ko array format mein convert karo
     req.body.grade = [{ gradeId: req.body.grade }];
   } else if (req.body.grade && Array.isArray(req.body.grade)) {
-    // Agar array mein aaya hai to use validate karo
     req.body.grade = req.body.grade.map(gradeItem => {
       if (typeof gradeItem === 'string') {
         return { gradeId: gradeItem };
@@ -392,27 +429,14 @@ export const updateUser = catchAsyncErrors(async (req, res, next) => {
       return gradeItem;
     });
   } else if (req.body.grade === "") {
-    // Agar empty string aaya hai to empty array set karo
     req.body.grade = [];
   }
 
-  // Update fields safely
+  // Update fields
   const fieldsToUpdate = [
-    "name",
-    "email",
-    "role",
-    "dateOfBirth",
-    "gender",
-    "nationality",
-    "passportNumber",
-    "siblings",
-    "phoneNumber",
-    "secondaryPhoneNumber",
-    "address",
-    "grade", // ✅ Ab ye array format mein hai
-    "campus",
-    "status",
-    "year",
+    "name", "email", "role", "dateOfBirth", "gender", "nationality",
+    "passportNumber", "nationalID", "siblings", "phoneNumber", "secondaryPhoneNumber",
+    "address", "grade", "campus", "status", "year", "avatar"
   ];
 
   fieldsToUpdate.forEach((field) => {
@@ -421,24 +445,18 @@ export const updateUser = catchAsyncErrors(async (req, res, next) => {
     }
   });
 
-  // Agar cookies se campus aur year values available hain, to unhe bhi update karo
-  if (campus) {
-    user.campus = campus;
-  }
-  
-  if (selectedYear) {
-    user.year = selectedYear;
-  }
+  // Cookies override
+  if (campus) user.campus = campus;
+  if (selectedYear) user.year = selectedYear;
 
-  // Update password only if provided and not empty
+  // Password update
   if (req.body.password && req.body.password.trim() !== "") {
     user.password = req.body.password;
   }
 
-  // Save user
   await user.save();
 
-  // ✅ User ko dobara populate karke bhejo taki frontend ko updated grade details mile
+  // Populate and return
   const updatedUser = await User.findById(req.params.id)
     .populate({
       path: 'grade.gradeId',
@@ -456,6 +474,7 @@ export const updateUser = catchAsyncErrors(async (req, res, next) => {
     user: updatedUser,
   });
 });
+
 
 
 // Delete User - ADMIN  =>  /api/v1/admin/users/:id
@@ -637,153 +656,4 @@ export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
 });
 
 
-// export const getUsersByType = catchAsyncErrors(async (req, res, next) => {
-//   const { type } = req.params;
-//   const { campus, selectedYear } = req.cookies;
-
-//   // 1. Role Logic
-//   if (type === 'employee') {
-//     req.query.role = { $ne: 'student' };
-//   } else {
-//     req.query.role = type;
-//   }
-
-//   // 2. Cookie Filters - IMPORTANT CHANGE
-//   const limit = Number(req.query.limit);
-//   const isDropdownRequest = limit === 0;
-  
-//   if (campus && !isDropdownRequest) {
-//     req.query.campus = campus;
-//   }
-  
-//   if (selectedYear && !isDropdownRequest) {
-//     req.query.year = selectedYear;
-//   }
-
-//   // 3. Status handle karo
-//   if (req.query.status) {
-//     if (req.query.status === 'active') {
-//       req.query.status = true;
-//     } else if (req.query.status === 'deactive') {
-//       req.query.status = false;
-//     }
-//   }
-
-//   // 4. Gender ko case-insensitive banao
-//   if (req.query.gender) {
-//     const genderValue = req.query.gender.toLowerCase();
-//     if (genderValue === 'male' || genderValue === 'female' || genderValue === 'other') {
-//       req.query.gender = genderValue.charAt(0).toUpperCase() + genderValue.slice(1);
-//     }
-//   }
-
-//   // 5. Base query for counting
-//   const baseApiFilters = new APIFilters(User, req.query)
-//     .setSearchFields(['name', 'email', 'gender', 'nationality'])
-//     .search()
-//     .filters()
-//     .sort();
-
-//   // 6. Get counts using the base query
-//   const baseQuery = baseApiFilters.query;
-//   const total = await baseApiFilters.model.countDocuments(baseQuery._conditions);
-  
-//   // 7. Get active/deactive counts
-//   const activeQuery = User.find({
-//     ...baseQuery._conditions,
-//     status: true
-//   });
-//   const active = await activeQuery.countDocuments();
-  
-//   const deactiveQuery = User.find({
-//     ...baseQuery._conditions,
-//     status: false
-//   });
-//   const deactive = await deactiveQuery.countDocuments();
-
-//   // 8. Now create a NEW query for actual data WITH/WITHOUT pagination
-//   const apiFilters = new APIFilters(User, req.query)
-//     .setSearchFields(['name', 'email', 'gender', 'nationality'])
-//     .search()
-//     .filters()
-//     .sort()
-//     .pagination();
-
-//   // 9. Conditionally populate - FIXED FOR STUDENTS
-//   if (type === 'student') {
-//     // Student ke liye grade.gradeId ko populate karo Grade model ke sath
-//     // Aur campus ko bhi populate karo
-//     apiFilters.populate([
-//       {
-//         path: 'grade.gradeId',
-//         model: 'Grade',
-//         select: 'gradeName description courses campus year'
-//       },
-//       {
-//         path: 'campus',
-//         model: 'Campus',
-//         select: 'name'
-//       }
-//     ]);
-//   } else {
-//     // Non-student users ke liye sirf campus populate karo
-//     apiFilters.populate({
-//       path: 'campus',
-//       model: 'Campus',
-//       select: 'name'
-//     });
-//   }
-
-//   // 10. Execute the query
-//   const users = await apiFilters.query;
-
-//   // 11. Agar student type hai to grade data ko format karo
-//   let formattedUsers = users;
-//   if (type === 'student') {
-//     formattedUsers = users.map(user => {
-//       const userObj = user.toObject ? user.toObject() : user;
-      
-//       // Agar grade array hai to use format karo
-//       if (userObj.grade && Array.isArray(userObj.grade)) {
-//         userObj.grade = userObj.grade.map(gradeItem => {
-//           return {
-//             ...gradeItem,
-//             // Grade details ko direct access karne ke liye
-//             gradeDetails: gradeItem.gradeId || null,
-//             // Grade ID ko alag se bhi rakhna
-//             gradeId: gradeItem.gradeId?._id || gradeItem.gradeId
-//           };
-//         });
-//       }
-      
-//       return userObj;
-//     });
-//   }
-
-//   // 12. ✅ Get pagination meta ONLY if pagination is enabled
-//   let pagination = null;
-//   if (apiFilters.shouldPaginate) {
-//     pagination = {
-//       total,
-//       page: apiFilters.page,
-//       limit: apiFilters.limit,
-//       totalPages: Math.ceil(total / apiFilters.limit)
-//     };
-//   }
-
-//   // 13. Final Response
-//   res.status(200).json({
-//     success: true,
-//     ...(pagination && { 
-//       pagination: { 
-//         ...pagination, 
-//         counts: { total, active, deactive } 
-//       } 
-//     }),
-//     ...(!pagination && { 
-//       counts: { total, active, deactive } 
-//     }),
-//     users: formattedUsers,
-//   });
-// });
 

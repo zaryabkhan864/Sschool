@@ -4,9 +4,8 @@ import WeekDay from "../models/weekDay.js";
 import SessionTemplate from "../models/sessionTemplate.js";
 import ClassGroup from "../models/classGroup.js";
 import Course from "../models/course.js";
-import User from "../models/user.js";                 // if you need to query teachers
 import ErrorHandler from "../utils/errorHandler.js";
-import Grade from "../models/grade.js";
+
 
 export const getAndCreateTimeTableSlots = catchAsyncErrors(
   async (req, res, next) => {
@@ -164,10 +163,8 @@ export const updateTimeTableSlots = catchAsyncErrors(async (req, res, next) => {
     timeTable: populatedTimeTable,
   });
 });
-// ===== NEW: Get available courses for a specific slot =====
+
 // ===== Get available courses for a specific slot (with teacher conflict check) =====
-
-
 export const getAvailableCoursesForSlot = catchAsyncErrors(
   async (req, res, next) => {
     const { classGroup, weekDay, sessionTemplate, slotId } = req.query;
@@ -175,34 +172,25 @@ export const getAvailableCoursesForSlot = catchAsyncErrors(
 
     if (!classGroup || !weekDay || !sessionTemplate) {
       return next(
-        new ErrorHandler(
-          "Please provide classGroup, weekDay and sessionTemplate",
-          400
-        )
+        new ErrorHandler("Please provide classGroup, weekDay and sessionTemplate", 400)
       );
     }
 
-    // 1️⃣ Get class group
-    const classGroupDoc = await ClassGroup.findById(classGroup);
+    // 1️⃣ Get class group and populate its assigned courses
+    const classGroupDoc = await ClassGroup.findById(classGroup).populate({
+      path: 'courses',
+      populate: { path: 'teacher', select: 'name role' }
+    });
+
     if (!classGroupDoc) {
       return next(new ErrorHandler("Class group not found", 404));
     }
 
-    // 2️⃣ Ensure the class group has a grade
-    if (!classGroupDoc.grade) {
-      return next(new ErrorHandler("Class group has no grade assigned", 400));
-    }
+    // 2️⃣ Get the list of courses assigned to this class group
+    const assignedCourses = classGroupDoc.courses || [];
+    console.log(`Class group has ${assignedCourses.length} assigned courses`);
 
-    // 3️⃣ Fetch courses for that specific grade only
-    const courses = await Course.find({
-      grade: classGroupDoc.grade,
-    }).populate({
-      path: "teacher",
-      match: { role: "teacher" },
-      select: "name role",
-    });
-
-    // 4️⃣ Find teacher conflicts
+    // 3️⃣ Find teacher conflicts
     const conflictQuery = {
       campus,
       year: Number(selectedYear),
@@ -215,10 +203,7 @@ export const getAvailableCoursesForSlot = catchAsyncErrors(
       conflictQuery["slots._id"] = { $ne: slotId };
     }
 
-    const conflictingTimeTables = await TimeTable.find(conflictQuery).select(
-      "slots"
-    );
-
+    const conflictingTimeTables = await TimeTable.find(conflictQuery).select("slots");
     const busyTeacherIds = new Set();
     conflictingTimeTables.forEach((tt) => {
       tt.slots.forEach((slot) => {
@@ -228,12 +213,12 @@ export const getAvailableCoursesForSlot = catchAsyncErrors(
       });
     });
 
-    // 5️⃣ Build available courses list with availability flag
+    // 4️⃣ Build available courses list from assigned courses
     const availableCourses = [];
 
-    for (const course of courses) {
+    for (const course of assignedCourses) {
       let availableTeacher = null;
-      let available = true; // default
+      let available = true;
 
       if (course.teacher) {
         if (!busyTeacherIds.has(course.teacher._id.toString())) {
@@ -243,11 +228,8 @@ export const getAvailableCoursesForSlot = catchAsyncErrors(
           };
           available = true;
         } else {
-          // teacher is busy → mark as unavailable, keep teacher null
           available = false;
         }
-      } else {
-        // no teacher → no conflict, available true
       }
 
       availableCourses.push({
@@ -257,11 +239,11 @@ export const getAvailableCoursesForSlot = catchAsyncErrors(
           code: course.code,
         },
         teacher: availableTeacher,
-        available, // 👈 new flag
+        available,
       });
     }
 
-    // 6️⃣ Ensure current slot's course is included (if editing)
+    // 5️⃣ Ensure current slot's course is included (if editing)
     if (slotId) {
       const currentTimeTable = await TimeTable.findOne({
         campus,
@@ -275,29 +257,26 @@ export const getAvailableCoursesForSlot = catchAsyncErrors(
 
         if (currentSlot.course) {
           const exists = availableCourses.some(
-            (item) =>
-              item.course._id.toString() === currentSlot.course.toString()
+            (item) => item.course._id.toString() === currentSlot.course.toString()
           );
 
           if (!exists) {
-            const currentCourse = await Course.findById(
-              currentSlot.course
-            ).populate("teacher", "name");
+            const currentCourse = await Course.findById(currentSlot.course)
+              .populate("teacher", "name");
 
-            availableCourses.push({
-              course: {
-                _id: currentCourse._id,
-                courseName: currentCourse.courseName,
-                code: currentCourse.code,
-              },
-              teacher: currentCourse.teacher
-                ? {
-                    _id: currentCourse.teacher._id,
-                    name: currentCourse.teacher.name,
-                  }
-                : null,
-              available: true, // existing assignment should remain selectable
-            });
+            if (currentCourse) {
+              availableCourses.push({
+                course: {
+                  _id: currentCourse._id,
+                  courseName: currentCourse.courseName,
+                  code: currentCourse.code,
+                },
+                teacher: currentCourse.teacher
+                  ? { _id: currentCourse.teacher._id, name: currentCourse.teacher.name }
+                  : null,
+                available: true,
+              });
+            }
           }
         }
       }

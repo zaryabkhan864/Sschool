@@ -8,8 +8,7 @@ import {
   useGetCourseDetailsQuery,
   useUpdateCourseMutation,
 } from "../../redux/api/courseApi";
-import { useGetUserByTypeQuery } from "../../redux/api/userApi";
-import { useGetGradesQuery } from "../../redux/api/gradesApi";
+import { useGetUserByTypeQuery } from "../../redux/api/authApi";
 
 // Layout & UI Components
 import AdminLayout from "../layout/AdminLayout";
@@ -18,8 +17,8 @@ import Loader from "../layout/Loader";
 import AppPageHeader from "../layout/AppPageHeader";
 import AppCard from "../GUI/AppCard";
 import AppInput from "../GUI/AppInput";
-import AppSubmitButton from "../GUI/AppSubmitButton";
-import AppCancelButton from "../GUI/AppCancelButton";
+import AppButton from "../GUI/AppButton";
+
 import SearchableDropdown from "../../components/layout/SearchableDropdown";
 
 const UpdateCourse = () => {
@@ -33,7 +32,7 @@ const UpdateCourse = () => {
     description: "",
     code: "",
     teacher: "",
-    grade: "",
+    // grade field removed
   });
 
   const [teacherSearch, setTeacherSearch] = useState("");
@@ -42,12 +41,7 @@ const UpdateCourse = () => {
   const [hasMoreTeachers, setHasMoreTeachers] = useState(true);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
 
-  const [gradeSearch, setGradeSearch] = useState("");
-  const [gradePage, setGradePage] = useState(1);
-  const [gradesList, setGradesList] = useState([]);
-  const [hasMoreGrades, setHasMoreGrades] = useState(true);
-
-  const { courseName, description, code, teacher, grade } = course;
+  const { courseName, description, code, teacher } = course;
 
   // API Hooks
   const [updateCourse, { isLoading, error, isSuccess }] = useUpdateCourseMutation();
@@ -65,16 +59,6 @@ const UpdateCourse = () => {
     keyword: teacherSearch
   }, { refetchOnMountOrArgChange: true });
 
-  const {
-    data: gradesData,
-    isFetching: gradeLoading,
-    error: gradeError,
-  } = useGetGradesQuery({
-    page: gradePage,
-    limit: 0,
-    keyword: gradeSearch
-  }, { refetchOnMountOrArgChange: true });
-
   // Populate form with course details
   useEffect(() => {
     if (courseData?.course) {
@@ -84,12 +68,11 @@ const UpdateCourse = () => {
         description: courseDetails.description || "",
         code: courseDetails.code || "",
         teacher: courseDetails.teacher?._id || courseDetails.teacher || "",
-        grade: courseDetails.grade?._id || courseDetails.grade || "",
+        // grade no longer included
       });
 
-      // Pre-fill search inputs with names for better UX
+      // Pre-fill teacher search for better UX
       if (courseDetails.teacher?.name) setTeacherSearch(courseDetails.teacher.name);
-      if (courseDetails.grade?.gradeName) setGradeSearch(courseDetails.grade.gradeName);
       
       setInitialLoadDone(true);
     }
@@ -112,33 +95,15 @@ const UpdateCourse = () => {
     }
   }, [teachersData, teacherPage]);
 
-  // Update grades list when data changes
-  useEffect(() => {
-    if (gradesData?.grades) {
-      if (gradePage === 1) {
-        setGradesList(gradesData.grades);
-      } else {
-        setGradesList(prev => {
-          const combined = [...prev, ...gradesData.grades];
-          const uniqueMap = new Map();
-          combined.forEach(g => uniqueMap.set(g._id, g));
-          return Array.from(uniqueMap.values());
-        });
-      }
-      setHasMoreGrades(!!(gradesData.pagination && gradePage < gradesData.pagination.totalPages));
-    }
-  }, [gradesData, gradePage]);
-
   // Handle API responses
   useEffect(() => {
     if (error) toast.error(error?.data?.message || t("Error updating course"));
     if (teacherError) toast.error(t("Failed to load teachers"));
-    if (gradeError) toast.error(t("Failed to load grades"));
     if (isSuccess) {
       toast.success(t("Course Updated Successfully"));
       navigate("/admin/courses");
     }
-  }, [error, isSuccess, navigate, t, teacherError, gradeError]);
+  }, [error, isSuccess, navigate, t, teacherError]);
 
   const onChange = (e) => setCourse({ ...course, [e.target.name]: e.target.value });
 
@@ -150,23 +115,15 @@ const UpdateCourse = () => {
 
   const handleTeacherChange = (teacherId) => setCourse({ ...course, teacher: teacherId });
 
-  // Grade dropdown handlers
-  const handleGradeSearch = useCallback((searchValue, page) => {
-    setGradeSearch(searchValue);
-    setGradePage(page);
-  }, []);
-
-  const handleGradeChange = (gradeId) => setCourse({ ...course, grade: gradeId });
-
   // Form submission
   const submitHandler = (e) => {
     e.preventDefault();
     if (!courseName.trim()) return toast.error(t("Course name is required"));
     if (!code.trim() || code.length !== 8) return toast.error(t("Course code must be 8 characters"));
     if (!teacher) return toast.error(t("Please select a teacher"));
-    if (!grade) return toast.error(t("Please select a grade"));
+    // grade validation removed
 
-    updateCourse({ id: courseId, courseName, description, code, teacher, grade });
+    updateCourse({ id: courseId, courseName, description, code, teacher }); // grade removed from payload
   };
 
   // Memoized options for dropdowns
@@ -175,12 +132,6 @@ const UpdateCourse = () => {
     label: t.name,
     subtitle: t.email
   })), [teachersList]);
-
-  const gradeOptions = useMemo(() => gradesList.map(g => ({
-    value: g._id,
-    label: g.gradeName,
-    subtitle: g.academicLevel?.name
-  })), [gradesList]);
 
   if (detailsLoading) return <Loader />;
 
@@ -201,8 +152,8 @@ const UpdateCourse = () => {
             icon="fa-book"
             footer={
               <div className="flex justify-end gap-2">
-                <AppCancelButton backUrl="/admin/courses" />
-                <AppSubmitButton 
+                <AppButton backUrl="/admin/courses" />
+                <AppButton 
                   label="Update Course" 
                   isLoading={isLoading} 
                   icon="fa-save" 
@@ -231,19 +182,8 @@ const UpdateCourse = () => {
               />
 
               <div className="md:col-span-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <SearchableDropdown
-                    label={t('Grade')}
-                    value={grade}
-                    options={gradeOptions}
-                    onChange={handleGradeChange}
-                    onSearch={handleGradeSearch}
-                    isLoading={gradeLoading}
-                    placeholder={t("Select Grade")}
-                    required
-                    initialSearch={gradeSearch}
-                  />
-
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+                  {/* Grade dropdown completely removed */}
                   <SearchableDropdown
                     label={t('Assigned Teacher')}
                     value={teacher}

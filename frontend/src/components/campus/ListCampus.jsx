@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -13,16 +14,17 @@ import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
 import ConfirmationModal from "../GUI/ConfirmationModal";
 import { DataTableContainer } from "../GUI/DataTableContainer";
-import AddButton from "../layout/AddButton";
-import RefreshButton from "../layout/RefreshButton";
-import StatusBadge from "../GUI/StatusBadge";
+import AppButton from "../GUI/AppButton";
 import ActionButtons from "../GUI/ActionButtons";
 import FilterDropdown from "../GUI/FilterDropdown";
 import EmptyState from "../GUI/EmptyState";
 import TruncatedCell from "../GUI/TruncatedCell";
+import AppBadge from "../GUI/AppBadge";
 
 const ListCampus = () => {
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
 
   const [userRole, setUserRole] = useState("");
@@ -30,7 +32,15 @@ const ListCampus = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(8);
-  const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState(""); // for API
+
+  // Toast from navigation (e.g., after creating a campus)
+  useEffect(() => {
+    if (location.state?.showSuccessToast) {
+      toast.success(t("Campus created successfully!"));
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, t]);
 
   // Debounced search
   useEffect(() => {
@@ -41,38 +51,49 @@ const ListCampus = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // API Query
+  // API query
   const {
     data,
     isLoading,
     error,
     refetch,
-    isFetching
+    isFetching,
   } = useGetCampusQuery({
     page: currentPage,
     limit,
     keyword: searchTerm,
+    status: statusFilter || undefined,
+  }, {
+    refetchOnMountOrArgChange: true,
   });
 
   const [
     deleteCampus,
-    { isLoading: isDeleteLoading, error: deleteError, isSuccess },
+    { isLoading: isDeleteLoading, error: deleteError, isSuccess: deleteSuccess },
   ] = useDeleteCampusMutation();
 
   const [showModal, setShowModal] = useState(false);
   const [selectedCampusId, setSelectedCampusId] = useState(null);
 
+  // Global error / success handling
   useEffect(() => {
     if (error) toast.error(error?.data?.message || t("Something went wrong"));
-    if (deleteError) toast.error(deleteError?.data?.message);
-    if (isSuccess) {
-      toast.success(t("Campus Deleted"));
-      refetch();
+    if (deleteError) toast.error(deleteError?.data?.message || t("Failed to delete campus"));
+    if (deleteSuccess) {
+      toast.success(t("Campus deleted successfully"));
       setShowModal(false);
       setSelectedCampusId(null);
     }
     if (user?.role === "admin") setUserRole("admin");
-  }, [error, deleteError, isSuccess, user, t, refetch]);
+  }, [error, deleteError, deleteSuccess, user, t]);
+
+  // Refetch when requested from navigation state (e.g., after edit)
+  useEffect(() => {
+    if (location.state?.shouldRefetch) {
+      refetch();
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, refetch]);
 
   const handleDeleteClick = (id) => {
     setSelectedCampusId(id);
@@ -88,22 +109,30 @@ const ListCampus = () => {
     toast.success(t("Refreshed"));
   };
 
-  // Columns definition
+  const handleEditCampus = (id) => {
+    navigate(`/admin/campus/${id}`);
+  };
+
+  const handleViewDetails = (id) => {
+    navigate(`/admin/campus/${id}/details`);
+  };
+
+  // Columns (status column removed as requested)
   const columns = [
     {
       header: t("Campus Name"),
       accessor: "name",
-      width: "30%",
+      width: "35%",
       minWidth: "200px",
-      render: (value) => <TruncatedCell lines={1}>{value}</TruncatedCell>
+      render: (value) => <TruncatedCell maxChars={30}>{value}</TruncatedCell>
     },
     {
       header: t("Location"),
       accessor: "location",
-      width: "30%",
+      width: "35%",
       minWidth: "200px",
       render: (value) => value ? (
-        <TruncatedCell lines={1}>{value}</TruncatedCell>
+        <TruncatedCell maxChars={30}>{value}</TruncatedCell>
       ) : (
         <span className="text-sm text-gray-400 italic">{t("No location")}</span>
       )
@@ -111,60 +140,61 @@ const ListCampus = () => {
     {
       header: t("Phone Number"),
       accessor: "contactNumber",
-      width: "20%",
+      width: "30%",
       minWidth: "150px",
       render: (value) => value ? (
-        <TruncatedCell lines={1}>{value}</TruncatedCell>
+        <TruncatedCell maxChars={20}>{value}</TruncatedCell>
       ) : (
         <span className="text-sm text-gray-400 italic">{t("No phone")}</span>
       )
-    },
-    // Add status column if campus has a status field
-    {
-      header: t("Status"),
-      accessor: "status",
-      width: "15%",
-      minWidth: "100px",
-      render: (value) => <StatusBadge active={value} />
     }
   ];
 
-  // Stats cards
+  // Stats – note: counts come from data?.pagination?.counts
+  const counts = data?.pagination?.counts || { total: 0, active: 0, deactive: 0 };
+
   const stats = [
     {
       label: t("Total Campuses"),
-      value: data?.pagination?.total || 0,
+      value: counts.total,
       icon: "university",
       color: "blue"
     },
     {
-      label: t("Active Campuses"),
-      value: data?.campus?.filter(c => c.status).length || 0,
+      label: t("Active"),
+      value: counts.active,
       icon: "check-circle",
       color: "green"
     },
     {
-      label: t("Items Shown"),
-      value: data?.campus?.length || 0,
-      icon: "list-ul",
-      color: "purple"
+      label: t("Deactive"),
+      value: counts.deactive,
+      icon: "times-circle",
+      color: "red"
     },
     {
       label: t("Total Pages"),
       value: data?.pagination?.totalPages || 1,
       icon: "file-alt",
-      color: "orange"
+      color: "purple"
     }
   ];
 
   const addButton = userRole === "admin" ? (
-    <AddButton to="/admin/campus/new" text={t("Add New Campus")} icon="plus" />
+    <AppButton to="/admin/campus/new" label={t("Add New Campus")} icon="plus" />
   ) : null;
 
   const refreshButton = (
-    <RefreshButton onClick={handleRefresh} text={t("Refresh")} icon="sync-alt" disabled={isFetching} className="ml-2" />
+    <AppButton
+      onClick={handleRefresh}
+      text={t("Refresh")}
+      icon="sync-alt"
+      disabled={isFetching}
+      className="ml-2"
+    />
   );
 
+  // Filter dropdown using shared component
   const filters = (
     <FilterDropdown
       limit={limit}
@@ -175,10 +205,29 @@ const ListCampus = () => {
       onReset={() => {
         setSearch("");
         setSearchTerm("");
+        setStatusFilter("");
         setCurrentPage(1);
         setLimit(8);
       }}
-    />
+    >
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {t("Status")}
+        </label>
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="w-full p-2 border border-gray-300 rounded-md"
+        >
+          <option value="">{t("All Status")}</option>
+          <option value="active">{t("Active")}</option>
+          <option value="inactive">{t("Deactive")}</option>
+        </select>
+      </div>
+    </FilterDropdown>
   );
 
   const renderRowActions = (row) => (
@@ -187,6 +236,16 @@ const ListCampus = () => {
       userRole={userRole}
       onDelete={handleDeleteClick}
       isDeleteLoading={isDeleteLoading}
+      onView={handleViewDetails}
+      onEdit={handleEditCampus}
+    />
+  );
+
+  const emptyState = (
+    <EmptyState
+      icon="university"
+      title={searchTerm ? t("No campuses found matching your search") : t("No campuses found")}
+      message={t("Try adjusting your search or filters to find what you're looking for.")}
     />
   );
 
@@ -199,7 +258,8 @@ const ListCampus = () => {
       <DataTableContainer
         title={t("Campus Management")}
         subtitle={t("Manage campus locations and their details")}
-        data={data?.campus || []}
+        // FIXED: use data?.campuses (plural) instead of data?.campus
+        data={data?.campuses || []}
         columns={columns}
         isLoading={isLoading}
         isFetching={isFetching}
@@ -216,12 +276,7 @@ const ListCampus = () => {
         onRefresh={handleRefresh}
         refreshButton={refreshButton}
         addButton={addButton}
-        emptyState={
-          <EmptyState
-            icon="university"
-            title={searchTerm ? t("No campuses found matching your search") : t("No campuses found")}
-          />
-        }
+        emptyState={emptyState}
         filters={filters}
         stats={stats}
         userRole={userRole}
@@ -229,7 +284,7 @@ const ListCampus = () => {
         renderHeaderInfo={() => (
           <p className="text-sm text-gray-500 mt-1">
             <i className="fa fa-info-circle mr-2"></i>
-            {t("Showing")}: {data?.campus?.length || 0} {t("campuses")}
+            {t("Showing")}: {data?.campuses?.length || 0} {t("campuses")}
           </p>
         )}
         className="campus-table-container"

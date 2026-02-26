@@ -10,13 +10,10 @@ import MetaData from "../layout/MetaData";
 import AppPageHeader from "../layout/AppPageHeader";
 import AppCard from "../GUI/AppCard";
 import AppInput from "../GUI/AppInput";
-import AppSelect from "../GUI/AppSelect";
 import AppCheckbox from "../GUI/AppCheckbox";
-import AppTextarea from "../GUI/AppTextarea";
 import AppInfoBox from "../layout/AppInfoBox";
-// New Buttons
-import AppSubmitButton from "../GUI/AppSubmitButton";
-import AppCancelButton from "../GUI/AppCancelButton";
+import AppButton from "../GUI/AppButton";
+import SearchableDropdown from "../layout/SearchableDropdown";
 
 const NewGrade = () => {
   const { t } = useTranslation();
@@ -69,30 +66,31 @@ const NewGrade = () => {
     <AdminLayout>
       <MetaData title={t("Create New Grade")} />
 
-      <div className="max-w-6xl mx-auto py-4">
+      <div className="max-w-6xl mx-auto">
         <AppPageHeader
           title={t("New Grade")}
           subtitle={t("Create a new grade")}
           backUrl="/admin/grades"
         />
 
-        <form onSubmit={submitHandler} className="space-y-4">
+        <form onSubmit={submitHandler} className="space-y-6">
           <AppCard
             title={t("Grade Information")}
             icon="fa-graduation-cap"
             footer={
-              <div className="flex justify-end gap-2">
-                <AppCancelButton backUrl="/admin/grades" />
-                <AppSubmitButton 
-                  label="Create Grade" 
-                  loadingLabel="Creating..." 
-                  isLoading={isCreating} 
+              <div className="flex justify-end gap-3">
+                <AppButton backUrl="/admin/grades" />
+                <AppButton
+                  type="submit"
+                  label={t("Create Grade")}
+                  loadingLabel="Creating..."
+                  isLoading={isCreating}
                   icon="fa-plus-circle"
                 />
               </div>
             }
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <AppInput
                 name="gradeName"
                 value={gradeName}
@@ -102,15 +100,15 @@ const NewGrade = () => {
                 required
               />
 
-              <AppSelect
-                name="academicLevel"
-                value={academicLevel}
-                onChange={onChange}
+              <SearchableDropdown
                 label={t("Academic Level")}
+                value={academicLevel}
+                onChange={(val) => setGrade(prev => ({ ...prev, academicLevel: val }))}
                 options={levelOptions}
                 placeholder="Select Level"
-                loading={levelsLoading}
+                isLoading={levelsLoading}
                 required
+                // showSelected removed – now defaults to true, so selected level appears
               />
 
               <AppCheckbox
@@ -122,7 +120,8 @@ const NewGrade = () => {
               />
 
               <div className="md:col-span-2">
-                <AppTextarea
+                <AppInput
+                  type="textarea"
                   name="description"
                   value={description}
                   onChange={onChange}
@@ -135,8 +134,8 @@ const NewGrade = () => {
             </div>
 
             <AppInfoBox icon="fa-info-circle">
-              <strong>Note:</strong> - Grade will be created for current campus and year.<br />
-              - This Grade will be linked to the selected Academic Level.
+              <strong>{t("Note")}:</strong> - {t("Grade will be created for current campus and year.")}<br />
+              - {t("This Grade will be linked to the selected Academic Level.")}
             </AppInfoBox>
           </AppCard>
         </form>

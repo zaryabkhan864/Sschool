@@ -2,7 +2,7 @@ import React from "react";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 import Slider from "../layout/Slider";
-import { useGetUserByTypeQuery } from "../../redux/api/userApi";
+import { useGetUserByTypeQuery } from "../../redux/api/authApi";
 import { useTranslation } from "react-i18next";
 import { 
   UserGroupIcon, 

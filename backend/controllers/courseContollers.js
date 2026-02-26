@@ -6,14 +6,11 @@ import Teacher from "../models/user.js";
 import APIFilters from "../utils/apiFilters.js";
 import mongoose from "mongoose";
 
-// ============================================================
-// CREATE new course  →  /api/v1/courses
-// ============================================================
 export const newCourse = catchAsyncErrors(async (req, res, next) => {
   const { campus } = req.cookies;
   const { selectedYear } = req.cookies;
 
-  const { courseName, description, code, teacher, grade } = req.body;
+  const { courseName, description, code, teacher } = req.body;
 
   // Validate teacher if provided
   let teacherDetail;
@@ -25,30 +22,15 @@ export const newCourse = catchAsyncErrors(async (req, res, next) => {
   }
   const teacherId = teacher === "" ? null : teacher;
 
-  // Validate grade (required)
-  if (!grade) {
-    return next(new ErrorHandler("Please select a grade for the course", 400));
-  }
-  const gradeDoc = await Grade.findById(grade);
-  if (!gradeDoc) {
-    return next(new ErrorHandler("Grade not found", 404));
-  }
-
-  // Create course
+  // Create course (grade field removed)
   const course = await Course.create({
     courseName,
     description,
     code,
     teacher: teacherId,
-    grade,
     campus,
     year: selectedYear,
   });
-
-  // Add course to grade.courses array
-  if (!gradeDoc.courses) gradeDoc.courses = [];
-  gradeDoc.courses.push(course._id);
-  await gradeDoc.save();
 
   res.status(200).json({ course });
 });
@@ -97,11 +79,8 @@ export const getCourses = catchAsyncErrors(async (req, res, next) => {
     .sort()
     .pagination();
 
-  // ✅ Populate grade with correct field names
-  const populateOptions = [
-    "campus",
-    { path: "grade", select: "gradeName level" } // 👈 FIXED: 'gradeName' instead of 'name'
-  ];
+  // Populate only campus and teacher (grade removed)
+  const populateOptions = ["campus"];
 
   // Teacher population
   if (req.query.teacher || (req.query.keyword && req.query.keyword.includes("teacher"))) {
@@ -118,8 +97,7 @@ export const getCourses = catchAsyncErrors(async (req, res, next) => {
   if (req.query.populateStudents === "true") {
     populateOptions.push({
       path: "students",
-      select: "name email rollNumber grade",
-      populate: { path: "grade.gradeId", select: "gradeName" },
+      select: "name email rollNumber", // removed grade from select
     });
   }
 
@@ -180,7 +158,7 @@ export const updateCourse = catchAsyncErrors(async (req, res, next) => {
   }
 
   const { campus, selectedYear } = req.cookies;
-  const { courseName, description, code, teacher, grade } = req.body;
+  const { courseName, description, code, teacher } = req.body;
 
   // Teacher handling
   const teacherId = teacher === "" ? null : teacher;
@@ -196,35 +174,7 @@ export const updateCourse = catchAsyncErrors(async (req, res, next) => {
     selectedCampus = campus;
   }
 
-  // ✅ Grade handling – agar grade change hui hai to references update karo
-  const oldGradeId = course.grade;
-  if (grade && grade !== oldGradeId?.toString()) {
-    // Validate new grade
-    const newGrade = await Grade.findById(grade);
-    if (!newGrade) {
-      return next(new ErrorHandler("Grade not found", 404));
-    }
-
-    // Remove course from old grade's courses array
-    if (oldGradeId) {
-      const oldGrade = await Grade.findById(oldGradeId);
-      if (oldGrade && oldGrade.courses) {
-        oldGrade.courses = oldGrade.courses.filter(
-          (cId) => cId.toString() !== course._id.toString()
-        );
-        await oldGrade.save();
-      }
-    }
-
-    // Add course to new grade's courses array
-    if (!newGrade.courses) newGrade.courses = [];
-    if (!newGrade.courses.includes(course._id)) {
-      newGrade.courses.push(course._id);
-      await newGrade.save();
-    }
-  }
-
-  // Update course document – grade field explicitly set karo
+  // Update course document – grade field removed entirely
   course = await Course.findByIdAndUpdate(
     req.params.id,
     {
@@ -232,7 +182,6 @@ export const updateCourse = catchAsyncErrors(async (req, res, next) => {
       description,
       code,
       teacher: teacherId,
-      grade: grade || course.grade,  // agar grade nahi bheji to purani rahe
       campus: selectedCampus,
       year: selectedYear,
     },
@@ -251,16 +200,7 @@ export const deleteCourse = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Course not found", 404));
   }
 
-  // Remove course reference from associated grade
-  if (course.grade) {
-    const grade = await Grade.findById(course.grade);
-    if (grade && grade.courses) {
-      grade.courses = grade.courses.filter(
-        (cId) => cId.toString() !== course._id.toString()
-      );
-      await grade.save();
-    }
-  }
+  // Grade reference removal no longer needed – removed
 
   await Course.findByIdAndDelete(req.params.id);
   res.status(200).json({ message: "Course deleted successfully" });
@@ -272,7 +212,7 @@ export const deleteCourse = catchAsyncErrors(async (req, res, next) => {
 export const getCourseDetails = catchAsyncErrors(async (req, res, next) => {
   const course = await Course.findById(req.params.id)
     .populate("campus")
-    .populate("grade", "gradeName level") // 👈 FIXED: 'gradeName' select karo
+    // .populate("grade", "gradeName level") → removed
     .populate("teacher", "name email");
 
   if (!course) {
@@ -281,7 +221,6 @@ export const getCourseDetails = catchAsyncErrors(async (req, res, next) => {
 
   res.status(200).json({ course });
 });
-
 // ============================================================
 // GET courses by grade & teacher (teacher dashboard)
 // ============================================================

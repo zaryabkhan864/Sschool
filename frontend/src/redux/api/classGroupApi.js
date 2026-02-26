@@ -23,7 +23,8 @@ export const classGroupApi = createApi({
         keyword = "", 
         status,
         campus,
-        grade, // Class Group aksar Grade se linked hota hai
+        grade,
+        academicLevel,  
         paginate = true 
       } = {}) => {
         const params = new URLSearchParams();
@@ -39,6 +40,7 @@ export const classGroupApi = createApi({
         if (status) params.append('status', status);
         if (campus) params.append('campus', campus);
         if (grade) params.append('grade', grade);
+        if (academicLevel) params.append('academicLevel', academicLevel); 
         
         return {
           url: `/class-groups?${params.toString()}`,
@@ -78,13 +80,13 @@ export const classGroupApi = createApi({
 
     // Get class groups for dropdowns (No pagination)
     getClassGroupsForDropdown: builder.query({
-      query: ({ campus, status = "active", grade } = {}) => {
+      query: ({ campus, status = "active", grade, academicLevel } = {}) => {
         const params = new URLSearchParams();
         params.append('paginate', 'false');
         if (campus) params.append('campus', campus);
         if (status) params.append('status', status);
         if (grade) params.append('grade', grade);
-        
+        if (academicLevel) params.append('academicLevel', academicLevel);
         return {
           url: `/class-groups?${params.toString()}`,
         };
