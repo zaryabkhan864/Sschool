@@ -5,7 +5,7 @@ import {
     getAcademicYearDetails,
     updateAcademicYear,
     deleteAcademicYear,
-    getAcademicYearsList,          // 👈 naya controller import kiya
+    getAcademicYearsList,
   } from "../controllers/academicYearController.js";
 import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 

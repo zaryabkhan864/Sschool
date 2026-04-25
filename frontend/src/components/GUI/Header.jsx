@@ -36,8 +36,7 @@ const Header = () => {
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [selectedYear, setSelectedYear] = useState('');
-  
+
   // Academic year states – store both ID and name
   const [selectedAcademicYear, setSelectedAcademicYear] = useState(() => {
     return getCookie('academicYear') || '';
@@ -53,9 +52,6 @@ const Header = () => {
     return cookieCampus || user?.campus?._id || '';
   });
 
-  const currentYear = dayjs().year();
-  const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
-
   const roleTitles = {
     user: t("User Dashboard"),
     admin: t("Admin Dashboard"),
@@ -68,18 +64,6 @@ const Header = () => {
 
   const dashboardTitle = roleTitles[user?.role] || t("Dashboard");
 
-  // Year cookie handling
-  useEffect(() => {
-    const storedYear = getCookie('selectedYear');
-    if (storedYear) {
-      setSelectedYear(storedYear);
-    } else {
-      const defaultYear = currentYear.toString();
-      setSelectedYear(defaultYear);
-      document.cookie = `selectedYear=${encodeURIComponent(defaultYear)}; path=/; max-age=${60 * 60 * 24 * 365}`;
-    }
-  }, [currentYear]);
-
   // Academic year cookies handling – read both ID and name
   useEffect(() => {
     const storedAcademicYear = getCookie('academicYear');
@@ -89,9 +73,6 @@ const Header = () => {
     }
     if (storedAcademicYearName) {
       setSelectedAcademicYearName(storedAcademicYearName);
-    } else {
-      // Optionally, if only ID exists but name is missing, try to find it from loaded data later
-      // This will be handled by the effect that watches academicYearsData
     }
   }, []);
 
@@ -101,7 +82,6 @@ const Header = () => {
       const found = academicYearsData.academicYears.find(y => y._id === selectedAcademicYear);
       if (found && found.name) {
         setSelectedAcademicYearName(found.name);
-        // Also update the cookie with the name
         document.cookie = `academicYearName=${encodeURIComponent(found.name)}; path=/; max-age=${60 * 60 * 24 * 365}`;
       }
     }
@@ -135,24 +115,15 @@ const Header = () => {
       .catch((err) => console.error(err));
   };
 
-  const handleYearChange = (e) => {
-    const year = e.target.value;
-    setSelectedYear(year);
-    document.cookie = `selectedYear=${encodeURIComponent(year)}; path=/; max-age=${60 * 60 * 24 * 365}`;
-    window.location.reload();
-  };
-
   // Academic year change handler – save both ID and name to cookies
   const handleAcademicYearChange = (e) => {
     const yearId = e.target.value;
-    // Get the selected option's text (name)
     const selectedOption = e.target.selectedOptions[0];
     const yearName = selectedOption ? selectedOption.text : '';
 
     setSelectedAcademicYear(yearId);
     setSelectedAcademicYearName(yearName);
 
-    // Set both cookies
     document.cookie = `academicYear=${encodeURIComponent(yearId)}; path=/; max-age=${60 * 60 * 24 * 365}`;
     document.cookie = `academicYearName=${encodeURIComponent(yearName)}; path=/; max-age=${60 * 60 * 24 * 365}`;
 
@@ -214,21 +185,7 @@ const Header = () => {
           <div className="flex items-center space-x-3">
             <LanguageSwitcher />
 
-            {/* Session/Year Selector (always visible) */}
-            <div className="relative group hidden sm:block">
-              <select
-                className="appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-1.5 px-3 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/10 transition-all cursor-pointer text-xs font-bold"
-                value={selectedYear}
-                onChange={handleYearChange}
-              >
-                {years.map((year) => (
-                  <option key={year} value={year}>{year} Session</option>
-                ))}
-              </select>
-              <ChevronDownIcon className="w-3 h-3 absolute right-2 top-2.5 text-gray-400 pointer-events-none" />
-            </div>
-
-            {/* Academic Year Selector (only for authenticated users) */}
+            {/* Academic Year Selector (only for authenticated users) – moved here, right after language switcher */}
             {isAuthenticated && (
               <div className="relative group hidden sm:block">
                 <select

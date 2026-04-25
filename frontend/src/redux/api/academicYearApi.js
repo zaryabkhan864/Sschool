@@ -2,7 +2,10 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export const academicYearApi = createApi({
   reducerPath: "academicYearApi",
-  baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" }),
+  baseQuery: fetchBaseQuery({
+    baseUrl: "/api/v1",
+    credentials: "include", // ✅ ensure cookies are sent
+  }),
   tagTypes: ["AcademicYear"],
 
   endpoints: (builder) => ({

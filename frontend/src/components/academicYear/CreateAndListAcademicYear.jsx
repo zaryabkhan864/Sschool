@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
 
-// Redux API
+// Redux API for Academic Year
 import {
   useCreateAcademicYearMutation,
   useDeleteAcademicYearMutation,
@@ -30,17 +30,18 @@ const CreateAndListAcademicYear = () => {
   const { t } = useTranslation();
   const { user } = useSelector((state) => state.auth);
 
-  // Form state
+  // ---------- Form state ----------
   const [formData, setFormData] = useState({
     name: "",
     startDate: "",
     endDate: "",
     isCurrent: false,
+    // campus field hata diya gaya
   });
   const [editMode, setEditMode] = useState(false);
   const [editId, setEditId] = useState(null);
 
-  // Table & filter state
+  // ---------- Table & filter state ----------
   const [search, setSearch] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -56,7 +57,7 @@ const CreateAndListAcademicYear = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // API queries
+  // ---------- API queries ----------
   const {
     data,
     isLoading,
@@ -68,7 +69,13 @@ const CreateAndListAcademicYear = () => {
       page: currentPage,
       limit,
       keyword: searchTerm,
-      status: statusFilter || undefined,
+      isCurrent:
+        statusFilter === "current"
+          ? true
+          : statusFilter === "notCurrent"
+          ? false
+          : undefined,
+      // campus filter ab nahi bhej rahe — backend cookie se uthayega
     },
     { refetchOnMountOrArgChange: true }
   );
@@ -91,7 +98,7 @@ const CreateAndListAcademicYear = () => {
     }
   }, [fetchError, t]);
 
-  // Form handlers
+  // ---------- Form handlers ----------
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -120,7 +127,11 @@ const CreateAndListAcademicYear = () => {
           errorMsg.includes("Only one academic year can be current") ||
           (errorMsg.includes("duplicate key") && errorMsg.includes("isCurrent"))
         ) {
-          toast.error(t("Only one academic year can be marked as current at a time. Please unset the current year first."));
+          toast.error(
+            t(
+              "Only one academic year can be marked as current at a time. Please unset the current year first."
+            )
+          );
         } else {
           toast.error(errorMsg || t("Operation failed"));
         }
@@ -160,6 +171,7 @@ const CreateAndListAcademicYear = () => {
       startDate: year.startDate ? year.startDate.slice(0, 10) : "",
       endDate: year.endDate ? year.endDate.slice(0, 10) : "",
       isCurrent: year.isCurrent,
+      // campus nahi set karna kyunki backend cookie se lega
     });
     setEditMode(true);
     setEditId(year._id);
@@ -205,7 +217,9 @@ const CreateAndListAcademicYear = () => {
       if (result.error) {
         const errorMsg = result.error.data?.message || "";
         if (errorMsg.includes("Only one academic year can be current")) {
-          toast.error(t("Another year is already set as current. Please refresh and try again."));
+          toast.error(
+            t("Another year is already set as current. Please refresh and try again.")
+          );
         } else {
           toast.error(errorMsg);
         }
@@ -223,12 +237,12 @@ const CreateAndListAcademicYear = () => {
     toast.success(t("Refreshed"));
   };
 
-  // ------------------ Table Columns ------------------
+  // ---------- Table Columns ----------
   const columns = [
     {
       header: t("Name"),
       accessor: "name",
-      width: "25%",
+      width: "20%",
       render: (val) => <span className="font-medium text-gray-800">{val}</span>,
     },
     {
@@ -256,14 +270,12 @@ const CreateAndListAcademicYear = () => {
         />
       ),
     },
-    // ✅ Modified "Set Current" column - clear distinction
     {
       header: t("Set Current"),
       accessor: "isCurrent",
       width: "15%",
       render: (val, row) => {
         if (val) {
-          // This year is already current → show a badge / text
           return (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
               <i className="fa fa-check-circle mr-1 text-green-600" />
@@ -271,7 +283,6 @@ const CreateAndListAcademicYear = () => {
             </span>
           );
         } else {
-          // Not current → show a blue button (not green to avoid confusion)
           return (
             <button
               onClick={() => handleSetCurrent(row)}
@@ -287,7 +298,6 @@ const CreateAndListAcademicYear = () => {
     },
   ];
 
-  // Action column: ONLY Edit & Delete (no Set Current)
   const renderRowActions = (row) => (
     <ActionButtons
       id={row._id}
@@ -340,6 +350,7 @@ const CreateAndListAcademicYear = () => {
     />
   );
 
+  // Filters (ab sirf status filter bacha)
   const filters = (
     <FilterDropdown
       limit={limit}
@@ -398,17 +409,9 @@ const CreateAndListAcademicYear = () => {
                 placeholder={t("e.g., 2025-2026")}
                 required
               />
-              <div className="flex items-center pt-6">
-                <AppCheckbox
-                  name="isCurrent"
-                  checked={formData.isCurrent}
-                  onChange={handleInputChange}
-                  label={t("Set as current year")}
-                />
-              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
               <AppInput
                 label={t("Start Date")}
                 type="date"
@@ -422,6 +425,15 @@ const CreateAndListAcademicYear = () => {
                 name="endDate"
                 value={formData.endDate}
                 onChange={handleInputChange}
+              />
+            </div>
+
+            <div className="flex items-center pt-4">
+              <AppCheckbox
+                name="isCurrent"
+                checked={formData.isCurrent}
+                onChange={handleInputChange}
+                label={t("Set as current year")}
               />
             </div>
 
@@ -479,7 +491,9 @@ const CreateAndListAcademicYear = () => {
           setShowModal={setShowDeleteModal}
           confirmDelete={confirmDelete}
           isDeleteLoading={isDeleting}
-          message={t("Are you sure you want to delete this academic year? This action cannot be undone.")}
+          message={t(
+            "Are you sure you want to delete this academic year? This action cannot be undone."
+          )}
           title={t("Delete Academic Year")}
           confirmText={t("Delete")}
           cancelText={t("Cancel")}

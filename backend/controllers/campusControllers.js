@@ -15,7 +15,6 @@ export const newCampus = catchAsyncErrors(async (req, res, next) => {
 });
 
 // Get all campuses => /api/v1/campus
-// backend/controllers/campusController.js
 export const getCampus = catchAsyncErrors(async (req, res, next) => {
   const limit = Number(req.query.limit);
 
@@ -40,12 +39,11 @@ export const getCampus = catchAsyncErrors(async (req, res, next) => {
   }
 
   // === Pehle overall stats nikaalo (bina status filter ke) ===
-  // Search + filters apply karo but isActive condition hatado
   const { status: _, isActive: __, ...queryWithoutStatus } = req.query;
   const baseQueryForStats = new APIFilters(Campus, queryWithoutStatus)
     .setSearchFields(["name", "location", "code"])
     .search()
-    .filters();  // yahan status ya isActive nahi hoga
+    .filters();
 
   const overallConditions = baseQueryForStats.query._conditions;
 
@@ -76,7 +74,7 @@ export const getCampus = catchAsyncErrors(async (req, res, next) => {
   let pagination = null;
   if (!isDropdownRequest) {
     pagination = {
-      total: totalOverall,           // overall total
+      total: totalOverall,
       page: apiFilters.page,
       limit: apiFilters.limit,
       totalPages: Math.ceil(totalOverall / apiFilters.limit),
@@ -125,7 +123,7 @@ export const updateCampus = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
-// Get single campus
+// Get single campus => /api/v1/campus/:id
 export const getCampusDetails = catchAsyncErrors(async (req, res, next) => {
   const campus = await Campus.findById(req.params.id);
 
@@ -139,7 +137,7 @@ export const getCampusDetails = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
-// Set campus token
+// Set campus token => /api/v1/campus/token/:id
 export const setCampusIDinToken = catchAsyncErrors(async (req, res, next) => {
   const campus = await Campus.findById(req.params.id);
 
@@ -150,20 +148,16 @@ export const setCampusIDinToken = catchAsyncErrors(async (req, res, next) => {
   sendCampusIDToken(campus, 200, res);
 });
 
-// ❌ HARD DELETE hatao
-// ✅ SOFT DELETE use karo
+// ✅ HARD DELETE – completely removes campus from DB
 export const deleteCampus = catchAsyncErrors(async (req, res, next) => {
-  const campus = await Campus.findById(req.params.id);
+  const campus = await Campus.findByIdAndDelete(req.params.id);
 
   if (!campus) {
     return next(new ErrorHandler("Campus not found", 404));
   }
 
-  campus.isActive = false;
-  await campus.save();
-
   res.status(200).json({
     success: true,
-    message: "Campus deactivated successfully",
+    message: "Campus deleted successfully",
   });
 });
