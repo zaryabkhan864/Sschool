@@ -32,6 +32,9 @@ import { sessionTemplateApi } from "./api/sessionTemplateApi";
 import { daySessionConfigApi } from "./api/daySessionConfigApi";
 import { timeTableSlotApi } from "./api/timeTableSlotApi";
 
+import { academicYearApi } from "./api/academicYearApi"
+import { studentEnrollmentApi } from "./api/studentEnrollment";
+
 
 export const store = configureStore({
   reducer: {
@@ -57,13 +60,16 @@ export const store = configureStore({
     [campusApi.reducerPath]: campusApi.reducer,
 
 
-     // 🔥 Timetable system reducers
-  [academicLevelApi.reducerPath]: academicLevelApi.reducer,
-  [classGroupApi.reducerPath]: classGroupApi.reducer,
-  [weekDayApi.reducerPath]: weekDayApi.reducer,
-  [sessionTemplateApi.reducerPath]: sessionTemplateApi.reducer,
-  [daySessionConfigApi.reducerPath]: daySessionConfigApi.reducer,
-  [timeTableSlotApi.reducerPath]: timeTableSlotApi.reducer,
+    // 🔥 Timetable system reducers
+    [academicLevelApi.reducerPath]: academicLevelApi.reducer,
+    [classGroupApi.reducerPath]: classGroupApi.reducer,
+    [weekDayApi.reducerPath]: weekDayApi.reducer,
+    [sessionTemplateApi.reducerPath]: sessionTemplateApi.reducer,
+    [daySessionConfigApi.reducerPath]: daySessionConfigApi.reducer,
+    [timeTableSlotApi.reducerPath]: timeTableSlotApi.reducer,
+    [academicYearApi.reducerPath]: academicYearApi.reducer,
+    [studentEnrollmentApi.reducerPath]: studentEnrollmentApi.reducer,
+
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat([
@@ -88,11 +94,13 @@ export const store = configureStore({
       campusApi.middleware,
 
       // 🔥 Timetable system middleware
-    academicLevelApi.middleware,
-    classGroupApi.middleware,
-    weekDayApi.middleware,
-    sessionTemplateApi.middleware,
-    daySessionConfigApi.middleware,
-    timeTableSlotApi.middleware,
+      academicLevelApi.middleware,
+      classGroupApi.middleware,
+      weekDayApi.middleware,
+      sessionTemplateApi.middleware,
+      daySessionConfigApi.middleware,
+      timeTableSlotApi.middleware,
+      academicYearApi.middleware,
+      studentEnrollmentApi.middleware
     ]),
 });

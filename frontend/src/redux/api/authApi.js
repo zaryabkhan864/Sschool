@@ -1,3 +1,4 @@
+// src/redux/api/authApi.js
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { setIsAuthenticated, setLoading, setUser } from "../features/userSlice";
 
@@ -9,7 +10,6 @@ export const authApi = createApi({
     // ========== Auth endpoints ==========
     register: builder.mutation({
       query(body) {
-        console.log(body);
         return {
           url: "/register",
           method: "POST",
@@ -116,7 +116,7 @@ export const authApi = createApi({
     }),
     getUserDetails: builder.query({
       query: (id) => `/admin/users/${id}`,
-      providesTags: ["AdminUser"],
+      providesTags: (result, error, id) => [{ type: "AdminUser", id }],
     }),
     updateUser: builder.mutation({
       query({ id, body }) {
@@ -126,7 +126,11 @@ export const authApi = createApi({
           body,
         };
       },
-      invalidatesTags: ["AdminUsers"],
+      invalidatesTags: (result, error, { id }) => [
+        { type: "AdminUser", id },
+        "AdminUsers",
+        "UnenrolledStudents",
+      ],
     }),
     deleteUser: builder.mutation({
       query(id) {
@@ -137,15 +141,17 @@ export const authApi = createApi({
       },
       invalidatesTags: ["AdminUsers"],
     }),
+
     getUserByType: builder.query({
-      query: ({ 
-        type, 
-        page = 1, 
-        limit = undefined, 
-        keyword = "", 
-        gender, 
+      query: ({
+        type,
+        page = 1,
+        limit = undefined,
+        keyword = "",
+        gender,
         status,
-        dropdown = false
+        dropdown = false,
+        enrolled,
       }) => {
         const params = new URLSearchParams();
         params.append('page', page);
@@ -158,12 +164,86 @@ export const authApi = createApi({
         }
         if (gender) params.append('gender', gender);
         if (status) params.append('status', status);
+        if (enrolled !== undefined) {
+          params.append('enrolled', enrolled);
+        }
         return {
           url: `/users/${type}?${params.toString()}`,
           method: "GET",
         };
       },
       providesTags: ["AdminUsers"],
+    }),
+
+    getUsersByTypeForEnrollment: builder.query({
+      query: ({
+        type,
+        page = 1,
+        limit = undefined,
+        keyword = "",
+        gender,
+        status,
+        dropdown = false,
+        enrolled,
+      }) => {
+        const params = new URLSearchParams();
+        params.append('page', page);
+        if (keyword) params.append('keyword', keyword);
+        if (limit !== undefined && limit !== null && limit !== '') {
+          params.append('limit', limit);
+        }
+        if (dropdown) {
+          params.append('dropdown', 'true');
+        }
+        if (gender) params.append('gender', gender);
+        if (status) params.append('status', status);
+        if (enrolled !== undefined) {
+          params.append('enrolled', enrolled);
+        }
+        return {
+          url: `/users/enrollment/${type}?${params.toString()}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["AdminUsers"],
+    }),
+
+    createStudentEnrollment: builder.mutation({
+      query: (body) => ({
+        url: "/admin/student-enrollments",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (result, error, body) => [
+        { type: "AdminUser", id: body?.student },
+        "UnenrolledStudents",
+        "EnrolledStudents",
+        "AdminUsers",
+      ],
+    }),
+
+    // ✅ UPDATED: Accept params (academicYear, campus)
+    getUnenrolledStudents: builder.query({
+      query: (params = {}) => {
+        const queryParams = {
+          academicYear: params?.academicYear,
+          campus: params?.campus,
+        };
+        // Remove undefined keys
+        Object.keys(queryParams).forEach(
+          (key) => queryParams[key] === undefined && delete queryParams[key]
+        );
+        return {
+          url: "/students/unenrolled",
+          params: queryParams,
+        };
+      },
+      providesTags: ["UnenrolledStudents"],
+    }),
+
+    getEnrolledStudentsWithDetails: builder.query({
+      query: () => "/students/enrolled",
+      providesTags: ["EnrolledStudents"],
     }),
   }),
 });
@@ -183,4 +263,8 @@ export const {
   useUpdateUserMutation,
   useDeleteUserMutation,
   useGetUserByTypeQuery,
+  useGetUsersByTypeForEnrollmentQuery,
+  useGetUnenrolledStudentsQuery,
+  useGetEnrolledStudentsWithDetailsQuery,
+  useCreateStudentEnrollmentMutation,
 } = authApi;

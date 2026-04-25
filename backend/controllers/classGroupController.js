@@ -9,10 +9,10 @@ import ErrorHandler from "../utils/errorHandler.js";
 // 1. CREATE ====================================
 export const newClassGroup = catchAsyncErrors(async (req, res) => {
   const { grade, academicLevel, section, displayName, courses = [] } = req.body;
-  const { campus, selectedYear } = req.cookies;
+  const { campus, academicYearName } = req.cookies;
 
   // Validation
-  const requiredFields = { grade, academicLevel, section, displayName, campus, selectedYear };
+  const requiredFields = { grade, academicLevel, section, displayName, campus, academicYearName };
   const missing = Object.entries(requiredFields)
     .filter(([_, value]) => !value)
     .map(([key]) => key);
@@ -30,7 +30,7 @@ export const newClassGroup = catchAsyncErrors(async (req, res) => {
     grade,
     section,
     campus,
-    year: selectedYear
+    year: academicYearName
   });
 
   if (existingClassGroup) {
@@ -47,7 +47,7 @@ export const newClassGroup = catchAsyncErrors(async (req, res) => {
     displayName,
     courses,
     campus,
-    year: selectedYear
+    year: academicYearName
   });
 
   res.status(201).json({
@@ -60,7 +60,7 @@ export const newClassGroup = catchAsyncErrors(async (req, res) => {
 
 export const getClassGroups = catchAsyncErrors(async (req, res) => {
   // 1. Cookies se data
-  const { campus: cookieCampus, selectedYear: cookieYear } = req.cookies;
+  const { campus: cookieCampus, academicYearName: cookieYear } = req.cookies;
 
   // 2. Query parameters normalize karo
   let {
@@ -94,7 +94,9 @@ export const getClassGroups = catchAsyncErrors(async (req, res) => {
   }
 
   // 6. Type conversions
-  if (year) year = parseInt(year);
+  // 🛠️ FIX: year ko parseInt nahi karna (ab string hai)
+  // if (year) year = parseInt(year);   // ← YEH LINE HATAI
+
   if (status === 'active') status = true;
   else if (status === 'deactive') status = false;
   else if (status && status !== 'all') status = undefined;   // invalid value ignore
@@ -311,7 +313,7 @@ export const deleteCourseInClassGroup = catchAsyncErrors(async (req, res, next) 
 
 // Get courses and class groups by role
 export const getCoursesAndClassGroupByRole = catchAsyncErrors(async (req, res, next) => {
-  const { campus, selectedYear } = req.cookies;
+  const { campus, academicYearName } = req.cookies;
   const { userId, userRole } = req.body;
 
   if (!userId || !userRole) {
@@ -321,8 +323,8 @@ export const getCoursesAndClassGroupByRole = catchAsyncErrors(async (req, res, n
   let courses, classGroups;
 
   if (userRole === "admin") {
-    courses = await Course.find({ campus, year: selectedYear }).populate("teacher");
-    classGroups = await ClassGroup.find({ campus, year: selectedYear }).populate("courses");
+    courses = await Course.find({ campus, year: academicYearName }).populate("teacher");
+    classGroups = await ClassGroup.find({ campus, year: academicYearName }).populate("courses");
   } else if (userRole === "teacher") {
     const teacher = await User.findById(userId);
     if (!teacher) {
@@ -332,12 +334,12 @@ export const getCoursesAndClassGroupByRole = catchAsyncErrors(async (req, res, n
     courses = await Course.find({ 
       teacher: teacher._id, 
       campus, 
-      year: selectedYear 
+      year: academicYearName 
     }).populate("teacher");
 
     classGroups = await ClassGroup.find({
       campus,
-      year: selectedYear,
+      year: academicYearName,
       courses: { $in: courses.map(c => c._id) }
     }).populate("courses");
   } else {
@@ -353,13 +355,13 @@ export const getCoursesAndClassGroupByRole = catchAsyncErrors(async (req, res, n
 
 // Get courses by class group and teacher
 export const getCourseByClassGroupAndTeacherID = catchAsyncErrors(async (req, res, next) => {
-  const { campus, selectedYear } = req.cookies;
+  const { campus, academicYearName } = req.cookies;
   const { classGroupId, teacherId } = req.body;
 
   const classGroup = await ClassGroup.findOne({ 
     _id: classGroupId, 
     campus, 
-    year: selectedYear 
+    year: academicYearName 
   }).populate({
     path: "courses",
     populate: {
@@ -387,12 +389,12 @@ export const getCourseByClassGroupAndTeacherID = catchAsyncErrors(async (req, re
 // Get all class groups for a specific grade
 export const getClassGroupsByGrade = catchAsyncErrors(async (req, res, next) => {
   const { gradeId } = req.params;
-  const { campus, selectedYear } = req.cookies;
+  const { campus, academicYearName } = req.cookies;
 
   const classGroups = await ClassGroup.find({
     grade: gradeId,
     campus,
-    year: selectedYear,
+    year: academicYearName,
     status: true
   })
   .populate("courses")

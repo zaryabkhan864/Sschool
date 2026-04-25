@@ -9,7 +9,7 @@ import APIFilters from "../utils/apiFilters.js";
 // Create a new grade  →  /api/v1/grades
 // ============================================================
 export const newGrade = catchAsyncErrors(async (req, res, next) => {
-  const { campus, selectedYear } = req.cookies;
+  const { campus, academicYearName } = req.cookies;
   const { gradeName, academicLevel, description } = req.body;
 
   // Validate academicLevel if provided
@@ -25,7 +25,7 @@ export const newGrade = catchAsyncErrors(async (req, res, next) => {
     academicLevel,
     description,
     campus,
-    year: selectedYear,
+    year: academicYearName,
     status: true, // default active
   });
 
@@ -36,13 +36,13 @@ export const newGrade = catchAsyncErrors(async (req, res, next) => {
 // GET all grades (with filters, pagination, counts)
 // ============================================================
 export const getGrades = catchAsyncErrors(async (req, res, next) => {
-  const { campus, selectedYear } = req.cookies;
+  const { campus, academicYearName } = req.cookies;
   const limit = Number(req.query.limit);
   const isDropdownRequest = limit === 0;
 
   // Apply campus & year filter (skip for dropdown requests)
   if (campus && !isDropdownRequest) req.query.campus = campus;
-  if (selectedYear && !isDropdownRequest) req.query.year = selectedYear;
+  if (academicYearName && !isDropdownRequest) req.query.year = academicYearName;
 
   // Status filter handling (if provided as "active"/"inactive")
   if (req.query.status) {
@@ -117,7 +117,7 @@ export const updateGrade = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Grade not found", 404));
   }
 
-  const { campus, selectedYear } = req.cookies;
+  const { campus, academicYearName } = req.cookies;
   const { gradeName, academicLevel, description, status } = req.body;
 
   // Validate academicLevel if provided
@@ -134,7 +134,7 @@ export const updateGrade = catchAsyncErrors(async (req, res, next) => {
     academicLevel,
     description,
     campus, // campus may be updated from cookies or kept as is
-    year: selectedYear,
+    year: academicYearName,
     status: status !== undefined ? status : grade.status,
   };
 
@@ -178,7 +178,7 @@ export const getGradeDetails = catchAsyncErrors(async (req, res, next) => {
 });
 
 export const getGradesByAcademicLevel = catchAsyncErrors(async (req, res, next) => {
-  const { campus, selectedYear } = req.cookies;
+  const { campus, academicYearName } = req.cookies;
   const { academicLevelId } = req.params;   // e.g., /api/v1/grades/by-academic-level/:academicLevelId
 
   if (!academicLevelId) {
@@ -189,7 +189,7 @@ export const getGradesByAcademicLevel = catchAsyncErrors(async (req, res, next) 
   const grades = await Grade.find({
     academicLevel: academicLevelId,
     campus,
-    year: selectedYear,
+    year: academicYearName,
     // status: true   // optionally include if you want only active
   }).populate("academicLevel", "name level")
     .populate("campus", "name");

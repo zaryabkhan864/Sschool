@@ -2,175 +2,188 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
+import Loader from "../layout/Loader";
+
 import {
   useGetCampusDetailsQuery,
   useGetCampusQuery,
   useUpdateCampusMutation,
 } from "../../redux/api/campusApi";
 
-import PhoneInput from "react-phone-input-2";
-import "react-phone-input-2/lib/style.css";
 import AdminLayout from "../layout/AdminLayout";
-import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
-import ConfirmationModal from "../GUI/ConfirmationModal";
+import AppPageHeader from "../layout/AppPageHeader";
+import AppCard from "../GUI/AppCard";
+import AppInput from "../GUI/AppInput";
+import AppInfoBox from "../layout/AppInfoBox";
+import AppButton from "../GUI/AppButton";
 
 const UpdateCampus = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const params = useParams();
+  const { id } = useParams();
   const { refetch } = useGetCampusQuery();
-
-  const [campus, setCampus] = useState({
-    name: "",
-    location: "",
-    contactNumber: "",
-  });
-
-  const { name, location, contactNumber } = campus;
 
   const [updateCampus, { isLoading, error, isSuccess }] =
     useUpdateCampusMutation();
-  const { data, isLoading: detailsLoading } = useGetCampusDetailsQuery(params?.id);
+  const { data, isLoading: detailsLoading } = useGetCampusDetailsQuery(id);
 
-  // For update confirmation modal
-  const [showModal, setShowModal] = useState(false);
+  const [campus, setCampus] = useState({
+    name: "",
+    code: "",
+    location: "",
+    contactNumber: "",
+    email: "",
+  });
 
+  const { name, code, location, contactNumber, email } = campus;
+
+  // Prefill form with campus details
   useEffect(() => {
     if (data?.campus) {
       setCampus({
-        name: data?.campus?.name || "",
-        location: data?.campus?.location || "",
-        contactNumber: data?.campus?.contactNumber || "",
+        name: data.campus.name || "",
+        code: data.campus.code || "",
+        location: data.campus.location || "",
+        contactNumber: data.campus.contactNumber || "",
+        email: data.campus.email || "",
       });
     }
+  }, [data]);
 
+  // Handle API response
+  useEffect(() => {
     if (error) {
-      toast.error(error?.data?.message);
+      toast.error(error?.data?.message || t("Error updating campus"));
     }
-
     if (isSuccess) {
-      toast.success("Campus updated");
+      toast.success(t("Campus updated successfully"));
       navigate("/admin/campuses");
       refetch();
     }
-  }, [data, error, isSuccess, navigate, refetch]);
+  }, [error, isSuccess, navigate, refetch, t]);
+
+  const onChange = (e) => {
+    const { name, value } = e.target;
+    setCampus((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePhoneChange = (value) => {
+    setCampus((prev) => ({ ...prev, contactNumber: value }));
+  };
+
+  const submitHandler = (e) => {
+    e.preventDefault();
+    if (!name.trim() || !code.trim() || !contactNumber) {
+      return toast.error(t("Please fill all required fields"));
+    }
+    // ✅ FIX: pass fields directly, not wrapped in `body`
+    updateCampus({
+      id,
+      name: name.trim(),
+      code: code.trim(),
+      location: location.trim(),
+      contactNumber,
+      email: email.trim(),
+    });
+  };
 
   if (detailsLoading) {
     return <Loader />;
   }
 
-  const onChange = (e) => {
-    setCampus({ ...campus, [e.target.name]: e.target.value });
-  };
-
-  const handlePhoneChange = (value) => {
-    setCampus({ ...campus, contactNumber: value });
-  };
-
-  const handleSubmitClick = (e) => {
-    e.preventDefault();
-    setShowModal(true);
-  };
-
-  const confirmUpdate = () => {
-    updateCampus({ id: params?.id, body: campus });
-  };
-
   return (
     <AdminLayout>
-      <MetaData title={"Update Campus"} />
-      <div className="flex justify-center items-center pt-5 pb-10">
-        <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">
-            {t("Update")} {t("Campus")}
-          </h2>
-          <form onSubmit={handleSubmitClick}>
-            <div className="grid grid-cols-2 gap-4">
-              {/* Name Field */}
-              <div className="mb-4">
-                <label
-                  htmlFor="name_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t("Campus")} {t("Name")}
-                </label>
-                <input
-                  type="text"
-                  id="name_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="name"
-                  value={name}
-                  onChange={onChange}
-                  required
+      <MetaData title={t("Update Campus")} />
+
+      <div className="max-w-6xl mx-auto">
+        <AppPageHeader
+          title={t("Update Campus")}
+          subtitle={t("Edit campus information")}
+          backUrl="/admin/campuses"
+        />
+
+        <form onSubmit={submitHandler} className="space-y-6">
+          <AppCard
+            title={t("Campus Information")}
+            icon="fa-building"
+            footer={
+              <div className="flex justify-end gap-3">
+                <AppButton backUrl="/admin/campuses" />
+                <AppButton
+                  type="submit"
+                  label={t("Update Campus")}
+                  loadingLabel={t("Updating...")}
+                  isLoading={isLoading}
+                  icon="fa-save"
                 />
               </div>
-
-              {/* Phone Number Field */}
-              <div className="mb-4">
-                <label
-                  htmlFor="contactNumber_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t("Campus")} {t("Phone Number")}
+            }
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <AppInput
+                name="name"
+                value={name}
+                onChange={onChange}
+                label={t("Campus Name")}
+                placeholder="e.g. Main Campus"
+                required
+              />
+              <AppInput
+                name="code"
+                value={code}
+                onChange={onChange}
+                label={t("Campus Code")}
+                placeholder="e.g. MAIN, CITY"
+                required
+              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t("Phone Number")} <span className="text-red-500">*</span>
                 </label>
-                <div className="mt-1">
-                  <PhoneInput
-                    country={"tr"}
-                    value={contactNumber}
-                    onChange={handlePhoneChange}
-                    inputProps={{
-                      name: "contactNumber",
-                      required: true,
-                    }}
-                    containerClass="w-full"
-                    inputClass="!w-full !h-[42px] !pl-14 !pr-3 !py-2 !border !border-gray-300 !rounded-md focus:!outline-none focus:!ring-2 focus:!ring-blue-500"
-                    buttonClass="!border-none !bg-transparent"
-                  />
-                </div>
+                <PhoneInput
+                  country={"tr"}
+                  value={contactNumber}
+                  onChange={handlePhoneChange}
+                  inputProps={{
+                    name: "contactNumber",
+                    required: true,
+                  }}
+                  containerClass="w-full"
+                  inputClass="!w-full !h-[42px] !pl-14 !pr-3 !py-2 !border !border-gray-300 !rounded-md focus:!outline-none focus:!ring-2 focus:!ring-blue-500 !text-sm"
+                  buttonClass="!border-none !bg-transparent"
+                />
+              </div>
+              <AppInput
+                name="email"
+                type="email"
+                value={email}
+                onChange={onChange}
+                label={t("Email (Optional)")}
+                placeholder="campus@example.com"
+              />
+              <div className="md:col-span-2">
+                <AppInput
+                  type="textarea"
+                  name="location"
+                  value={location}
+                  onChange={onChange}
+                  label={t("Address")}
+                  placeholder="e.g. 123 Main Street, City"
+                  rows={3}
+                />
               </div>
             </div>
 
-            {/* Address Field */}
-            <div className="mb-4">
-              <label
-                htmlFor="location_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                {t("Campus")} {t("Address")}
-              </label>
-              <textarea
-                id="location_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="location"
-                rows="4"
-                value={location}
-                onChange={onChange}
-              ></textarea>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              className={`w-full py-2 text-white font-semibold rounded-md ${
-                isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-              } focus:outline-none focus:ring focus:ring-blue-300`}
-              disabled={isLoading}
-            >
-              {isLoading ? "Updating..." : t("Update")}
-            </button>
-          </form>
-        </div>
+            <AppInfoBox icon="fa-info-circle">
+              <strong>{t("Note")}:</strong>{" "}
+              {t("Phone number should include country code.")}
+            </AppInfoBox>
+          </AppCard>
+        </form>
       </div>
-
-      {/* Update Confirmation Modal */}
-      <ConfirmationModal
-        showModal={showModal}
-        setShowModal={setShowModal}
-        confirmDelete={confirmUpdate}
-        isDeleteLoading={isLoading}
-        message={t("Do you want to update this campus?")}
-      />
     </AdminLayout>
   );
 };

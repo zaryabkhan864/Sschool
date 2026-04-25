@@ -21,6 +21,12 @@ import EmptyState from "../GUI/EmptyState";
 import TruncatedCell from "../GUI/TruncatedCell";
 import AppBadge from "../GUI/AppBadge";
 
+// Helper to get full name from user object
+const getFullName = (user) => {
+  const { firstName = "", middleName = "", lastName = "" } = user;
+  return `${firstName} ${middleName ? middleName + " " : ""}${lastName}`.trim();
+};
+
 const ListStudents = () => {
   const { t } = useTranslation();
   const location = useLocation();
@@ -34,9 +40,8 @@ const ListStudents = () => {
   const [limit, setLimit] = useState(8);
   const [genderFilter, setGenderFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [campusFilter, setCampusFilter] = useState(""); // kept for API, no UI
+  const [campusFilter, setCampusFilter] = useState("");
 
-  // Toast from navigation (e.g., after creating a student)
   useEffect(() => {
     if (location.state?.showSuccessToast) {
       toast.success(t("Student created successfully!"));
@@ -44,7 +49,6 @@ const ListStudents = () => {
     }
   }, [location.state, navigate, t]);
 
-  // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchTerm(search);
@@ -53,7 +57,7 @@ const ListStudents = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // API query
+  // ✅ MODIFIED: added enrolled: true to query
   const {
     data,
     isLoading,
@@ -62,6 +66,7 @@ const ListStudents = () => {
     isFetching,
   } = useGetUserByTypeQuery({
     type: "student",
+    enrolled: true,                         // <--- THIS IS THE FIX
     page: currentPage,
     limit,
     keyword: searchTerm,
@@ -72,6 +77,13 @@ const ListStudents = () => {
     refetchOnMountOrArgChange: true,
   });
 
+  useEffect(() => {
+    if (location.state?.shouldRefetch) {
+      refetch();
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, refetch, navigate]);
+
   const [
     deleteUser,
     { isLoading: isDeleteLoading, error: deleteError, isSuccess: deleteSuccess },
@@ -80,7 +92,6 @@ const ListStudents = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
 
-  // Global error / success handling
   useEffect(() => {
     if (error) toast.error(error?.data?.message || t("Something went wrong"));
     if (deleteError) toast.error(deleteError?.data?.message || t("Failed to delete student"));
@@ -88,17 +99,10 @@ const ListStudents = () => {
       toast.success(t("Student deleted successfully"));
       setShowModal(false);
       setSelectedStudentId(null);
+      refetch();
     }
     if (user?.role === "admin") setUserRole("admin");
-  }, [error, deleteError, deleteSuccess, user, t]);
-
-  // Refetch when requested from navigation state (e.g., after edit)
-  useEffect(() => {
-    if (location.state?.shouldRefetch) {
-      refetch();
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state, refetch]);
+  }, [error, deleteError, deleteSuccess, user, t, refetch]);
 
   const handleDeleteClick = (id) => {
     setSelectedStudentId(id);
@@ -122,59 +126,54 @@ const ListStudents = () => {
     navigate(`/admin/student/${id}/details`);
   };
 
-  // Columns using AppBadge
   const columns = [
     {
       header: t("Student Name"),
-      accessor: "name",
-      width: "40%",
+      accessor: "firstName",
+      width: "35%",
       minWidth: "200px",
-      render: (value) => <TruncatedCell maxChars={35}>{value}</TruncatedCell>
+      render: (_, row) => (
+        <TruncatedCell maxChars={35}>{getFullName(row)}</TruncatedCell>
+      ),
     },
     {
       header: t("Nationality"),
       accessor: "nationality",
-      width: "30%",
+      width: "20%",
       minWidth: "120px",
-      render: (value) => <TruncatedCell maxChars={33}>{value}</TruncatedCell>
+      render: (value) => <TruncatedCell maxChars={33}>{value || "—"}</TruncatedCell>,
     },
     {
       header: t("Grade"),
       accessor: "grade",
-      width: "10%",
-      minWidth: "120px",
-      render: (_, row) => {
-        const gradeName = row?.grade?.[0]?.gradeDetails?.gradeName;
-        return gradeName ? <AppBadge type="grade" value={gradeName} /> : <span className="text-gray-400">—</span>;
-      }
+      width: "15%",
+      minWidth: "100px",
+      render: () => <span className="text-gray-400">—</span>,
     },
     {
       header: t("Gender"),
       accessor: "gender",
       width: "10%",
       minWidth: "100px",
-      render: (value) => <AppBadge type="gender" value={value} />
+      render: (value) => <AppBadge type="gender" value={value} />,
     },
- 
     {
       header: t("Status"),
       accessor: "status",
       width: "10%",
       minWidth: "100px",
       render: (value) => {
-        // Normalize to boolean
-        const isActive = 
+        const isActive =
           value === true ||
           value === "active" ||
           value === "Active" ||
           value === "ACTIVE" ||
           value === 1;
-          return <AppBadge type="booleanStatus" active={isActive} />;
-      }
-    }
+        return <AppBadge type="booleanStatus" active={isActive} />;
+      },
+    },
   ];
 
-  // Stats
   const counts = data?.pagination?.counts || data?.counts || { total: 0, active: 0, deactive: 0 };
 
   const stats = [
@@ -182,26 +181,26 @@ const ListStudents = () => {
       label: t("Total Students"),
       value: counts.total,
       icon: "users",
-      color: "blue"
+      color: "blue",
     },
     {
       label: t("Active"),
       value: counts.active,
       icon: "check-circle",
-      color: "green"
+      color: "green",
     },
     {
       label: t("Deactive"),
       value: counts.deactive,
       icon: "times-circle",
-      color: "red"
+      color: "red",
     },
     {
       label: t("Total Pages"),
       value: data?.pagination?.totalPages || 1,
       icon: "file-alt",
-      color: "purple"
-    }
+      color: "purple",
+    },
   ];
 
   const addButton = userRole === "admin" ? (
@@ -218,7 +217,6 @@ const ListStudents = () => {
     />
   );
 
-  // Filter dropdown using shared component
   const filters = (
     <FilterDropdown
       limit={limit}

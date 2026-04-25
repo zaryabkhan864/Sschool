@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { useCountries } from "react-countries";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
@@ -9,7 +9,6 @@ import "react-phone-input-2/lib/style.css";
 // Redux
 import { useRegisterMutation } from "../../redux/api/authApi";
 import { useGetUserByTypeQuery } from "../../redux/api/authApi";
-import { useGetGradesQuery } from "../../redux/api/gradesApi";
 
 // Shared GUI Components
 import AdminLayout from "../layout/AdminLayout";
@@ -21,8 +20,6 @@ import AppButton from "../GUI/AppButton";
 import GenderRadio from "../GUI/GenderRadio";
 import NationalitySelect from "../GUI/NationalitySelect";
 import AvatarUpload from "../GUI/AvatarUpload";
-import SearchableDropdown from "../layout/SearchableDropdown";
-import AppCheckbox from "../GUI/AppCheckbox";
 
 const NewStudent = () => {
   const { t } = useTranslation();
@@ -30,75 +27,47 @@ const NewStudent = () => {
   const { countries } = useCountries();
   const { refetch } = useGetUserByTypeQuery({ type: "student" });
 
-  // ------------------ Grades (single select) ------------------
-  const [gradeSearchTerm, setGradeSearchTerm] = useState("");
-  const [gradePage, setGradePage] = useState(1);
-  const [gradesList, setGradesList] = useState([]);
-  const [hasMore, setHasMore] = useState(true);
-
-  const { data: gradesData, isFetching: gradeLoading } = useGetGradesQuery(
-    { page: gradePage, limit: 10, keyword: gradeSearchTerm }
-  );
-
-  useEffect(() => {
-    if (gradesData?.grades) {
-      const newGrades = gradesData.grades;
-      setGradesList((prev) => (gradePage === 1 ? newGrades : [...prev, ...newGrades]));
-      setHasMore(newGrades.length === 10);
-    }
-  }, [gradesData, gradePage]);
-
-  const handleGradeSearch = useCallback((searchValue, page) => {
-    setGradeSearchTerm(searchValue);
-    setGradePage(page);
-    if (page === 1) setGradesList([]);
-  }, []);
-
-  const gradeOptions = useMemo(
-    () => gradesList.map((g) => ({ value: g._id || g.id, label: g.gradeName || g.name })),
-    [gradesList]
-  );
-
-  // ------------------ Student state ------------------
+  // 学生状态（不含 status 字段）
   const [student, setStudent] = useState({
     role: "student",
-    name: "",
+    firstName: "",
+    middleName: "",
+    lastName: "",
     age: "",
     dateOfBirth: "",
     gender: "",
     nationality: "",
     passportNumber: "",
-    nationalID: "",               // Added nationalID field
+    nationalID: "",
     phoneNumber: "",
     secondaryPhoneNumber: "",
     address: "",
-    grade: "",
-    status: true,
     email: "",
     password: "",
     avatar: "",
-    siblings: [], // will hold array of student IDs
+    siblings: [],
   });
 
   const [avatarPreview, setAvatarPreview] = useState("");
   const {
-    name,
+    firstName,
+    middleName,
+    lastName,
     age,
     dateOfBirth,
     gender,
     nationality,
     passportNumber,
-    nationalID,                   // Destructure nationalID
+    nationalID,
     phoneNumber,
     secondaryPhoneNumber,
     address,
-    grade,
     email,
     password,
     siblings,
   } = student;
 
-  // ------------------ Age calculation ------------------
+  // 年龄计算
   const calculateAgeFromDOB = (dob) => {
     if (!dob) return "";
     const today = new Date();
@@ -111,7 +80,7 @@ const NewStudent = () => {
     return calculatedAge.toString();
   };
 
-  // ------------------ Registration mutation ------------------
+  // 注册 mutation
   const [register, { isLoading, error, isSuccess }] = useRegisterMutation();
 
   useEffect(() => {
@@ -123,7 +92,7 @@ const NewStudent = () => {
     }
   }, [error, isSuccess, navigate, refetch, t]);
 
-  // ------------------ Form change handler ------------------
+  // 表单变更处理
   const onChange = (e) => {
     const { name, value, type, files } = e.target;
     if (name === "avatar") {
@@ -146,36 +115,25 @@ const NewStudent = () => {
     } else {
       setStudent({
         ...student,
-        [name]:
-          type === "radio"
-            ? value === "true"
-              ? true
-              : value === "false"
-              ? false
-              : value
-            : value,
+        [name]: value,
       });
     }
   };
 
-  // ------------------ Siblings management ------------------
-  // Search state for sibling picker
+  // 兄弟姐妹管理
   const [siblingSearchTerm, setSiblingSearchTerm] = useState("");
   const [siblingSearchResults, setSiblingSearchResults] = useState([]);
 
-  // Fetch students for sibling search (role=student, dropdown=true to bypass pagination & cookie filters)
   const { data: siblingData, isFetching: siblingLoading } = useGetUserByTypeQuery(
     { type: "student", keyword: siblingSearchTerm, dropdown: true },
-    { skip: siblingSearchTerm.length < 2 } // only search after 2 chars
+    { skip: siblingSearchTerm.length < 2 }
   );
 
-  // Update results when data arrives
   useEffect(() => {
     if (siblingData?.users) {
-      // Filter out already selected siblings
       const alreadySelectedIds = new Set(siblings);
       const available = siblingData.users.filter(
-        (u) => !alreadySelectedIds.has(u._id) && u._id !== "current-student-id" // if editing, exclude self
+        (u) => !alreadySelectedIds.has(u._id) && u._id !== "current-student-id"
       );
       setSiblingSearchResults(available);
     } else {
@@ -183,7 +141,6 @@ const NewStudent = () => {
     }
   }, [siblingData, siblings]);
 
-  // Add a sibling
   const addSibling = (studentId, studentName) => {
     if (siblings.includes(studentId)) {
       toast.error(t("Student already added as sibling"));
@@ -193,10 +150,9 @@ const NewStudent = () => {
       ...prev,
       siblings: [...prev.siblings, studentId],
     }));
-    setSiblingSearchTerm(""); // clear search after adding
+    setSiblingSearchTerm("");
   };
 
-  // Remove a sibling
   const removeSibling = (studentId) => {
     setStudent((prev) => ({
       ...prev,
@@ -204,17 +160,18 @@ const NewStudent = () => {
     }));
   };
 
-  // ------------------ Submit handler ------------------
+  // 提交处理：不发送 status 字段（后端会根据角色决定）
   const submitHandler = (e) => {
     e.preventDefault();
-    if (!grade) return toast.error(t("Please select a grade"));
 
-    // Format phone numbers and send
-    register({
+    const submitData = {
       ...student,
       phoneNumber: phoneNumber ? `+${phoneNumber}` : "",
       secondaryPhoneNumber: secondaryPhoneNumber ? `+${secondaryPhoneNumber}` : "",
-    });
+      age: undefined, // 仅用于UI显示
+    };
+
+    register(submitData);
   };
 
   return (
@@ -229,16 +186,31 @@ const NewStudent = () => {
         />
 
         <form onSubmit={submitHandler} className="space-y-6">
-          {/* Account Credentials Card */}
+          {/* 账户凭证卡片 */}
           <AppCard title={t("Student Credentials")} icon="fa-lock">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <AppInput
-                label={t("Full Name")}
-                name="name"
-                value={name}
+                label={t("First Name")}
+                name="firstName"
+                value={firstName}
                 onChange={onChange}
                 required
               />
+              <AppInput
+                label={t("Middle Name")}
+                name="middleName"
+                value={middleName}
+                onChange={onChange}
+              />
+              <AppInput
+                label={t("Last Name")}
+                name="lastName"
+                value={lastName}
+                onChange={onChange}
+                required
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
               <AppInput
                 label={t("Email Address")}
                 type="email"
@@ -259,7 +231,7 @@ const NewStudent = () => {
             </div>
           </AppCard>
 
-          {/* Academic & Personal Details Card */}
+          {/* 学术与个人信息卡片 */}
           <AppCard
             title={t("Academic & Personal Details")}
             icon="fa-graduation-cap"
@@ -276,7 +248,6 @@ const NewStudent = () => {
               </div>
             }
           >
-            {/* Row 1: Gender, DOB, Age, Nationality */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <GenderRadio value={gender} onChange={onChange} />
 
@@ -304,7 +275,6 @@ const NewStudent = () => {
               <NationalitySelect value={nationality} onChange={onChange} />
             </div>
 
-            {/* NEW ROW: Passport Number and National ID (optional) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
               <AppInput
                 label={t("Passport No")}
@@ -322,22 +292,7 @@ const NewStudent = () => {
               />
             </div>
 
-            {/* Row 2: Grade, Primary Contact, Emergency Contact */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-              <SearchableDropdown
-                label={t("Grade")}
-                placeholder={t("Search grade...")}
-                value={grade}
-                onChange={(selectedValue) => setStudent({ ...student, grade: selectedValue })}
-                onSearch={handleGradeSearch}
-                options={gradeOptions}
-                isLoading={gradeLoading}
-                hasMore={hasMore}
-                required
-                emptyMessage={t("No results found")}
-                loadingMessage={t("Loading...")}
-              />
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-semibold text-gray-500 uppercase">
                   {t("Primary Contact")}
@@ -365,14 +320,13 @@ const NewStudent = () => {
               </div>
             </div>
 
-            {/* Siblings Section */}
+            {/* 兄弟姐妹部分 */}
             <div className="mt-6 border-t pt-4">
               <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <i className="fa fa-users text-gray-400"></i>
                 {t("Siblings (Optional)")}
               </h3>
 
-              {/* Search Input */}
               <div className="relative">
                 <AppInput
                   label={t("Search for a student")}
@@ -387,7 +341,6 @@ const NewStudent = () => {
                 )}
               </div>
 
-              {/* Search Results Dropdown */}
               {siblingSearchTerm.length >= 2 && siblingSearchResults.length > 0 && (
                 <ul className="mt-1 border border-gray-200 rounded-md max-h-40 overflow-y-auto shadow-sm">
                   {siblingSearchResults.map((s) => (
@@ -403,12 +356,9 @@ const NewStudent = () => {
                 </ul>
               )}
 
-              {/* Selected Siblings Chips */}
               {siblings.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {siblings.map((id) => {
-                    // Find the student name from search results if available,
-                    // otherwise just show ID (could be enhanced with a cache)
                     const sibling = siblingData?.users?.find((u) => u._id === id);
                     return (
                       <span
@@ -430,7 +380,7 @@ const NewStudent = () => {
               )}
             </div>
 
-            {/* Row 3: Avatar and Address */}
+            {/* 头像与地址 */}
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
               <AvatarUpload
                 preview={avatarPreview}
@@ -446,16 +396,6 @@ const NewStudent = () => {
                 onChange={onChange}
                 type="textarea"
                 rows={2}
-              />
-            </div>
-
-            {/* Status Checkbox */}
-            <div className="mt-4">
-              <AppCheckbox
-                name="status"
-                checked={student.status}
-                onChange={onChange}
-                label={t("Active")}
               />
             </div>
           </AppCard>

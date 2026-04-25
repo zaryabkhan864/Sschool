@@ -48,6 +48,11 @@ import SessionTemplate from "../timetable/SessionTemplate";
 import UpdateClassGroup from "../timetable/UpdateClassGroup";
 import CreateDaySessionTemplate from "../timetable/CreateDaySessionTemplate";
 import CreateWeekDay from "../timetable/CreateWeekDay";
+import CreateAndListAcademicYear from "../academicYear/CreateAndListAcademicYear";
+// import NewStudentEnrollement from "../studentEnrollment/NewStudentEnrollement";
+import ListStudentEnrollement from "../studentEnrollment/ListStudentEnrollement";
+import UpdateStudentEnrollement from "../studentEnrollment/UpdateStudentEnrollement";
+import StudentEnrollementDetails from "../studentEnrollment/StudentEnrollementDetails";
 
 
 
@@ -395,7 +400,7 @@ const adminRoutes = () => {
           </ProtectedRoute>
         }
       />
-            <Route
+      <Route
         path="/admin/class-groups"
         element={
           <ProtectedRoute admin={true}>
@@ -403,7 +408,7 @@ const adminRoutes = () => {
           </ProtectedRoute>
         }
       />
-                  <Route
+      <Route
         path="/admin/class-groups/:id"
         element={
           <ProtectedRoute admin={true}>
@@ -412,7 +417,7 @@ const adminRoutes = () => {
         }
       />
 
-            <Route
+      <Route
         path="/admin/session-templates"
         element={
           <ProtectedRoute admin={true}>
@@ -420,7 +425,7 @@ const adminRoutes = () => {
           </ProtectedRoute>
         }
       />
-        <Route
+      <Route
         path="/admin/week-day"
         element={
           <ProtectedRoute admin={true}>
@@ -428,13 +433,57 @@ const adminRoutes = () => {
           </ProtectedRoute>
         }
       />
-      <Route 
-      path="/admin/day-session-template/new"
-      element={
-        <ProtectedRoute admin={true}>
-        <CreateDaySessionTemplate/>
-      </ProtectedRoute>
-      }
+      <Route
+        path="/admin/day-session-template/new"
+        element={
+          <ProtectedRoute admin={true}>
+            <CreateDaySessionTemplate />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/AcademicYear/new"
+        element={
+          <ProtectedRoute admin={true}>
+            <CreateAndListAcademicYear />
+          </ProtectedRoute>
+        }
+      />
+
+
+
+
+      {/* <Route
+        path="/admin/studentenrollement/new"
+        element={
+          <ProtectedRoute admin={true}>
+            <NewStudentEnrollement />
+          </ProtectedRoute>
+        } */}
+      />
+      <Route
+        path="/admin/studentenrollements"
+        element={
+          <ProtectedRoute admin={true}>
+            <ListStudentEnrollement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/student-enrollments/:studentId"  
+        element={
+          <ProtectedRoute admin={true}>
+            <UpdateStudentEnrollement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/studentenrollement/:id/details"
+        element={
+          <ProtectedRoute admin={true}>
+            <StudentEnrollementDetails />
+          </ProtectedRoute>
+        }
       />
     </>
   );

@@ -5,6 +5,12 @@ const campusSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
+      trim: true,
+    },
+    code: {
+      type: String,
+      required: true,
+      unique: true,
     },
     location: {
       type: String,
@@ -13,6 +19,13 @@ const campusSchema = new mongoose.Schema(
     contactNumber: {
       type: String,
       required: true,
+    },
+    email: {
+      type: String,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
   },
   { timestamps: true }

@@ -13,7 +13,8 @@ import {
   updateProfile,
   updateUser,
   uploadAvatar,
-  getUsersByType
+  getUsersByType,
+  getUsersByTypeForEnrollment
 } from "../controllers/authControllers.js";
 import {
   getStudentDetails
@@ -47,6 +48,10 @@ router
 router
   .route("/users/:type")
   .get(getUsersByType)
+
+router
+.route("/users/enrollment/:type")
+  .get(getUsersByTypeForEnrollment)
 
 
   router

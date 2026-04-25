@@ -1,5 +1,5 @@
 // src/components/admin/UpdateStudent.jsx
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useCountries } from "react-countries";
 import toast from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
@@ -13,7 +13,8 @@ import {
   useUpdateUserMutation,
 } from "../../redux/api/authApi";
 import { useGetUserByTypeQuery } from "../../redux/api/authApi";
-import { useGetGradesQuery } from "../../redux/api/gradesApi";
+import { useGetCampusQuery } from "../../redux/api/campusApi";
+import { useTransferStudentMutation } from "../../redux/api/studentEnrollment";
 
 // Shared GUI Components
 import AdminLayout from "../layout/AdminLayout";
@@ -26,7 +27,9 @@ import GenderRadio from "../GUI/GenderRadio";
 import NationalitySelect from "../GUI/NationalitySelect";
 import AvatarUpload from "../GUI/AvatarUpload";
 import SearchableDropdown from "../layout/SearchableDropdown";
-import AppCheckbox from "../GUI/AppCheckbox";
+import { useGetAcademicYearsListQuery } from "../../redux/api/academicYearApi";
+import { useGetClassGroupsQuery } from "../../redux/api/classGroupApi";
+import moment from "moment";
 
 const UpdateStudent = () => {
   const { t } = useTranslation();
@@ -34,48 +37,36 @@ const UpdateStudent = () => {
   const params = useParams();
   const { countries } = useCountries();
 
-  // Fetch student details
+  // ===================== STUDENT DETAILS =====================
   const { data, isLoading: detailsLoading, refetch: refetchDetails } =
-    useGetUserDetailsQuery(params?.id);
+    useGetUserDetailsQuery(params?.id, {
+      refetchOnMountOrArgChange: true,
+    });
 
-  // Update mutation
-  const [updateUser, { isLoading, error, isSuccess }] =
-    useUpdateUserMutation();
+  const [updateUser, { isLoading, error, isSuccess }] = useUpdateUserMutation();
 
-  // ------------------ Grades (single select) ------------------
-  const [gradeSearchTerm, setGradeSearchTerm] = useState("");
-  const [gradePage, setGradePage] = useState(1);
-  const [gradesList, setGradesList] = useState([]);
-  const [hasMore, setHasMore] = useState(true);
+  // ===================== CAMPUS =====================
+  const [campusSearchTerm, setCampusSearchTerm] = useState("");
+  const { data: campusesData, isFetching: campusesLoading } = useGetCampusQuery({
+    limit: 0,
+    keyword: campusSearchTerm,
+  });
 
-  const { data: gradesData, isFetching: gradeLoading } = useGetGradesQuery(
-    { page: gradePage, limit: 10, keyword: gradeSearchTerm },
-    { skip: !params?.id } // only fetch when we have an ID (component ready)
-  );
+  const campusOptions = useMemo(() => {
+    const campuses = campusesData?.campuses || [];
+    return campuses.map((c) => ({
+      value: c._id,
+      label: c.name,
+      subtitle: c.address,
+    }));
+  }, [campusesData]);
 
-  useEffect(() => {
-    if (gradesData?.grades) {
-      const newGrades = gradesData.grades;
-      setGradesList((prev) => (gradePage === 1 ? newGrades : [...prev, ...newGrades]));
-      setHasMore(newGrades.length === 10);
-    }
-  }, [gradesData, gradePage]);
-
-  const handleGradeSearch = useCallback((searchValue, page) => {
-    setGradeSearchTerm(searchValue);
-    setGradePage(page);
-    if (page === 1) setGradesList([]);
-  }, []);
-
-  const gradeOptions = useMemo(
-    () => gradesList.map((g) => ({ value: g._id || g.id, label: g.gradeName || g.name })),
-    [gradesList]
-  );
-
-  // ------------------ Student state ------------------
+  // ===================== STUDENT STATE =====================
   const [student, setStudent] = useState({
     role: "student",
-    name: "",
+    firstName: "",
+    middleName: "",
+    lastName: "",
     age: "",
     dateOfBirth: "",
     gender: "",
@@ -85,17 +76,19 @@ const UpdateStudent = () => {
     phoneNumber: "",
     secondaryPhoneNumber: "",
     address: "",
-    grade: "",
-    status: true,
+    campus: "",
+    status: false,
     email: "",
     password: "",
     avatar: "",
-    siblings: [], // array of student IDs
+    siblings: [],
   });
 
   const [avatarPreview, setAvatarPreview] = useState("");
   const {
-    name,
+    firstName,
+    middleName,
+    lastName,
     age,
     dateOfBirth,
     gender,
@@ -105,65 +98,64 @@ const UpdateStudent = () => {
     phoneNumber,
     secondaryPhoneNumber,
     address,
-    grade,
+    campus,
     email,
     password,
     siblings,
   } = student;
 
-  // Populate form with fetched student data
-  useEffect(() => {
-    if (data?.user) {
-      const userData = data.user;
+  // ===================== TRANSFER MODAL =====================
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferData, setTransferData] = useState({
+    newCampusId: "",
+    newClassGroupId: "",
+    academicYearId: "",
+    transferDate: moment().format("YYYY-MM-DD"),
+  });
+  const [classGroupSearch, setClassGroupSearch] = useState("");
+  const [transferLoading, setTransferLoading] = useState(false);
 
-      // Format dateOfBirth to YYYY-MM-DD for input[type="date"]
-      let formattedDate = "";
-      if (userData.dateOfBirth) {
-        try {
-          const dateObj = new Date(userData.dateOfBirth);
-          if (!isNaN(dateObj.getTime())) {
-            const year = dateObj.getFullYear();
-            const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-            const day = String(dateObj.getDate()).padStart(2, "0");
-            formattedDate = `${year}-${month}-${day}`;
-          }
-        } catch (error) {
-          console.error("Error parsing date:", error);
-        }
-      }
+  const [transferStudent] = useTransferStudentMutation();
 
-      // Extract sibling IDs if populated
-      let siblingIds = [];
-      if (Array.isArray(userData.siblings)) {
-        siblingIds = userData.siblings.map((sib) =>
-          typeof sib === "object" ? sib._id : sib
-        );
-      }
+  const { data: academicYearsData } = useGetAcademicYearsListQuery({
+    limit: 0,
+    sort: "-createdAt",
+  });
 
-      setStudent({
-        role: "student",
-        name: userData.name || "",
-        age: userData.age ? userData.age.toString() : "",
-        dateOfBirth: formattedDate,
-        gender: userData.gender || "",
-        nationality: userData.nationality || "",
-        passportNumber: userData.passportNumber || "",
-        nationalID: userData.nationalID || "",
-        phoneNumber: userData.phoneNumber?.replace(/\+/g, "") || "",
-        secondaryPhoneNumber: userData.secondaryPhoneNumber?.replace(/\+/g, "") || "",
-        address: userData.address || "",
-        grade: userData.grade?._id || userData.grade || "",
-        status: userData.status ?? true,
-        email: userData.email || "",
-        password: "",
-        avatar: userData.avatar?.url || "",
-        siblings: siblingIds,
-      });
-      setAvatarPreview(userData.avatar?.url || "");
-    }
-  }, [data]);
+  const { data: classGroupsData, isFetching: classGroupsLoading } =
+    useGetClassGroupsQuery({
+      status: "active",
+      paginate: "false",
+      keyword: classGroupSearch,
+    });
 
-  // ------------------ Age calculation ------------------
+  const academicYearOptions = useMemo(
+    () =>
+      (academicYearsData?.academicYears || []).map((y) => ({
+        value: y._id,
+        label: y.name,
+      })),
+    [academicYearsData]
+  );
+
+  const classGroupOptions = useMemo(
+    () =>
+      (classGroupsData?.classGroups || []).map((g) => ({
+        value: g._id,
+        label: g.displayName || `${g.grade?.gradeName || ""} ${g.section || ""}`,
+      })),
+    [classGroupsData]
+  );
+
+  // ===================== SIBLINGS =====================
+  const [siblingSearchTerm, setSiblingSearchTerm] = useState("");
+  const [siblingSearchResults, setSiblingSearchResults] = useState([]);
+  const { data: siblingData, isFetching: siblingLoading } = useGetUserByTypeQuery(
+    { type: "student", keyword: siblingSearchTerm, dropdown: true },
+    { skip: siblingSearchTerm.length < 2 }
+  );
+
+  // ===================== AGE CALCULATION =====================
   const calculateAgeFromDOB = (dob) => {
     if (!dob) return "";
     const today = new Date();
@@ -176,21 +168,58 @@ const UpdateStudent = () => {
     return calculatedAge.toString();
   };
 
-  // Handle API response
+  // ===================== POPULATE FROM FETCHED DATA =====================
   useEffect(() => {
-    if (error) {
-      toast.error(error?.data?.message || t("Error updating student"));
-    }
-    if (isSuccess) {
-      toast.success(t("Student Updated Successfully"));
-      navigate("/admin/students");
-      refetchDetails();
-    }
-  }, [error, isSuccess, navigate, refetchDetails, t]);
+    if (data?.user) {
+      const userData = data.user;
+      let formattedDate = "";
+      if (userData.dateOfBirth) {
+        try {
+          const dateObj = new Date(userData.dateOfBirth);
+          if (!isNaN(dateObj.getTime())) {
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+            const day = String(dateObj.getDate()).padStart(2, "0");
+            formattedDate = `${year}-${month}-${day}`;
+          }
+        } catch (e) {}
+      }
 
-  // ------------------ Form change handler ------------------
+      let siblingIds = [];
+      if (Array.isArray(userData.siblings)) {
+        siblingIds = userData.siblings.map((sib) =>
+          typeof sib === "object" ? sib._id : sib
+        );
+      }
+
+      setStudent({
+        role: "student",
+        firstName: userData.firstName || "",
+        middleName: userData.middleName || "",
+        lastName: userData.lastName || "",
+        age: formattedDate ? calculateAgeFromDOB(formattedDate) : "",
+        dateOfBirth: formattedDate,
+        gender: userData.gender || "",
+        nationality: userData.nationality || "",
+        passportNumber: userData.passportNumber || "",
+        nationalID: userData.nationalID || "",
+        phoneNumber: userData.phoneNumber?.replace(/\+/g, "") || "",
+        secondaryPhoneNumber: userData.secondaryPhoneNumber?.replace(/\+/g, "") || "",
+        address: userData.address || "",
+        campus: userData.campus?._id || userData.campus || "",
+        status: userData.status?.toLowerCase() === "active",
+        email: userData.email || "",
+        password: "",
+        avatar: userData.avatar?.url || "",
+        siblings: siblingIds,
+      });
+      setAvatarPreview(userData.avatar?.url || "");
+    }
+  }, [data]);
+
+  // ===================== HANDLERS =====================
   const onChange = (e) => {
-    const { name, value, type, files } = e.target;
+    const { name, value, type, files, checked } = e.target;
     if (name === "avatar") {
       const file = files[0];
       if (!file) return;
@@ -209,45 +238,15 @@ const UpdateStudent = () => {
         age: calculateAgeFromDOB(value),
       }));
     } else {
-      setStudent({
-        ...student,
-        [name]:
-          type === "radio"
-            ? value === "true"
-              ? true
-              : value === "false"
-              ? false
-              : value
-            : value,
-      });
+      let newValue;
+      if (type === "checkbox") newValue = checked;
+      else if (type === "radio")
+        newValue = value === "true" ? true : value === "false" ? false : value;
+      else newValue = value;
+      setStudent({ ...student, [name]: newValue });
     }
   };
 
-  // ------------------ Siblings management ------------------
-  const [siblingSearchTerm, setSiblingSearchTerm] = useState("");
-  const [siblingSearchResults, setSiblingSearchResults] = useState([]);
-
-  // Fetch students for sibling search (role=student, dropdown=true to bypass pagination & cookie filters)
-  const { data: siblingData, isFetching: siblingLoading } = useGetUserByTypeQuery(
-    { type: "student", keyword: siblingSearchTerm, dropdown: true },
-    { skip: siblingSearchTerm.length < 2 }
-  );
-
-  // Update results when data arrives
-  useEffect(() => {
-    if (siblingData?.users) {
-      const alreadySelectedIds = new Set(siblings);
-      // Exclude current student (if ID matches)
-      const available = siblingData.users.filter(
-        (u) => !alreadySelectedIds.has(u._id) && u._id !== params?.id
-      );
-      setSiblingSearchResults(available);
-    } else {
-      setSiblingSearchResults([]);
-    }
-  }, [siblingData, siblings, params?.id]);
-
-  // Add a sibling
   const addSibling = (studentId, studentName) => {
     if (siblings.includes(studentId)) {
       toast.error(t("Student already added as sibling"));
@@ -257,10 +256,9 @@ const UpdateStudent = () => {
       ...prev,
       siblings: [...prev.siblings, studentId],
     }));
-    setSiblingSearchTerm(""); // clear search after adding
+    setSiblingSearchTerm("");
   };
 
-  // Remove a sibling
   const removeSibling = (studentId) => {
     setStudent((prev) => ({
       ...prev,
@@ -268,46 +266,57 @@ const UpdateStudent = () => {
     }));
   };
 
-  // ------------------ Submit handler ------------------
-  const submitHandler = (e) => {
+  // ===================== UPDATE STUDENT =====================
+  const submitHandler = async (e) => {
     e.preventDefault();
-    if (!grade) return toast.error(t("Please select a grade"));
-    if (!name.trim() || !email.trim()) {
-      return toast.error(t("Please fill all required fields"));
-    }
-
-    const updateData = {
+    const statusString = student.status ? "active" : "pending";
+    const submitData = {
       ...student,
+      status: statusString,
       phoneNumber: phoneNumber ? `+${phoneNumber}` : "",
       secondaryPhoneNumber: secondaryPhoneNumber ? `+${secondaryPhoneNumber}` : "",
+      age: undefined,
     };
+    if (!submitData.password) delete submitData.password;
+    if (submitData.avatar && submitData.avatar.startsWith("http")) delete submitData.avatar;
 
-    // Format dateOfBirth to ISO string for backend
-    if (updateData.dateOfBirth) {
-      try {
-        const dateObj = new Date(updateData.dateOfBirth);
-        updateData.dateOfBirth = new Date(
-          dateObj.getFullYear(),
-          dateObj.getMonth(),
-          dateObj.getDate()
-        ).toISOString();
-      } catch (error) {
-        console.error("Error formatting date:", error);
-      }
+    const result = await updateUser({ id: params?.id, body: submitData });
+    if (result?.data?.success) {
+      toast.success(t("Student updated successfully"));
+      navigate("/admin/students");
+      refetchDetails();
     }
-
-    // Don't send password if empty (keep existing)
-    if (!updateData.password) {
-      delete updateData.password;
-    }
-
-    // Don't send avatar if it's unchanged (URL string)
-    if (updateData.avatar && updateData.avatar.startsWith("http")) {
-      delete updateData.avatar;
-    }
-
-    updateUser({ id: params?.id, body: updateData });
   };
+
+  // ===================== TRANSFER HANDLER =====================
+  const handleTransfer = async () => {
+    if (!transferData.academicYearId || !transferData.newCampusId || !transferData.newClassGroupId || !transferData.transferDate) {
+      return toast.error(t("Please fill all transfer fields"));
+    }
+    setTransferLoading(true);
+    try {
+      await transferStudent({
+        studentId: params.id,
+        newCampusId: transferData.newCampusId,
+        newClassGroupId: transferData.newClassGroupId,
+        academicYearId: transferData.academicYearId,
+        transferDate: new Date(transferData.transferDate).toISOString(),
+      }).unwrap();
+      toast.success(t("Student transferred successfully"));
+      setShowTransferModal(false);
+      refetchDetails();
+      setStudent((prev) => ({ ...prev, campus: transferData.newCampusId }));
+    } catch (err) {
+      toast.error(err?.data?.message || t("Transfer failed"));
+    } finally {
+      setTransferLoading(false);
+    }
+  };
+
+  // ===================== EFFECTS =====================
+  useEffect(() => {
+    if (error) toast.error(error?.data?.message || t("Error updating student"));
+  }, [error]);
 
   if (detailsLoading) {
     return (
@@ -323,45 +332,40 @@ const UpdateStudent = () => {
     <AdminLayout>
       <MetaData title={t("Update Student")} />
 
+      <style>{`
+        :root { --theme-color: #ec4899; }
+        input[type="checkbox"], input[type="radio"] {
+          accent-color: var(--theme-color) !important;
+        }
+        .react-tel-input .form-control:focus {
+          border-color: var(--theme-color) !important;
+          box-shadow: 0 0 0 1px var(--theme-color) !important;
+        }
+        ::selection { background: var(--theme-color); color: white; }
+      `}</style>
+
       <div className="max-w-6xl mx-auto">
         <AppPageHeader
           title={t("Update Student")}
-          subtitle={t("Edit student information")}
+          subtitle={t("Edit student information or perform a mid‑year transfer")}
           backUrl="/admin/students"
         />
 
         <form onSubmit={submitHandler} className="space-y-6">
-          {/* Account Credentials Card */}
+          {/* ===== Student Credentials ===== */}
           <AppCard title={t("Student Credentials")} icon="fa-lock">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <AppInput
-                label={t("Full Name")}
-                name="name"
-                value={name}
-                onChange={onChange}
-                required
-              />
-              <AppInput
-                label={t("Email Address")}
-                type="email"
-                name="email"
-                value={email}
-                onChange={onChange}
-                required
-              />
-              <AppInput
-                label={t("Password")}
-                type="password"
-                name="password"
-                value={password}
-                onChange={onChange}
-                placeholder={t("Leave blank to keep current")}
-                minLength="6"
-              />
+              <AppInput label={t("First Name")} name="firstName" value={firstName} onChange={onChange} required />
+              <AppInput label={t("Middle Name")} name="middleName" value={middleName} onChange={onChange} />
+              <AppInput label={t("Last Name")} name="lastName" value={lastName} onChange={onChange} required />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              <AppInput label={t("Email Address")} type="email" name="email" value={email} onChange={onChange} required />
+              <AppInput label={t("Password")} type="password" name="password" value={password} onChange={onChange} placeholder={t("Leave blank to keep current")} minLength="6" />
             </div>
           </AppCard>
 
-          {/* Academic & Personal Details Card */}
+          {/* ===== Academic & Personal Details ===== */}
           <AppCard
             title={t("Academic & Personal Details")}
             icon="fa-graduation-cap"
@@ -378,150 +382,80 @@ const UpdateStudent = () => {
               </div>
             }
           >
-            {/* Row 1: Gender, DOB, Age, Nationality */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <GenderRadio value={gender} onChange={onChange} />
-
-              <AppInput
-                label={t("Date of Birth")}
-                type="date"
-                name="dateOfBirth"
-                value={dateOfBirth}
-                onChange={onChange}
-                required
-                max={new Date(new Date().setFullYear(new Date().getFullYear() - 4))
-                  .toISOString()
-                  .split("T")[0]}
-              />
-
-              <AppInput
-                label={t("Age")}
-                type="number"
-                name="age"
-                value={age}
-                readOnly
-                helperText={t("Auto-calculated")}
-              />
-
+              <AppInput label={t("Date of Birth")} type="date" name="dateOfBirth" value={dateOfBirth} onChange={onChange} required max={moment().subtract(4, "years").format("YYYY-MM-DD")} />
+              <AppInput label={t("Age")} type="number" name="age" value={age} readOnly helperText={t("Auto-calculated")} />
               <NationalitySelect value={nationality} onChange={onChange} />
             </div>
 
-            {/* Row 2: Passport Number and National ID */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-              <AppInput
-                label={t("Passport No")}
-                name="passportNumber"
-                value={passportNumber}
-                onChange={onChange}
-                placeholder={t("Min 8 characters")}
-              />
-              <AppInput
-                label={t("National ID")}
-                name="nationalID"
-                value={nationalID}
-                onChange={onChange}
-                placeholder={t("Min 11 Max 20 characters")}
-              />
+              <AppInput label={t("Passport No")} name="passportNumber" value={passportNumber} onChange={onChange} placeholder={t("Min 8 characters")} />
+              <AppInput label={t("National ID")} name="nationalID" value={nationalID} onChange={onChange} placeholder={t("Min 11 Max 20 characters")} />
             </div>
 
-            {/* Row 3: Grade, Primary Contact, Emergency Contact */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-              <SearchableDropdown
-                label={t("Grade")}
-                placeholder={t("Search grade...")}
-                value={grade}
-                onChange={(selectedValue) => setStudent({ ...student, grade: selectedValue })}
-                onSearch={handleGradeSearch}
-                options={gradeOptions}
-                isLoading={gradeLoading}
-                hasMore={hasMore}
-                required
-                emptyMessage={t("No results found")}
-                loadingMessage={t("Loading...")}
-              />
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-semibold text-gray-500 uppercase">
-                  {t("Primary Contact")}
-                </label>
-                <PhoneInput
-                  country={"tr"}
-                  value={phoneNumber}
-                  onChange={(val) => setStudent({ ...student, phoneNumber: val })}
-                  inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg"
-                  containerClass="!w-full"
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+              <div>
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">{t("Primary Contact")}</label>
+                <PhoneInput country={"tr"} value={phoneNumber} onChange={(val) => setStudent({ ...student, phoneNumber: val })} inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg" containerClass="!w-full" />
               </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-semibold text-gray-500 uppercase">
-                  {t("Emergency Contact")}
-                </label>
-                <PhoneInput
-                  country={"tr"}
-                  value={secondaryPhoneNumber}
-                  onChange={(val) => setStudent({ ...student, secondaryPhoneNumber: val })}
-                  inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg"
-                  containerClass="!w-full"
-                />
+              <div>
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">{t("Emergency Contact")}</label>
+                <PhoneInput country={"tr"} value={secondaryPhoneNumber} onChange={(val) => setStudent({ ...student, secondaryPhoneNumber: val })} inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg" containerClass="!w-full" />
               </div>
             </div>
 
-            {/* Siblings Section */}
+            {/* Campus field with transfer button */}
+            <div className="mt-6 flex items-end gap-3">
+              <div className="flex-1">
+                <SearchableDropdown
+                  label={t("Campus")}
+                  placeholder={t("Search campus...")}
+                  value={campus}
+                  onChange={(val) => setStudent({ ...student, campus: val })}
+                  onSearch={setCampusSearchTerm}
+                  options={campusOptions}
+                  isLoading={campusesLoading}
+                  helperText={t("Select the student's campus")}
+                  emptyMessage={t("No campuses found")}
+                  loadingMessage={t("Loading campuses...")}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTransferModal(true)}
+                className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition mb-0.5"
+              >
+                <i className="fa fa-exchange-alt mr-2"></i>
+                {t("Transfer")}
+              </button>
+            </div>
+
+            {/* Siblings */}
             <div className="mt-6 border-t pt-4">
               <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <i className="fa fa-users text-gray-400"></i>
                 {t("Siblings (Optional)")}
               </h3>
-
-              {/* Search Input */}
-              <div className="relative">
-                <AppInput
-                  label={t("Search for a student")}
-                  placeholder={t("Type at least 2 characters...")}
-                  value={siblingSearchTerm}
-                  onChange={(e) => setSiblingSearchTerm(e.target.value)}
-                />
-                {siblingLoading && (
-                  <div className="absolute right-3 top-9">
-                    <i className="fa fa-spinner fa-spin text-gray-400"></i>
-                  </div>
-                )}
-              </div>
-
-              {/* Search Results Dropdown */}
+              <AppInput label={t("Search for a student")} placeholder={t("Type at least 2 characters...")} value={siblingSearchTerm} onChange={(e) => setSiblingSearchTerm(e.target.value)} />
               {siblingSearchTerm.length >= 2 && siblingSearchResults.length > 0 && (
                 <ul className="mt-1 border border-gray-200 rounded-md max-h-40 overflow-y-auto shadow-sm">
                   {siblingSearchResults.map((s) => (
-                    <li
-                      key={s._id}
-                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center text-sm"
-                      onClick={() => addSibling(s._id, s.name)}
-                    >
+                    <li key={s._id} className="px-3 py-2 hover:bg-gray-100 cursor-pointer flex justify-between text-sm" onClick={() => addSibling(s._id, s.name)}>
                       <span>{s.name}</span>
                       <span className="text-gray-400 text-xs">{s.email}</span>
                     </li>
                   ))}
                 </ul>
               )}
-
-              {/* Selected Siblings Chips */}
               {siblings.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {siblings.map((id) => {
-                    // Find the student name from search results if available
-                    const sibling = siblingData?.users?.find((u) => u._id === id);
+                    const sib = siblingData?.users?.find((u) => u._id === id);
                     return (
-                      <span
-                        key={id}
-                        className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
-                      >
-                        {sibling?.name || id}
-                        <button
-                          type="button"
-                          onClick={() => removeSibling(id)}
-                          className="ml-1 text-blue-500 hover:text-blue-700"
-                        >
+                      <span key={id} className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm">
+                        {sib?.name || id}
+                        <button type="button" onClick={() => removeSibling(id)} className="ml-1 text-blue-500 hover:text-blue-700">
                           <i className="fa fa-times-circle"></i>
                         </button>
                       </span>
@@ -531,37 +465,107 @@ const UpdateStudent = () => {
               )}
             </div>
 
-            {/* Row 4: Avatar and Address */}
+            {/* Avatar & Address */}
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              <AvatarUpload
-                preview={avatarPreview}
-                onChange={onChange}
-                title={t("Student Picture")}
-                subtitle={t("Max size 2MB")}
-              />
-
-              <AppInput
-                label={t("Residential Address")}
-                name="address"
-                value={address}
-                onChange={onChange}
-                type="textarea"
-                rows={2}
-              />
+              <AvatarUpload preview={avatarPreview} onChange={onChange} title={t("Student Picture")} subtitle={t("Max size 2MB")} />
+              <AppInput label={t("Residential Address")} name="address" value={address} onChange={onChange} type="textarea" rows={2} />
             </div>
 
-            {/* Status Checkbox */}
-            <div className="mt-4">
-              <AppCheckbox
-                name="status"
-                checked={student.status}
-                onChange={onChange}
-                label={t("Active")}
-              />
+            {/* Active toggle */}
+            <div className="mt-4 flex items-center gap-3">
+              <input type="checkbox" id="statusCheckbox" name="status" checked={student.status} onChange={onChange} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 accent-blue-600" />
+              <label htmlFor="statusCheckbox" className="text-sm font-medium text-gray-700">{t("Active")}</label>
             </div>
           </AppCard>
         </form>
       </div>
+
+      {/* ===================== TRANSFER MODAL (Inline) ===================== */}
+      {showTransferModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 relative">
+            <button
+              onClick={() => setShowTransferModal(false)}
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+            >
+              <i className="fa fa-times text-xl"></i>
+            </button>
+
+            <h2 className="text-xl font-bold mb-4">{t("Mid‑Year Transfer")}</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              {t("This will close the current active enrollment and create a new one at the destination campus.")}
+            </p>
+
+            <div className="space-y-4">
+              {/* Academic Year Select */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t("Academic Year")} <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={transferData.academicYearId}
+                  onChange={(e) => setTransferData({ ...transferData, academicYearId: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  required
+                >
+                  <option value="">{t("Select Academic Year")}</option>
+                  {academicYearOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* New Campus */}
+              <SearchableDropdown
+                label={t("New Campus")}
+                value={transferData.newCampusId}
+                onChange={(val) => setTransferData({ ...transferData, newCampusId: val })}
+                onSearch={setCampusSearchTerm}
+                options={campusOptions}
+                isLoading={campusesLoading}
+                placeholder={t("Select campus")}
+                required
+              />
+
+              {/* New Class Group */}
+              <SearchableDropdown
+                label={t("New Class Group")}
+                value={transferData.newClassGroupId}
+                onChange={(val) => setTransferData({ ...transferData, newClassGroupId: val })}
+                onSearch={setClassGroupSearch}
+                options={classGroupOptions}
+                isLoading={classGroupsLoading}
+                placeholder={t("Select class group")}
+                required
+              />
+
+              {/* Transfer Date */}
+              <AppInput
+                label={t("Transfer Date (last day at old campus)")}
+                type="date"
+                name="transferDate"
+                value={transferData.transferDate}
+                onChange={(e) => setTransferData({ ...transferData, transferDate: e.target.value })}
+                required
+                max={moment().format("YYYY-MM-DD")}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-6">
+              <AppButton type="button" onClick={() => setShowTransferModal(false)} label={t("Cancel")} />
+              <AppButton
+                type="button"
+                onClick={handleTransfer}
+                label={t("Confirm Transfer")}
+                loadingLabel={t("Transferring...")}
+                isLoading={transferLoading}
+                icon="fa-exchange-alt"
+                className="bg-orange-500 hover:bg-orange-600"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };

@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { Link, useLocation } from "react-router-dom";
-import { useLazyLogoutQuery ,useGetMeQuery} from "../../redux/api/authApi";
+import { useLazyLogoutQuery, useGetMeQuery } from "../../redux/api/authApi";
 import { Cog6ToothIcon, ChevronDownIcon, Bars3Icon, XMarkIcon, CalendarIcon } from "@heroicons/react/24/outline";
 import LanguageSwitcher from "../LanguageSwitcher";
 import { useGetCampusQuery, useSetCampusTokenMutation } from "../../redux/api/campusApi";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
+import { useGetAcademicYearsListQuery } from "../../redux/api/academicYearApi";
 
 const Header = () => {
   const { t } = useTranslation();
@@ -22,18 +23,31 @@ const Header = () => {
 
   const location = useLocation();
   const { isLoading } = useGetMeQuery();
-  // ✅ Fetch ALL campuses for the dropdown (limit=0 disables pagination)
   const { data: campusData, isLoading: campusLoading } = useGetCampusQuery({ limit: 0 });
   const [setCampusToken] = useSetCampusTokenMutation();
   const [logout] = useLazyLogoutQuery();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
 
+  // Fetch academic years list (for dropdown)
+  const { data: academicYearsData, isLoading: academicYearsLoading } = useGetAcademicYearsListQuery(
+    { limit: 0, sort: "-createdAt" },
+    { skip: !isAuthenticated }
+  );
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState('');
+  
+  // Academic year states – store both ID and name
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState(() => {
+    return getCookie('academicYear') || '';
+  });
+  const [selectedAcademicYearName, setSelectedAcademicYearName] = useState(() => {
+    return getCookie('academicYearName') || '';
+  });
+
   const dropdownTimeoutRef = useRef(null);
 
-  // Campus selection state – initialize from cookie, fallback to user's campus if cookie missing
   const [selectedCampus, setSelectedCampus] = useState(() => {
     const cookieCampus = getCookie('campus');
     return cookieCampus || user?.campus?._id || '';
@@ -65,6 +79,33 @@ const Header = () => {
       document.cookie = `selectedYear=${encodeURIComponent(defaultYear)}; path=/; max-age=${60 * 60 * 24 * 365}`;
     }
   }, [currentYear]);
+
+  // Academic year cookies handling – read both ID and name
+  useEffect(() => {
+    const storedAcademicYear = getCookie('academicYear');
+    const storedAcademicYearName = getCookie('academicYearName');
+    if (storedAcademicYear) {
+      setSelectedAcademicYear(storedAcademicYear);
+    }
+    if (storedAcademicYearName) {
+      setSelectedAcademicYearName(storedAcademicYearName);
+    } else {
+      // Optionally, if only ID exists but name is missing, try to find it from loaded data later
+      // This will be handled by the effect that watches academicYearsData
+    }
+  }, []);
+
+  // If academic year ID is set but name is missing, try to fill it from loaded data
+  useEffect(() => {
+    if (selectedAcademicYear && !selectedAcademicYearName && academicYearsData?.academicYears) {
+      const found = academicYearsData.academicYears.find(y => y._id === selectedAcademicYear);
+      if (found && found.name) {
+        setSelectedAcademicYearName(found.name);
+        // Also update the cookie with the name
+        document.cookie = `academicYearName=${encodeURIComponent(found.name)}; path=/; max-age=${60 * 60 * 24 * 365}`;
+      }
+    }
+  }, [academicYearsData, selectedAcademicYear, selectedAcademicYearName]);
 
   // If user object loads later, ensure selectedCampus is set (in case cookie was missing)
   useEffect(() => {
@@ -98,6 +139,23 @@ const Header = () => {
     const year = e.target.value;
     setSelectedYear(year);
     document.cookie = `selectedYear=${encodeURIComponent(year)}; path=/; max-age=${60 * 60 * 24 * 365}`;
+    window.location.reload();
+  };
+
+  // Academic year change handler – save both ID and name to cookies
+  const handleAcademicYearChange = (e) => {
+    const yearId = e.target.value;
+    // Get the selected option's text (name)
+    const selectedOption = e.target.selectedOptions[0];
+    const yearName = selectedOption ? selectedOption.text : '';
+
+    setSelectedAcademicYear(yearId);
+    setSelectedAcademicYearName(yearName);
+
+    // Set both cookies
+    document.cookie = `academicYear=${encodeURIComponent(yearId)}; path=/; max-age=${60 * 60 * 24 * 365}`;
+    document.cookie = `academicYearName=${encodeURIComponent(yearName)}; path=/; max-age=${60 * 60 * 24 * 365}`;
+
     window.location.reload();
   };
 
@@ -156,7 +214,7 @@ const Header = () => {
           <div className="flex items-center space-x-3">
             <LanguageSwitcher />
 
-            {/* Session/Year Selector */}
+            {/* Session/Year Selector (always visible) */}
             <div className="relative group hidden sm:block">
               <select
                 className="appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-1.5 px-3 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/10 transition-all cursor-pointer text-xs font-bold"
@@ -170,11 +228,30 @@ const Header = () => {
               <ChevronDownIcon className="w-3 h-3 absolute right-2 top-2.5 text-gray-400 pointer-events-none" />
             </div>
 
+            {/* Academic Year Selector (only for authenticated users) */}
+            {isAuthenticated && (
+              <div className="relative group hidden sm:block">
+                <select
+                  className="appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-1.5 px-3 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/10 transition-all cursor-pointer text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                  value={selectedAcademicYear}
+                  onChange={handleAcademicYearChange}
+                  disabled={academicYearsLoading}
+                >
+                  <option value="">{t("Select Academic Year")}</option>
+                  {academicYearsData?.academicYears?.map((year) => (
+                    <option key={year._id} value={year._id}>
+                      {year.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDownIcon className="w-3 h-3 absolute right-2 top-2.5 text-gray-400 pointer-events-none" />
+              </div>
+            )}
+
             {/* Campus selector / display */}
             {isAuthenticated && (
               <>
                 {user?.role === "admin" ? (
-                  // Admin: dropdown with all campuses
                   <div className="relative hidden md:block">
                     <select
                       className="appearance-none bg-blue-600 text-white py-1.5 px-3 pr-8 rounded-lg focus:outline-none shadow-md shadow-blue-200 cursor-pointer text-xs font-bold"
@@ -192,7 +269,6 @@ const Header = () => {
                     <ChevronDownIcon className="w-3 h-3 absolute right-2 top-2.5 text-blue-200 pointer-events-none" />
                   </div>
                 ) : (
-                  // Non-admin: show campus name as text (if available)
                   user?.campus?.name && (
                     <span className="hidden md:inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold">
                       {user.campus.name}
@@ -218,7 +294,6 @@ const Header = () => {
                 <Cog6ToothIcon className="w-5 h-5 text-gray-400 hover:rotate-90 transition-transform duration-500" />
               </button>
 
-              {/* Modern Dropdown Card */}
               {isDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="px-4 py-3 bg-gray-50/50 border-b border-gray-50">

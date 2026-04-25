@@ -32,7 +32,9 @@ const ListCampus = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(8);
-  const [statusFilter, setStatusFilter] = useState(""); // for API
+
+  // Default status filter: "active" taaki sirf active campuses dikhe
+  const [statusFilter, setStatusFilter] = useState("active");
 
   // Toast from navigation (e.g., after creating a campus)
   useEffect(() => {
@@ -51,21 +53,22 @@ const ListCampus = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // API query
+  // API query – status ko bhejna hai sirf jab active ya inactive ho, "all" pe nahi
   const {
     data,
     isLoading,
     error,
     refetch,
     isFetching,
-  } = useGetCampusQuery({
-    page: currentPage,
-    limit,
-    keyword: searchTerm,
-    status: statusFilter || undefined,
-  }, {
-    refetchOnMountOrArgChange: true,
-  });
+  } = useGetCampusQuery(
+    {
+      page: currentPage,
+      limit,
+      keyword: searchTerm,
+      status: statusFilter || undefined,   // agar empty hua to undefined bhejenge
+    },
+    { refetchOnMountOrArgChange: true }
+  );
 
   const [
     deleteCampus,
@@ -78,7 +81,8 @@ const ListCampus = () => {
   // Global error / success handling
   useEffect(() => {
     if (error) toast.error(error?.data?.message || t("Something went wrong"));
-    if (deleteError) toast.error(deleteError?.data?.message || t("Failed to delete campus"));
+    if (deleteError)
+      toast.error(deleteError?.data?.message || t("Failed to delete campus"));
     if (deleteSuccess) {
       toast.success(t("Campus deleted successfully"));
       setShowModal(false);
@@ -124,65 +128,72 @@ const ListCampus = () => {
       accessor: "name",
       width: "35%",
       minWidth: "200px",
-      render: (value) => <TruncatedCell maxChars={30}>{value}</TruncatedCell>
+      render: (value) => <TruncatedCell maxChars={30}>{value}</TruncatedCell>,
     },
     {
       header: t("Location"),
       accessor: "location",
       width: "35%",
       minWidth: "200px",
-      render: (value) => value ? (
-        <TruncatedCell maxChars={30}>{value}</TruncatedCell>
-      ) : (
-        <span className="text-sm text-gray-400 italic">{t("No location")}</span>
-      )
+      render: (value) =>
+        value ? (
+          <TruncatedCell maxChars={30}>{value}</TruncatedCell>
+        ) : (
+          <span className="text-sm text-gray-400 italic">{t("No location")}</span>
+        ),
     },
     {
       header: t("Phone Number"),
       accessor: "contactNumber",
       width: "30%",
       minWidth: "150px",
-      render: (value) => value ? (
-        <TruncatedCell maxChars={20}>{value}</TruncatedCell>
-      ) : (
-        <span className="text-sm text-gray-400 italic">{t("No phone")}</span>
-      )
-    }
+      render: (value) =>
+        value ? (
+          <TruncatedCell maxChars={20}>{value}</TruncatedCell>
+        ) : (
+          <span className="text-sm text-gray-400 italic">{t("No phone")}</span>
+        ),
+    },
   ];
 
-  // Stats – note: counts come from data?.pagination?.counts
-  const counts = data?.pagination?.counts || { total: 0, active: 0, deactive: 0 };
+  // ✅ Stats ab backend se aane wale overall counts se aayenge
+  const counts = data?.pagination?.counts || data?.counts || {
+    total: 0,
+    active: 0,
+    deactive: 0,
+  };
 
   const stats = [
     {
       label: t("Total Campuses"),
       value: counts.total,
       icon: "university",
-      color: "blue"
+      color: "blue",
     },
     {
       label: t("Active"),
       value: counts.active,
       icon: "check-circle",
-      color: "green"
+      color: "green",
     },
     {
       label: t("Deactive"),
       value: counts.deactive,
       icon: "times-circle",
-      color: "red"
+      color: "red",
     },
     {
       label: t("Total Pages"),
       value: data?.pagination?.totalPages || 1,
       icon: "file-alt",
-      color: "purple"
-    }
+      color: "purple",
+    },
   ];
 
-  const addButton = userRole === "admin" ? (
-    <AppButton to="/admin/campus/new" label={t("Add New Campus")} icon="plus" />
-  ) : null;
+  const addButton =
+    userRole === "admin" ? (
+      <AppButton to="/admin/campus/new" label={t("Add New Campus")} icon="plus" />
+    ) : null;
 
   const refreshButton = (
     <AppButton
@@ -194,7 +205,7 @@ const ListCampus = () => {
     />
   );
 
-  // Filter dropdown using shared component
+  // ✅ Filter dropdown – status select ab sahi values bhejega
   const filters = (
     <FilterDropdown
       limit={limit}
@@ -205,7 +216,7 @@ const ListCampus = () => {
       onReset={() => {
         setSearch("");
         setSearchTerm("");
-        setStatusFilter("");
+        setStatusFilter("active"); // reset to default
         setCurrentPage(1);
         setLimit(8);
       }}
@@ -222,9 +233,9 @@ const ListCampus = () => {
           }}
           className="w-full p-2 border border-gray-300 rounded-md"
         >
-          <option value="">{t("All Status")}</option>
           <option value="active">{t("Active")}</option>
           <option value="inactive">{t("Deactive")}</option>
+          <option value="">{t("All Status")}</option>
         </select>
       </div>
     </FilterDropdown>
@@ -244,8 +255,14 @@ const ListCampus = () => {
   const emptyState = (
     <EmptyState
       icon="university"
-      title={searchTerm ? t("No campuses found matching your search") : t("No campuses found")}
-      message={t("Try adjusting your search or filters to find what you're looking for.")}
+      title={
+        searchTerm
+          ? t("No campuses found matching your search")
+          : t("No campuses found")
+      }
+      message={t(
+        "Try adjusting your search or filters to find what you're looking for."
+      )}
     />
   );
 
@@ -258,7 +275,6 @@ const ListCampus = () => {
       <DataTableContainer
         title={t("Campus Management")}
         subtitle={t("Manage campus locations and their details")}
-        // FIXED: use data?.campuses (plural) instead of data?.campus
         data={data?.campuses || []}
         columns={columns}
         isLoading={isLoading}

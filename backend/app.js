@@ -73,7 +73,8 @@ import sessionTemplateRoutes from "./routes/sessionTemplateRoutes.js";
 import daySessionConfigRoutes from "./routes/daySessionConfigRoutes.js";
 import timeTableSlotRoutes from "./routes/timeTableSlotRoutes.js";
 
-
+import academicYearRoutes from "./routes/academicYear.js";
+import studentEnrollment from "./routes/studentEnrollment.js"
 
 
 app.use("/api/v1", authRoutes);
@@ -103,6 +104,9 @@ app.use("/api/v1", weekDayRoutes);
 app.use("/api/v1", sessionTemplateRoutes);
 app.use("/api/v1", daySessionConfigRoutes);
 app.use("/api/v1", timeTableSlotRoutes);
+app.use("/api/v1",academicYearRoutes)
+app.use("/api/v1",studentEnrollment)
+
 
 if (process.env.NODE_ENV === "PRODUCTION") {
   app.use(express.static(path.join(__dirname, "../frontend/build")));

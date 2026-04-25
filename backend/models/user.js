@@ -5,10 +5,20 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
+    firstName: {
       type: String,
-      required: [true, "Please enter your name"],
-      maxLength: [50, "Your name cannot exceed 50 characters"],
+      required: [true, "Please enter your first name"],
+      maxLength: [25, "Your name cannot exceed 25 characters"],
+    },
+    middleName:{
+      type: String,
+      required: [false, "Please enter your middle name"],
+      maxLength: [25, "Your name cannot exceed 25 characters"],
+    },
+    lastName:{
+      type: String,
+      required: [true, "Please enter your last name"],
+      maxLength: [25, "Your name cannot exceed 50 characters"],
     },
     userId: {
       type: String,
@@ -34,6 +44,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "user",
     },
+    designationLevel: {
+      type: String,
+      enum: ["junior", "senior", "mid", "lead", "manager", "assistant"], 
+    },
     dateOfBirth: {
       type: Date,
       required: [true, "Please enter date of birth"],
@@ -44,12 +58,12 @@ const userSchema = new mongoose.Schema(
     },
     nationality: {
       type: String,
-      required: [true, "Please enter the nationality of student"],
+      required: [true, "Please enter the nationality "],
     },
     passportNumber: {
       type: String,
-      required: [false, "Please enter the passport number of student"],
-      maxLength: [14, "Passport number cannot exceed 14 digits"],
+      required: [false, "Please enter the passport number "],
+      maxLength: [10, "Passport number cannot exceed 10 digits"],
     },
     nationalID: {
       type: String,
@@ -89,28 +103,12 @@ const userSchema = new mongoose.Schema(
       ref: "Campus",
       required: false,
     },
-    year:{
-      type:Date,
-      required:true
+    status: {
+      type: String,
+      enum: ["active", "inactive", "passout", "leave", "suspended", "expelled", "transferred", "alumni", "pending"],
+      required: true,
+      default: "pending"
     },
-    status:{
-      type:Boolean,
-      required:true
-    },
-    grade: [
-      {
-        gradeId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: 'Grade'
-        },
-        yearFrom: {
-          type: Number,
-        },
-        yearTo: {
-          type: Number,
-        },
-      },
-    ],
     resetPasswordToken: String,
     resetPasswordExpire: Date,
   },

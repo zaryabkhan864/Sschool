@@ -24,11 +24,13 @@ const NewCampus = () => {
 
   const [campus, setCampus] = useState({
     name: "",
+    code: "",
     location: "",
     contactNumber: "",
+    email: "",
   });
 
-  const { name, location, contactNumber } = campus;
+  const { name, code, location, contactNumber, email } = campus;
 
   useEffect(() => {
     if (error) {
@@ -52,13 +54,15 @@ const NewCampus = () => {
 
   const submitHandler = (e) => {
     e.preventDefault();
-    if (!name.trim() || !contactNumber) {
+    if (!name.trim() || !code.trim() || !contactNumber) {
       return toast.error(t("Please fill all required fields"));
     }
     createCampus({
       name: name.trim(),
+      code: code.trim(),
       location: location.trim(),
       contactNumber,
+      email: email.trim(),
     });
   };
 
@@ -96,10 +100,17 @@ const NewCampus = () => {
                 value={name}
                 onChange={onChange}
                 label={t("Campus Name")}
-                placeholder="e.g. Main Campus, City Center"
+                placeholder="e.g. Main Campus"
                 required
               />
-
+              <AppInput
+                name="code"
+                value={code}
+                onChange={onChange}
+                label={t("Campus Code")}
+                placeholder="e.g. MAIN, CITY"
+                required
+              />
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t("Phone Number")} <span className="text-red-500">*</span>
@@ -117,7 +128,14 @@ const NewCampus = () => {
                   buttonClass="!border-none !bg-transparent"
                 />
               </div>
-
+              <AppInput
+                name="email"
+                type="email"
+                value={email}
+                onChange={onChange}
+                label={t("Email (Optional)")}
+                placeholder="campus@example.com"
+              />
               <div className="md:col-span-2">
                 <AppInput
                   type="textarea"
@@ -125,7 +143,7 @@ const NewCampus = () => {
                   value={location}
                   onChange={onChange}
                   label={t("Address")}
-                  placeholder="e.g. 123 Main Street, City, Country"
+                  placeholder="e.g. 123 Main Street, City"
                   rows={3}
                 />
               </div>

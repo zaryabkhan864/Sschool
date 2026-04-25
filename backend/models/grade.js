@@ -26,7 +26,7 @@ const gradeSchema = new mongoose.Schema(
       required: true,
     },
     year: {
-      type: Number,
+      type: String,
       required: [true, "Please enter course year"],
     },
     status: {

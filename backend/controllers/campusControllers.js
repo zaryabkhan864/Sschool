@@ -4,166 +4,166 @@ import APIFilters from "../utils/apiFilters.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import sendCampusIDToken from "../utils/sendCampusIDToken.js";
 
-
-// Create new campus => /api/v1/campus
+// Create new campus => /api/v1/admin/campus
 export const newCampus = catchAsyncErrors(async (req, res, next) => {
-  const campus = await Campus.create( req.body);
-  res.status(200).json({
+  const campus = await Campus.create(req.body);
+
+  res.status(201).json({
+    success: true,
     campus,
   });
 });
 
-//Create get all campus => /api/v1/campus
+// Get all campuses => /api/v1/campus
+// backend/controllers/campusController.js
 export const getCampus = catchAsyncErrors(async (req, res, next) => {
-  // Determine if this is a “dropdown” request (no pagination, no extra filters)
   const limit = Number(req.query.limit);
+
   const isDropdownRequest =
     limit === 0 ||
-    req.query.paginate === 'false' ||
+    req.query.paginate === "false" ||
     req.query.paginate === false;
 
-  if (req.query.status) {
-    req.query.status = req.query.status === 'active';
+  // ✅ Sahi status mapping: "active"/"inactive", warna koi filter nahi
+  let statusFilterApplied = false;
+  if (req.query.status === "active") {
+    req.query.isActive = true;
+    delete req.query.status;
+    statusFilterApplied = true;
+  } else if (req.query.status === "inactive") {
+    req.query.isActive = false;
+    delete req.query.status;
+    statusFilterApplied = true;
+  } else {
+    // Agar "All Status" ya undefined, toh status query hata do
+    delete req.query.status;
   }
 
-  // ---------- Base query for counting (total, active, deactive) ----------
-  const baseApiFilters = new APIFilters(Campus, req.query)
-    .setSearchFields(['name', 'location', 'address']) // adjust fields as per your schema
+  // === Pehle overall stats nikaalo (bina status filter ke) ===
+  // Search + filters apply karo but isActive condition hatado
+  const { status: _, isActive: __, ...queryWithoutStatus } = req.query;
+  const baseQueryForStats = new APIFilters(Campus, queryWithoutStatus)
+    .setSearchFields(["name", "location", "code"])
     .search()
-    .filters()
-    .sort();
+    .filters();  // yahan status ya isActive nahi hoga
 
-  const baseQuery = baseApiFilters.query;
-  const total = await baseApiFilters.model.countDocuments(baseQuery._conditions);
+  const overallConditions = baseQueryForStats.query._conditions;
 
-  // Count active / deactive (if status field exists, otherwise fallback)
-  let active = 0,
-    deactive = 0;
-  try {
-    active = await Campus.countDocuments({ ...baseQuery._conditions, status: true });
-    deactive = await Campus.countDocuments({ ...baseQuery._conditions, status: false });
-  } catch (error) {
-    // Status field probably doesn't exist – fallback to total only
-    active = total;
-    deactive = 0;
-  }
+  const totalOverall = await Campus.countDocuments(overallConditions);
+  const activeOverall = await Campus.countDocuments({
+    ...overallConditions,
+    isActive: true,
+  });
+  const deactiveOverall = await Campus.countDocuments({
+    ...overallConditions,
+    isActive: false,
+  });
 
-  // ---------- Query for actual data (with pagination unless it's a dropdown) ----------
+  // === Ab actual data ka query banao (with status filter if applied) ===
   const apiFilters = new APIFilters(Campus, req.query)
-    .setSearchFields(['name', 'location', 'address'])
+    .setSearchFields(["name", "location", "code"])
     .search()
     .filters()
     .sort();
 
   if (!isDropdownRequest) {
-    apiFilters.pagination(); // uses req.query.limit internally
+    apiFilters.pagination();
   }
 
-  // (Optional) Populate relations if needed – e.g., courses, users, etc.
-  // const populateOptions = [{ path: 'courses', select: 'name' }];
-  // apiFilters.populate(populateOptions);
+  const campuses = await apiFilters.query;
 
-  let campuses = await apiFilters.query;
-
-  // ---------- Client‑side keyword filtering (searches teacher name etc.) ----------
-  let finalCampuses = campuses;
-  if (req.query.keyword && req.query.keyword.trim()) {
-    const keyword = req.query.keyword.trim().toLowerCase();
-    finalCampuses = campuses.filter((campus) => {
-      return (
-        campus.name?.toLowerCase().includes(keyword) ||
-        campus.location?.toLowerCase().includes(keyword) ||
-        campus.address?.toLowerCase().includes(keyword)
-        // add more fields as needed
-      );
-    });
-
-    // If it's a dropdown request, we already have all records, so update counts
-    if (isDropdownRequest) {
-      const filteredActive = finalCampuses.filter((c) => c.status !== false).length;
-      const filteredDeactive = finalCampuses.filter((c) => c.status === false).length;
-      active = filteredActive;
-      deactive = filteredDeactive;
-      total = finalCampuses.length;
-    }
-  }
-
-  // ---------- Build pagination metadata ----------
+  // === Pagination response (includes overall counts) ===
   let pagination = null;
   if (!isDropdownRequest) {
     pagination = {
-      total,
+      total: totalOverall,           // overall total
       page: apiFilters.page,
       limit: apiFilters.limit,
-      totalPages: Math.ceil(total / apiFilters.limit),
+      totalPages: Math.ceil(totalOverall / apiFilters.limit),
     };
   }
 
-  // ---------- Send response ----------
   res.status(200).json({
     success: true,
-    ...(pagination && { pagination: { ...pagination, counts: { total, active, deactive } } }),
-    ...(!pagination && { counts: { total, active, deactive } }),
-    campuses: finalCampuses,
+    ...(pagination && {
+      pagination: {
+        ...pagination,
+        counts: {
+          total: totalOverall,
+          active: activeOverall,
+          deactive: deactiveOverall,
+        },
+      },
+    }),
+    ...(!pagination && {
+      counts: {
+        total: totalOverall,
+        active: activeOverall,
+        deactive: deactiveOverall,
+      },
+    }),
+    campuses,
   });
 });
 
-
-
-// Update campus => /api/v1/campus/:id
+// Update campus => /api/v1/admin/campus/:id
 export const updateCampus = catchAsyncErrors(async (req, res, next) => {
-  let campus = await Campus.findById(req?.params?.id);
+  let campus = await Campus.findById(req.params.id);
 
   if (!campus) {
-    return next(new ErrorHandler("campus not found", 404));
+    return next(new ErrorHandler("Campus not found", 404));
   }
 
-  campus = await Campus.findByIdAndUpdate(
-    req?.params?.id,
-    req.body,
-    {
-      new: true,
-    }
-  );
+  campus = await Campus.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+    runValidators: true,
+  });
 
   res.status(200).json({
+    success: true,
     campus,
   });
 });
 
-// Get single campus details => /api/v1/campus/:id
-export const getCampusDetails = catchAsyncErrors(async (req, res) => {
-  const campus = await Campus.findById(req?.params?.id);
+// Get single campus
+export const getCampusDetails = catchAsyncErrors(async (req, res, next) => {
+  const campus = await Campus.findById(req.params.id);
 
   if (!campus) {
     return next(new ErrorHandler("Campus not found", 404));
   }
 
   res.status(200).json({
+    success: true,
     campus,
   });
 });
 
-
-// Set campus ID in the token and update cookie
+// Set campus token
 export const setCampusIDinToken = catchAsyncErrors(async (req, res, next) => {
-  const campusID = await Campus.findById(req?.params?.id);
-  if (!campusID) {
-    return next(new ErrorHandler("Campus not found", 404));
-  }
+  const campus = await Campus.findById(req.params.id);
 
-  // Call the utility function and pass status code 200
-  sendCampusIDToken(campusID, 200, res);
-});
-
-// Delete campus => /api/v1/campus/:id
-export const deleteCampus = catchAsyncErrors(async (req, res, next) => {
-  const campus = await Campus.findById(req?.params?.id);
   if (!campus) {
     return next(new ErrorHandler("Campus not found", 404));
   }
-  await Campus.findOneAndDelete({ _id: req?.params?.id });
+
+  sendCampusIDToken(campus, 200, res);
+});
+
+// ❌ HARD DELETE hatao
+// ✅ SOFT DELETE use karo
+export const deleteCampus = catchAsyncErrors(async (req, res, next) => {
+  const campus = await Campus.findById(req.params.id);
+
+  if (!campus) {
+    return next(new ErrorHandler("Campus not found", 404));
+  }
+
+  campus.isActive = false;
+  await campus.save();
+
   res.status(200).json({
-    message: "Campus deleted successfully",
+    success: true,
+    message: "Campus deactivated successfully",
   });
 });

@@ -22,7 +22,9 @@ const AdminLayout = ({ children }) => {
     { name: "Session Template", url: "/admin/session-templates", icon: "fas fa-clock", roles: ["admin", "principle"], group: "timetable" },
     { name: "Week Days", url: "/admin/week-day", icon: "fas fa-clock", roles: ["admin", "principle"], group: "timetable" },
     { name: "Day Session Template", url: "/admin/day-session-template/new", icon: "fas fa-clock", roles: ["admin", "principle"], group: "timetable" },
-    
+    { name: "Academic Year", url: "/admin/AcademicYear/new", icon: "fas fa-clock", roles: ["admin", "principle"], group: "timetable" },
+    { name: "New Student Enrollement", url: "/admin/studentenrollement/new", icon: "fas fa-object-group", roles: ["admin", "principle"], group: "timetable" },
+    { name: "ALL Student Enrollement", url: "/admin/studentenrollements", icon: "fas fa-object-group", roles: ["admin", "principle"], group: "timetable" },
 
     
     // Academics Group
