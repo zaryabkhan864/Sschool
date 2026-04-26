@@ -28,6 +28,14 @@ const NewAcademicLevel = () => {
   const { t } = useTranslation();
   const { user } = useSelector((state) => state.auth);
 
+  // ------------- GET CURRENT ACADEMIC YEAR & CAMPUS FROM REDUX -------------
+  // Adjust these selectors to match your actual store shape.
+  // For example, state.academicYear.currentAcademicYear could be an ID string.
+  const academicYear = useSelector(
+    (state) => state.academicYear?.currentAcademicYear
+  );
+  const campus = useSelector((state) => state.campus?.currentCampus);
+
   // ------------------ Form State ------------------
   const [academicLevel, setAcademicLevel] = useState({
     name: "",
@@ -67,6 +75,8 @@ const NewAcademicLevel = () => {
       page: currentPage,
       limit,
       keyword: searchTerm,
+      academicYear,       //  <-- passed explicitly
+      campus,             //  <-- passed explicitly
     },
     { refetchOnMountOrArgChange: true }
   );
@@ -230,11 +240,20 @@ const NewAcademicLevel = () => {
     />
   );
 
+  // ------------------ Derived pagination object ------------------
+  const totalFiltered = data?.filteredCount || 0;
+  const pagination = {
+    total: totalFiltered,
+    totalPages: totalFiltered > 0 ? Math.ceil(totalFiltered / limit) : 1,
+    currentPage,
+    resPerPage: limit,
+  };
+
   // ------------------ Stats for DataTableContainer ------------------
   const stats = [
     {
       label: t("Total Levels"),
-      value: data?.pagination?.total || 0,
+      value: totalFiltered,
       icon: "layer-group",
       color: "blue",
     },
@@ -252,7 +271,7 @@ const NewAcademicLevel = () => {
     },
     {
       label: t("Total Pages"),
-      value: data?.pagination?.totalPages || 1,
+      value: pagination.totalPages,
       icon: "file-alt",
       color: "orange",
     },
@@ -290,7 +309,7 @@ const NewAcademicLevel = () => {
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
       label={editMode ? t("Edit Mode Active") : t("Scroll to Form")}
       icon={editMode ? "fa-edit" : "fa-arrow-up"}
-      disabled={editMode} // optional: disable when in edit mode
+      disabled={editMode}
     />
   );
 
@@ -374,7 +393,7 @@ const NewAcademicLevel = () => {
           columns={columns}
           isLoading={isLoading}
           isFetching={isFetching}
-          pagination={data?.pagination}
+          pagination={pagination}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
           limit={limit}

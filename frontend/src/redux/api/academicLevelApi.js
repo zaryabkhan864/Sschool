@@ -5,6 +5,7 @@ export const academicLevelApi = createApi({
   baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" }),
   tagTypes: ["AcademicLevel"],
   endpoints: (builder) => ({
+    //   Get list – pass academicYear and campus explicitly
     getAcademicLevels: builder.query({
       query: (params) => ({
         url: "/academic-level",
@@ -12,6 +13,8 @@ export const academicLevelApi = createApi({
           page: params?.page,
           keyword: params?.keyword,
           paginate: params?.paginate,
+          academicYear: params?.academicYear,   // new
+          campus: params?.campus,               // new
         },
       }),
       providesTags: ["AcademicLevel"],
