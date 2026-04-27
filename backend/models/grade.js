@@ -25,9 +25,10 @@ const gradeSchema = new mongoose.Schema(
       ref: "Campus",
       required: true,
     },
-    year: {
-      type: String,
-      required: [true, "Please enter course year"],
+    academicYear: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AcademicYear",
+      required: true,
     },
     status: {
       type: Boolean,
