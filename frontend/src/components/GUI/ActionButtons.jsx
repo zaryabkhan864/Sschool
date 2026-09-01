@@ -30,13 +30,12 @@ const ActionButtons = ({
   };
 
   return (
-    <div className="flex justify-end items-center gap-1">
+    <div className="flex justify-end items-center gap-1.5">
       <a
         href={viewHref || `#`}
         onClick={handleView}
-        className="p-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg flex items-center justify-center transition-colors"
+        className="w-9 h-9 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:shadow-soft transition-all"
         title={t('View Details')}
-        style={{ width: '36px', height: '36px' }}
       >
         <i className="fa fa-eye text-sm"></i>
       </a>
@@ -45,20 +44,18 @@ const ActionButtons = ({
           <a
             href={editHref || `#`}
             onClick={handleEdit}
-            className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg flex items-center justify-center transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 hover:shadow-soft transition-all"
             title={t('Edit')}
-            style={{ width: '36px', height: '36px' }}
           >
             <i className="fa fa-edit text-sm"></i>
           </a>
           <button
-            className="p-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50"
+            className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-50 text-red-700 hover:bg-red-100 hover:shadow-soft transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => onDelete(id)}
             disabled={isDeleteLoading}
             title={t('Delete')}
-            style={{ width: '36px', height: '36px' }}
           >
-            <i className="fa fa-trash text-sm"></i>
+            <i className={`fa ${isDeleteLoading ? 'fa-spinner fa-spin' : 'fa-trash'} text-sm`}></i>
           </button>
         </>
       )}

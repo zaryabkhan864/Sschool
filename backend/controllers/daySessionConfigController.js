@@ -24,8 +24,8 @@ const resolveWeekDay = async (weekDayInput, next) => {
 
 // ✅ CREATE – now accepts weekday as name or ID
 export const newDaySessionConfig = catchAsyncErrors(async (req, res, next) => {
-  const { campus, selectedYear } = req.cookies;
-  if (!campus || !selectedYear) {
+  const { campus, academicYear } = req.cookies;
+  if (!campus || !academicYear) {
     return res.status(400).json({
       success: false,
       message: "Campus and year cookies are required",
@@ -44,7 +44,7 @@ export const newDaySessionConfig = catchAsyncErrors(async (req, res, next) => {
   weekDay = await resolveWeekDay(weekDay, next);
   if (!weekDay) return; // resolveWeekDay already called next()
 
-  const configYear = year || parseInt(selectedYear);
+  const configYear = year || parseInt(academicYear);
 
   // Duplicate check
   const existing = await DaySessionConfig.findOne({

@@ -8,7 +8,14 @@ import { useTranslation } from "react-i18next";
 import AdminLayout from "../layout/AdminLayout";
 import AppCard from "../GUI/AppCard";
 import PrintLayout from "../GUI/PrintLayout";
-import InfoBlock from "../GUI/InfoBlock"; // 👈 imported component
+import InfoBlock from "../GUI/InfoBlock";
+
+// ✅ Helper: construct full name from model fields (no `name` field in User model)
+const getFullName = (user) => {
+  if (!user) return "";
+  const { firstName = "", middleName = "", lastName = "" } = user;
+  return `${firstName} ${middleName ? middleName + " " : ""}${lastName}`.trim();
+};
 
 const TeacherDetails = () => {
   const { t } = useTranslation();
@@ -57,25 +64,30 @@ const TeacherDetails = () => {
 
   useEffect(() => {
     if (data?.user) {
-      const userData = data.user;
-      const dob = userData.dateOfBirth;
+      const u = data.user;
+      const dob = u.dateOfBirth;
       const age = dob ? calculateAge(dob) : "";
 
       setTeacher({
-        name: userData.name || "",
+        // ✅ FIX 1: User model has no `name` field — build from firstName/middleName/lastName
+        name: getFullName(u),
         age: age ? age.toString() : "",
         dateOfBirth: dob ? formatDate(dob) : "",
-        gender: userData.gender || "",
-        passportNumber: userData.passportNumber || "",
-        nationalID: userData.nationalID || "",
-        nationality: userData.nationality || "",
-        phoneNumber: userData.phoneNumber || "",
-        secondaryPhoneNumber: userData.secondaryPhoneNumber || "",
-        email: userData.email || "",
-        address: userData.address || "",
-        status: userData.status ? "Active" : "Inactive",
-        avatar: userData.avatar?.url || "https://via.placeholder.com/150",
-        createdAt: userData.createdAt ? formatDate(userData.createdAt) : "",
+        gender: u.gender || "",
+        passportNumber: u.passportNumber || "",
+        nationalID: u.nationalID || "",
+        nationality: u.nationality || "",
+        phoneNumber: u.phoneNumber || "",
+        secondaryPhoneNumber: u.secondaryPhoneNumber || "",
+        email: u.email || "",
+        address: u.address || "",
+        // ✅ FIX 2: status is a string enum, not boolean — "active" check required
+        // Previously: `u.status ? "Active" : "Inactive"` — always "Active" (any non-empty string is truthy)
+        status: u.status === "active" ? "Active" : u.status
+          ? u.status.charAt(0).toUpperCase() + u.status.slice(1)
+          : "Inactive",
+        avatar: u.avatar?.url || "https://via.placeholder.com/150",
+        createdAt: u.createdAt ? formatDate(u.createdAt) : "",
       });
     }
     if (error) {
@@ -103,7 +115,6 @@ const TeacherDetails = () => {
         documentName={teacher.name}
         contentRef={contentRef}
       >
-        {/* Printable Content */}
         <AppCard className="bg-white p-12 border border-gray-200 shadow-sm print:shadow-none print:border-none">
           <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
             {/* Letterhead */}
@@ -121,7 +132,7 @@ const TeacherDetails = () => {
                   Ref No: TCH-{params?.id?.slice(-6).toUpperCase()}
                 </p>
                 <p className="text-sm font-medium text-gray-700">
-                  {new Date().toLocaleDateString('en-GB')}
+                  {new Date().toLocaleDateString("en-GB")}
                 </p>
               </div>
             </div>
@@ -136,9 +147,13 @@ const TeacherDetails = () => {
                     className="w-full h-full object-cover grayscale-[20%]"
                   />
                 </div>
-                <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded border ${
-                  teacher.status === "Active" ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"
-                }`}>
+                <div
+                  className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded border ${
+                    teacher.status === "Active"
+                      ? "bg-green-50 text-green-700 border-green-200"
+                      : "bg-red-50 text-red-700 border-red-200"
+                  }`}
+                >
                   {teacher.status}
                 </div>
               </div>
@@ -149,12 +164,20 @@ const TeacherDetails = () => {
                 </h2>
                 <div className="grid grid-cols-2 gap-y-2">
                   <div>
-                    <span className="text-[11px] block uppercase text-gray-400 font-bold tracking-wider">{t("Designation")}</span>
-                    <span className="text-md font-semibold text-gray-700">Senior Faculty Member</span>
+                    <span className="text-[11px] block uppercase text-gray-400 font-bold tracking-wider">
+                      {t("Designation")}
+                    </span>
+                    <span className="text-md font-semibold text-gray-700">
+                      Senior Faculty Member
+                    </span>
                   </div>
                   <div>
-                    <span className="text-[11px] block uppercase text-gray-400 font-bold tracking-wider">{t("Official Email")}</span>
-                    <span className="text-md font-semibold text-gray-700">{teacher.email}</span>
+                    <span className="text-[11px] block uppercase text-gray-400 font-bold tracking-wider">
+                      {t("Official Email")}
+                    </span>
+                    <span className="text-md font-semibold text-gray-700">
+                      {teacher.email}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -194,20 +217,27 @@ const TeacherDetails = () => {
             <div className="mt-20 pt-12 border-t border-gray-100">
               <div className="flex justify-between items-end">
                 <div className="text-left space-y-1">
-                  <p className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">System Generated On</p>
-                  <p className="text-xs font-medium text-gray-600">{new Date().toLocaleString()}</p>
+                  <p className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">
+                    System Generated On
+                  </p>
+                  <p className="text-xs font-medium text-gray-600">
+                    {new Date().toLocaleString()}
+                  </p>
                 </div>
                 <div className="text-center w-64">
                   <div className="h-px bg-gray-300 w-full mb-2"></div>
-                  <p className="text-[11px] font-bold text-gray-800 uppercase tracking-widest leading-none">Authorized Signature</p>
-                  <p className="text-[9px] text-gray-400 mt-1 italic">Administrative Office Stamp Required</p>
+                  <p className="text-[11px] font-bold text-gray-800 uppercase tracking-widest leading-none">
+                    Authorized Signature
+                  </p>
+                  <p className="text-[9px] text-gray-400 mt-1 italic">
+                    Administrative Office Stamp Required
+                  </p>
                 </div>
               </div>
             </div>
           </div>
         </AppCard>
 
-        {/* Confidential Footer (visible only when printing) */}
         <p className="text-center text-[10px] text-gray-400 mt-6 hidden print:block">
           Confidential Document. Any unauthorized duplication is strictly prohibited.
         </p>

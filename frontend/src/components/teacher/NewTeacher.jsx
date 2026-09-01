@@ -5,30 +5,28 @@ import { useTranslation } from "react-i18next";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 
-// Redux
 import { useRegisterMutation, useGetUserByTypeQuery } from "../../redux/api/authApi";
 
-// Layout & GUI Components
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 import AppPageHeader from "../layout/AppPageHeader";
 import AppCard from "../GUI/AppCard";
 import AppInput from "../GUI/AppInput";
-import AppCheckbox from "../GUI/AppCheckbox";
 import AppButton from "../GUI/AppButton";
 import GenderRadio from "../GUI/GenderRadio";
 import NationalitySelect from "../GUI/NationalitySelect";
 import AvatarUpload from "../GUI/AvatarUpload";
+import DatePickerField from "../GUI/DatePickerField";
 
 const NewTeacher = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { refetch } = useGetUserByTypeQuery({ type: "teacher" });
-
   const [teacher, setTeacher] = useState({
     role: "teacher",
-    name: "",
-    age: "",
+    firstName: "",
+    middleName: "",
+    lastName: "",
     dateOfBirth: "",
     gender: "",
     passportNumber: "",
@@ -36,33 +34,23 @@ const NewTeacher = () => {
     nationality: "",
     phoneNumber: "",
     secondaryPhoneNumber: "",
-    status: true,
     email: "",
     password: "",
     address: "",
     avatar: "",
   });
 
+  const [ageDisplay, setAgeDisplay] = useState("");
   const [avatarPreview, setAvatarPreview] = useState("");
+
   const {
-    name,
-    age,
-    dateOfBirth,
-    gender,
-    passportNumber,
-    nationalID,
-    nationality,
-    phoneNumber,
-    secondaryPhoneNumber,
-    email,
-    password,
-    address,
-    status,
+    firstName, middleName, lastName, dateOfBirth, gender,
+    passportNumber, nationalID, nationality, phoneNumber,
+    secondaryPhoneNumber, email, password, address,
   } = teacher;
 
   const [register, { isLoading, error, isSuccess }] = useRegisterMutation();
 
-  // Age calculation from DOB
   const calculateAgeFromDOB = (dob) => {
     if (!dob) return "";
     const today = new Date();
@@ -96,33 +84,44 @@ const NewTeacher = () => {
       reader.onload = () => {
         if (reader.readyState === 2) {
           setAvatarPreview(reader.result);
-          setTeacher({ ...teacher, avatar: reader.result });
+          setTeacher((prev) => ({ ...prev, avatar: reader.result }));
         }
       };
       reader.readAsDataURL(file);
     } else if (name === "dateOfBirth") {
+      setAgeDisplay(calculateAgeFromDOB(value));
+      setTeacher((prev) => ({ ...prev, dateOfBirth: value }));
+    } else {
       setTeacher((prev) => ({
         ...prev,
-        dateOfBirth: value,
-        age: calculateAgeFromDOB(value),
-      }));
-    } else {
-      setTeacher({
-        ...teacher,
         [name]: type === "checkbox" ? checked : value,
-      });
+      }));
     }
   };
 
   const submitHandler = (e) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim() || !password.trim()) {
+
+    // ✅ Full required‑field validation matching backend
+    if (
+      !firstName.trim() ||
+      !lastName.trim() ||
+      !email.trim() ||
+      !password.trim() ||
+      !dateOfBirth ||
+      !gender ||
+      !phoneNumber ||
+      phoneNumber === "+"  // PhoneInput may leave just a +
+    ) {
       return toast.error(t("Please fill all required fields"));
     }
+
+    
     register({
       ...teacher,
-      phoneNumber: phoneNumber ? `+${phoneNumber}` : "",
-      secondaryPhoneNumber: secondaryPhoneNumber ? `+${secondaryPhoneNumber}` : "",
+      gender: gender.toLowerCase(),
+      phoneNumber,                    
+      secondaryPhoneNumber,           
     });
   };
 
@@ -138,16 +137,34 @@ const NewTeacher = () => {
         />
 
         <form onSubmit={submitHandler} className="space-y-6">
-          {/* Account Credentials Card */}
-          <AppCard title={t("Account Credentials")} icon="fa-lock">
+          {/* ----- CREDENTIALS ----- */}
+          <AppCard title={t("Teacher Credentials")} icon="fa-lock">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <AppInput
-                label={t("Full Name")}
-                name="name"
-                value={name}
+                label={t("First Name")}
+                name="firstName"
+                value={firstName}
                 onChange={onChange}
                 required
+                maxLength={25}
               />
+              <AppInput
+                label={t("Middle Name")}
+                name="middleName"
+                value={middleName}
+                onChange={onChange}
+                maxLength={25}
+              />
+              <AppInput
+                label={t("Last Name")}
+                name="lastName"
+                value={lastName}
+                onChange={onChange}
+                required
+                maxLength={50}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
               <AppInput
                 label={t("Email Address")}
                 type="email"
@@ -168,7 +185,7 @@ const NewTeacher = () => {
             </div>
           </AppCard>
 
-          {/* Personal Information Card */}
+          {/* ----- PERSONAL INFO ----- */}
           <AppCard
             title={t("Personal Information")}
             icon="fa-user"
@@ -188,23 +205,28 @@ const NewTeacher = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
               <GenderRadio value={gender} onChange={onChange} />
 
-              <AppInput
-                label={t("Date of Birth")}
-                type="date"
-                name="dateOfBirth"
-                value={dateOfBirth}
-                onChange={onChange}
-                required
-                max={new Date(new Date().setFullYear(new Date().getFullYear() - 18))
-                  .toISOString()
-                  .split("T")[0]}
-              />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">
+                  {t("Date of Birth")} <span className="text-red-500">*</span>
+                </label>
+                <DatePickerField
+                  name="dateOfBirth"
+                  value={dateOfBirth}
+                  onChange={onChange}
+                  placeholder={t("Select birth date")}
+                  max={
+                    new Date(new Date().setFullYear(new Date().getFullYear() - 18))
+                      .toISOString()
+                      .split("T")[0]
+                  }
+                />
+              </div>
+
               <AppInput
                 label={t("Age")}
                 type="number"
                 name="age"
-                value={age}
-                onChange={onChange}
+                value={ageDisplay}
                 readOnly
                 helperText={t("Auto-calculated")}
               />
@@ -217,30 +239,33 @@ const NewTeacher = () => {
                 name="passportNumber"
                 value={passportNumber}
                 onChange={onChange}
-                placeholder={t("Min 8 characters")}
+                placeholder={t("Min 6 characters")}
+                maxLength={20}
               />
               <AppInput
                 label={t("National ID")}
                 name="nationalID"
                 value={nationalID}
                 onChange={onChange}
-                placeholder={t("Min 11 Max 20 characters")}
+                placeholder={t("Min 11 Max 20 digits")}
+                maxLength={20}
               />
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-semibold text-gray-500 uppercase">
-                  {t("Primary Contact")}
+                  {t("Primary Contact")} <span className="text-red-500">*</span>
                 </label>
                 <PhoneInput
                   country={"tr"}
                   value={phoneNumber}
-                  onChange={(val) => setTeacher({ ...teacher, phoneNumber: val })}
-                  inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg"
+                  onChange={(val) => setTeacher((prev) => ({ ...prev, phoneNumber: val }))}
+                  inputProps={{ maxLength: 17 }}
+                  inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg focus:!border-brand-500 focus:!ring-2 focus:!ring-brand-500/20 focus:!shadow-none"
                   containerClass="!w-full"
                 />
               </div>
-
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-semibold text-gray-500 uppercase">
                   {t("Emergency Contact")}
@@ -248,16 +273,21 @@ const NewTeacher = () => {
                 <PhoneInput
                   country={"tr"}
                   value={secondaryPhoneNumber}
-                  onChange={(val) => setTeacher({ ...teacher, secondaryPhoneNumber: val })}
-                  inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg"
+                  onChange={(val) => setTeacher((prev) => ({ ...prev, secondaryPhoneNumber: val }))}
+                  inputProps={{ maxLength: 17 }}
+                  inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg focus:!border-brand-500 focus:!ring-2 focus:!ring-brand-500/20 focus:!shadow-none"
                   containerClass="!w-full"
                 />
               </div>
             </div>
 
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              <AvatarUpload preview={avatarPreview} onChange={onChange} />
-
+              <AvatarUpload
+                preview={avatarPreview}
+                onChange={onChange}
+                title={t("Teacher Picture")}
+                subtitle={t("Max size 2MB")}
+              />
               <AppInput
                 label={t("Residential Address")}
                 name="address"
@@ -265,15 +295,6 @@ const NewTeacher = () => {
                 onChange={onChange}
                 type="textarea"
                 rows={2}
-              />
-            </div>
-            {/* Status checkbox matching NewGrade style */}
-            <div className="mt-4">
-              <AppCheckbox
-                name="status"
-                checked={status}
-                onChange={onChange}
-                label={t("Active")}
               />
             </div>
           </AppCard>

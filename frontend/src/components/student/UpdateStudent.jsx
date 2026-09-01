@@ -11,8 +11,8 @@ import "react-phone-input-2/lib/style.css";
 import {
   useGetUserDetailsQuery,
   useUpdateUserMutation,
+  useGetUserByTypeQuery,
 } from "../../redux/api/authApi";
-import { useGetUserByTypeQuery } from "../../redux/api/authApi";
 import { useGetCampusQuery } from "../../redux/api/campusApi";
 import { useTransferStudentMutation } from "../../redux/api/studentEnrollment";
 
@@ -26,10 +26,18 @@ import AppButton from "../GUI/AppButton";
 import GenderRadio from "../GUI/GenderRadio";
 import NationalitySelect from "../GUI/NationalitySelect";
 import AvatarUpload from "../GUI/AvatarUpload";
+import StatusSelect from "../GUI/StatusSelect";            // ✅ account status dropdown
 import SearchableDropdown from "../layout/SearchableDropdown";
 import { useGetAcademicYearsListQuery } from "../../redux/api/academicYearApi";
 import { useGetClassGroupsQuery } from "../../redux/api/classGroupApi";
 import moment from "moment";
+
+// ✅ Helper: model has no "name" field, build from parts
+const getFullName = (user) => {
+  if (!user) return "";
+  const { firstName = "", middleName = "", lastName = "" } = user;
+  return `${firstName} ${middleName ? middleName + " " : ""}${lastName}`.trim();
+};
 
 const UpdateStudent = () => {
   const { t } = useTranslation();
@@ -67,7 +75,9 @@ const UpdateStudent = () => {
     firstName: "",
     middleName: "",
     lastName: "",
-    age: "",
+    fatherName: "",       // ✅ added
+    motherName: "",       // ✅ added
+    age: "",                             // display only, removed before submit
     dateOfBirth: "",
     gender: "",
     nationality: "",
@@ -77,7 +87,7 @@ const UpdateStudent = () => {
     secondaryPhoneNumber: "",
     address: "",
     campus: "",
-    status: false,
+    accountStatus: "pending",           // ✅ replaced invalid "status" field
     email: "",
     password: "",
     avatar: "",
@@ -89,6 +99,8 @@ const UpdateStudent = () => {
     firstName,
     middleName,
     lastName,
+    fatherName,       // ✅ added
+    motherName,       // ✅ added
     age,
     dateOfBirth,
     gender,
@@ -99,6 +111,7 @@ const UpdateStudent = () => {
     secondaryPhoneNumber,
     address,
     campus,
+    accountStatus,
     email,
     password,
     siblings,
@@ -155,6 +168,18 @@ const UpdateStudent = () => {
     { skip: siblingSearchTerm.length < 2 }
   );
 
+  useEffect(() => {
+    if (siblingData?.users) {
+      const alreadySelectedIds = new Set(siblings);
+      const available = siblingData.users.filter(
+        (u) => !alreadySelectedIds.has(u._id)
+      );
+      setSiblingSearchResults(available);
+    } else {
+      setSiblingSearchResults([]);
+    }
+  }, [siblingData, siblings]);
+
   // ===================== AGE CALCULATION =====================
   const calculateAgeFromDOB = (dob) => {
     if (!dob) return "";
@@ -197,9 +222,13 @@ const UpdateStudent = () => {
         firstName: userData.firstName || "",
         middleName: userData.middleName || "",
         lastName: userData.lastName || "",
+        fatherName: userData.fatherName || "",   // ✅ added
+        motherName: userData.motherName || "",   // ✅ added
         age: formattedDate ? calculateAgeFromDOB(formattedDate) : "",
         dateOfBirth: formattedDate,
-        gender: userData.gender || "",
+        gender: userData.gender
+          ? userData.gender.charAt(0).toUpperCase() + userData.gender.slice(1).toLowerCase()
+          : "",
         nationality: userData.nationality || "",
         passportNumber: userData.passportNumber || "",
         nationalID: userData.nationalID || "",
@@ -207,7 +236,7 @@ const UpdateStudent = () => {
         secondaryPhoneNumber: userData.secondaryPhoneNumber?.replace(/\+/g, "") || "",
         address: userData.address || "",
         campus: userData.campus?._id || userData.campus || "",
-        status: userData.status?.toLowerCase() === "active",
+        accountStatus: userData.accountStatus || "pending",   // ✅ correct field
         email: userData.email || "",
         password: "",
         avatar: userData.avatar?.url || "",
@@ -219,35 +248,39 @@ const UpdateStudent = () => {
 
   // ===================== HANDLERS =====================
   const onChange = (e) => {
-    const { name, value, type, files, checked } = e.target;
-    if (name === "avatar") {
-      const file = files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (reader.readyState === 2) {
-          setAvatarPreview(reader.result);
-          setStudent({ ...student, avatar: reader.result });
-        }
-      };
-      reader.readAsDataURL(file);
-    } else if (name === "dateOfBirth") {
-      setStudent((prev) => ({
-        ...prev,
-        dateOfBirth: value,
-        age: calculateAgeFromDOB(value),
-      }));
+    // Some custom components may pass value directly, not an event
+    if (e && e.target) {
+      const { name, value, type, files, checked } = e.target;
+      if (name === "avatar") {
+        const file = files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (reader.readyState === 2) {
+            setAvatarPreview(reader.result);
+            setStudent((prev) => ({ ...prev, avatar: reader.result }));
+          }
+        };
+        reader.readAsDataURL(file);
+      } else if (name === "dateOfBirth") {
+        setStudent((prev) => ({
+          ...prev,
+          dateOfBirth: value,
+          age: calculateAgeFromDOB(value),
+        }));
+      } else {
+        let newValue;
+        if (type === "checkbox") newValue = checked;
+        else newValue = value;
+        setStudent((prev) => ({ ...prev, [name]: newValue }));
+      }
     } else {
-      let newValue;
-      if (type === "checkbox") newValue = checked;
-      else if (type === "radio")
-        newValue = value === "true" ? true : value === "false" ? false : value;
-      else newValue = value;
-      setStudent({ ...student, [name]: newValue });
+      // Direct value from StatusSelect etc.
+      setStudent((prev) => ({ ...prev, accountStatus: e }));
     }
   };
 
-  const addSibling = (studentId, studentName) => {
+  const addSibling = (studentId) => {
     if (siblings.includes(studentId)) {
       toast.error(t("Student already added as sibling"));
       return;
@@ -269,16 +302,33 @@ const UpdateStudent = () => {
   // ===================== UPDATE STUDENT =====================
   const submitHandler = async (e) => {
     e.preventDefault();
-    const statusString = student.status ? "active" : "pending";
+
+    // ✅ Validate all required fields per backend schema
+    if (
+      !firstName.trim() ||
+      !lastName.trim() ||
+      !email.trim() ||
+      !dateOfBirth ||
+      !gender ||
+      !nationality ||
+      !phoneNumber.trim()
+    ) {
+      return toast.error(t("Please fill all required fields"));
+    }
+
     const submitData = {
       ...student,
-      status: statusString,
+      gender: gender.toLowerCase(),          // model enum lowercase
       phoneNumber: phoneNumber ? `+${phoneNumber}` : "",
       secondaryPhoneNumber: secondaryPhoneNumber ? `+${secondaryPhoneNumber}` : "",
-      age: undefined,
+      age: undefined,                         // not a model field
+      // accountStatus already correct; ensure it's lowercase
+      accountStatus: accountStatus.toLowerCase(),
     };
+
     if (!submitData.password) delete submitData.password;
     if (submitData.avatar && submitData.avatar.startsWith("http")) delete submitData.avatar;
+    delete submitData.status;                 // ensure no leftover "status" key
 
     const result = await updateUser({ id: params?.id, body: submitData });
     if (result?.data?.success) {
@@ -355,13 +405,75 @@ const UpdateStudent = () => {
           {/* ===== Student Credentials ===== */}
           <AppCard title={t("Student Credentials")} icon="fa-lock">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <AppInput label={t("First Name")} name="firstName" value={firstName} onChange={onChange} required />
-              <AppInput label={t("Middle Name")} name="middleName" value={middleName} onChange={onChange} />
-              <AppInput label={t("Last Name")} name="lastName" value={lastName} onChange={onChange} required />
+              <AppInput
+                label={t("First Name")}
+                name="firstName"
+                value={firstName}
+                onChange={onChange}
+                required
+                maxLength={25}                // ✅ match model
+              />
+              <AppInput
+                label={t("Middle Name")}
+                name="middleName"
+                value={middleName}
+                onChange={onChange}
+                maxLength={25}                // ✅ match model
+              />
+              <AppInput
+                label={t("Last Name")}
+                name="lastName"
+                value={lastName}
+                onChange={onChange}
+                required
+                maxLength={50}                // ✅ match model
+              />
             </div>
+
+            {/* ✅ Parent Names */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <AppInput
+                label={t("Father Name")}
+                name="fatherName"
+                value={fatherName}
+                onChange={onChange}
+                maxLength={50}
+                placeholder={t("Optional")}
+              />
+              <AppInput
+                label={t("Mother Name")}
+                name="motherName"
+                value={motherName}
+                onChange={onChange}
+                maxLength={50}
+                placeholder={t("Optional")}
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-              <AppInput label={t("Email Address")} type="email" name="email" value={email} onChange={onChange} required />
-              <AppInput label={t("Password")} type="password" name="password" value={password} onChange={onChange} placeholder={t("Leave blank to keep current")} minLength="6" />
+              <AppInput
+                label={t("Email Address")}
+                type="email"
+                name="email"
+                value={email}
+                onChange={onChange}
+                required
+              />
+              <AppInput
+                label={t("Password")}
+                type="password"
+                name="password"
+                value={password}
+                onChange={onChange}
+                placeholder={t("Leave blank to keep current")}
+                minLength="6"
+              />
+              {/* ✅ Replaced status checkbox with account status dropdown */}
+              <StatusSelect
+                name="accountStatus"
+                value={accountStatus}
+                onChange={onChange}
+              />
             </div>
           </AppCard>
 
@@ -384,24 +496,71 @@ const UpdateStudent = () => {
           >
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <GenderRadio value={gender} onChange={onChange} />
-              <AppInput label={t("Date of Birth")} type="date" name="dateOfBirth" value={dateOfBirth} onChange={onChange} required max={moment().subtract(4, "years").format("YYYY-MM-DD")} />
-              <AppInput label={t("Age")} type="number" name="age" value={age} readOnly helperText={t("Auto-calculated")} />
+              <AppInput
+                label={t("Date of Birth")}
+                type="date"
+                name="dateOfBirth"
+                value={dateOfBirth}
+                onChange={onChange}
+                required
+                max={moment().subtract(4, "years").format("YYYY-MM-DD")}
+              />
+              <AppInput
+                label={t("Age")}
+                type="number"
+                name="age"
+                value={age}
+                readOnly
+                helperText={t("Auto-calculated")}
+              />
               <NationalitySelect value={nationality} onChange={onChange} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-              <AppInput label={t("Passport No")} name="passportNumber" value={passportNumber} onChange={onChange} placeholder={t("Min 8 characters")} />
-              <AppInput label={t("National ID")} name="nationalID" value={nationalID} onChange={onChange} placeholder={t("Min 11 Max 20 characters")} />
+              <AppInput
+                label={t("Passport No")}
+                name="passportNumber"
+                value={passportNumber}
+                onChange={onChange}
+                placeholder={t("Min 6 characters")}   // ✅ correct min length
+                maxLength={20}                         // ✅ match model
+              />
+              <AppInput
+                label={t("National ID")}
+                name="nationalID"
+                value={nationalID}
+                onChange={onChange}
+                placeholder={t("Min 11 Max 20 digits")}
+                maxLength={20}                         // ✅ match model
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-              <div>
-                <label className="text-[11px] font-semibold text-gray-500 uppercase">{t("Primary Contact")}</label>
-                <PhoneInput country={"tr"} value={phoneNumber} onChange={(val) => setStudent({ ...student, phoneNumber: val })} inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg" containerClass="!w-full" />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">
+                  {t("Primary Contact")} <span className="text-red-500">*</span>
+                </label>
+                <PhoneInput
+                  country={"tr"}
+                  value={phoneNumber}
+                  onChange={(val) => setStudent((prev) => ({ ...prev, phoneNumber: val }))}
+                  inputProps={{ maxLength: 13 }}       // ✅ backend max 13
+                  inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg"
+                  containerClass="!w-full"
+                />
               </div>
-              <div>
-                <label className="text-[11px] font-semibold text-gray-500 uppercase">{t("Emergency Contact")}</label>
-                <PhoneInput country={"tr"} value={secondaryPhoneNumber} onChange={(val) => setStudent({ ...student, secondaryPhoneNumber: val })} inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg" containerClass="!w-full" />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">
+                  {t("Emergency Contact")}
+                </label>
+                <PhoneInput
+                  country={"tr"}
+                  value={secondaryPhoneNumber}
+                  onChange={(val) => setStudent((prev) => ({ ...prev, secondaryPhoneNumber: val }))}
+                  inputProps={{ maxLength: 13 }}
+                  inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg"
+                  containerClass="!w-full"
+                />
               </div>
             </div>
 
@@ -437,12 +596,21 @@ const UpdateStudent = () => {
                 <i className="fa fa-users text-gray-400"></i>
                 {t("Siblings (Optional)")}
               </h3>
-              <AppInput label={t("Search for a student")} placeholder={t("Type at least 2 characters...")} value={siblingSearchTerm} onChange={(e) => setSiblingSearchTerm(e.target.value)} />
+              <AppInput
+                label={t("Search for a student")}
+                placeholder={t("Type at least 2 characters...")}
+                value={siblingSearchTerm}
+                onChange={(e) => setSiblingSearchTerm(e.target.value)}
+              />
               {siblingSearchTerm.length >= 2 && siblingSearchResults.length > 0 && (
                 <ul className="mt-1 border border-gray-200 rounded-md max-h-40 overflow-y-auto shadow-sm">
                   {siblingSearchResults.map((s) => (
-                    <li key={s._id} className="px-3 py-2 hover:bg-gray-100 cursor-pointer flex justify-between text-sm" onClick={() => addSibling(s._id, s.name)}>
-                      <span>{s.name}</span>
+                    <li
+                      key={s._id}
+                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer flex justify-between text-sm"
+                      onClick={() => addSibling(s._id)}
+                    >
+                      <span>{getFullName(s)}</span>      {/* ✅ display built name */}
                       <span className="text-gray-400 text-xs">{s.email}</span>
                     </li>
                   ))}
@@ -453,9 +621,16 @@ const UpdateStudent = () => {
                   {siblings.map((id) => {
                     const sib = siblingData?.users?.find((u) => u._id === id);
                     return (
-                      <span key={id} className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm">
-                        {sib?.name || id}
-                        <button type="button" onClick={() => removeSibling(id)} className="ml-1 text-blue-500 hover:text-blue-700">
+                      <span
+                        key={id}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
+                      >
+                        {sib ? getFullName(sib) : id}
+                        <button
+                          type="button"
+                          onClick={() => removeSibling(id)}
+                          className="ml-1 text-blue-500 hover:text-blue-700"
+                        >
                           <i className="fa fa-times-circle"></i>
                         </button>
                       </span>
@@ -467,14 +642,20 @@ const UpdateStudent = () => {
 
             {/* Avatar & Address */}
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              <AvatarUpload preview={avatarPreview} onChange={onChange} title={t("Student Picture")} subtitle={t("Max size 2MB")} />
-              <AppInput label={t("Residential Address")} name="address" value={address} onChange={onChange} type="textarea" rows={2} />
-            </div>
-
-            {/* Active toggle */}
-            <div className="mt-4 flex items-center gap-3">
-              <input type="checkbox" id="statusCheckbox" name="status" checked={student.status} onChange={onChange} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 accent-blue-600" />
-              <label htmlFor="statusCheckbox" className="text-sm font-medium text-gray-700">{t("Active")}</label>
+              <AvatarUpload
+                preview={avatarPreview}
+                onChange={onChange}
+                title={t("Student Picture")}
+                subtitle={t("Max size 2MB")}
+              />
+              <AppInput
+                label={t("Residential Address")}
+                name="address"
+                value={address}
+                onChange={onChange}
+                type="textarea"
+                rows={2}
+              />
             </div>
           </AppCard>
         </form>
@@ -497,7 +678,6 @@ const UpdateStudent = () => {
             </p>
 
             <div className="space-y-4">
-              {/* Academic Year Select */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t("Academic Year")} <span className="text-red-500">*</span>
@@ -515,7 +695,6 @@ const UpdateStudent = () => {
                 </select>
               </div>
 
-              {/* New Campus */}
               <SearchableDropdown
                 label={t("New Campus")}
                 value={transferData.newCampusId}
@@ -527,7 +706,6 @@ const UpdateStudent = () => {
                 required
               />
 
-              {/* New Class Group */}
               <SearchableDropdown
                 label={t("New Class Group")}
                 value={transferData.newClassGroupId}
@@ -539,7 +717,6 @@ const UpdateStudent = () => {
                 required
               />
 
-              {/* Transfer Date */}
               <AppInput
                 label={t("Transfer Date (last day at old campus)")}
                 type="date"

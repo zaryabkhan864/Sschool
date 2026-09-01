@@ -33,9 +33,9 @@ const pieChartData = [
 const CounsellorDashboard = () => {
     return (
         <AdminLayout>
-            <MetaData title="Counsellor Dashboard" />
+            <MetaData title="Counselor Dashboard" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                {/* Counsellor Stats */}
+                {/* Counselor Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {counsellorStats.map((stat) => (
                         <div key={stat.id} className="bg-purple-500 text-white p-4 rounded-lg shadow-md text-center">

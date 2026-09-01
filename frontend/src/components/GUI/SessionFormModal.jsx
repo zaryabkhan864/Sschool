@@ -1,10 +1,10 @@
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import Modal from '../GUI/Modal';
-import FormSection from '../GUI/FormSection';
-import AppInput from '../GUI/AppInput';      
-import FormSelect from '../GUI/FormSelect';
-import FormActions from '../GUI/FormActions';
+import React from "react";
+import { useTranslation } from "react-i18next";
+import Modal from "../GUI/Modal";
+import FormSection from "../GUI/FormSection";
+import AppInput from "../GUI/AppInput";
+import SearchableDropdown from "../layout/SearchableDropdown";
+import AppButton from "../GUI/AppButton";
 
 const SessionFormModal = ({
   isOpen,
@@ -14,9 +14,18 @@ const SessionFormModal = ({
   handleInputChange,
   handleSubmit,
   isLoading,
-  academicLevelOptions
+  academicLevelOptions,
 }) => {
   const { t } = useTranslation();
+
+  const sessionTypeOptions = [
+    { value: "CLASS", label: t("Class Session") },
+    { value: "BREAK", label: t("Break Time") },
+  ];
+
+  const setField = (name, value) => {
+    handleInputChange({ target: { name, value } });
+  };
 
   return (
     <Modal
@@ -29,7 +38,13 @@ const SessionFormModal = ({
     >
       <form onSubmit={handleSubmit}>
         <div className="space-y-6">
-          <FormSection title={t("Session Details")} icon="info-circle" iconColor="blue" border={false} padding="p-0">
+          <FormSection
+            title={t("Session Details")}
+            icon="info-circle"
+            iconColor="blue"
+            border={false}
+            padding="p-0"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <AppInput
                 label={t("Session Name")}
@@ -39,15 +54,12 @@ const SessionFormModal = ({
                 placeholder={t("e.g., 1st Period, Lunch Break")}
                 required
               />
-              <FormSelect
+              <SearchableDropdown
                 label={t("Session Type")}
-                name="type"
                 value={formData.type}
-                onChange={handleInputChange}
-                options={[
-                  { value: "CLASS", label: "Class Session" },
-                  { value: "BREAK", label: "Break Time" }
-                ]}
+                onChange={(val) => setField("type", val)}
+                options={sessionTypeOptions}
+                placeholder={t("Select...")}
                 required
               />
             </div>
@@ -62,12 +74,17 @@ const SessionFormModal = ({
                 max="100"
                 placeholder={t("e.g., 1, 2, 3")}
                 required
-                // helperText={t("Determines sequence in schedule")} // removed because AppInput doesn't support helperText yet
               />
             </div>
           </FormSection>
 
-          <FormSection title={t("Time Settings")} icon="clock" iconColor="green" border={false} padding="p-0">
+          <FormSection
+            title={t("Time Settings")}
+            icon="clock"
+            iconColor="green"
+            border={false}
+            padding="p-0"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <AppInput
                 label={t("Start Time")}
@@ -88,35 +105,41 @@ const SessionFormModal = ({
             </div>
           </FormSection>
 
-          <FormSection title={t("Academic Level")} icon="graduation-cap" iconColor="purple" border={false} padding="p-0">
+          <FormSection
+            title={t("Academic Level")}
+            icon="graduation-cap"
+            iconColor="purple"
+            border={false}
+            padding="p-0"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormSelect
+              <SearchableDropdown
                 label={t("Academic Level")}
-                name="academicLevel"
                 value={formData.academicLevel}
-                onChange={handleInputChange}
-                options={[
-                  { value: "", label: t("Select Academic Level") },
-                  ...academicLevelOptions
-                ]}
+                onChange={(val) => setField("academicLevel", val)}
+                options={academicLevelOptions}
+                placeholder={t("Select Academic Level")}
                 required
               />
             </div>
           </FormSection>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <FormActions
-            onSubmit={handleSubmit}
-            onCancel={onClose}
-            submitLabel={editMode ? t("Update Template") : t("Create Template")}
-            cancelLabel={t("Cancel")}
+        <div className="mt-8 pt-6 border-t border-surface-100 flex justify-end gap-3">
+          <AppButton
+            label="Cancel"
+            icon="times"
+            variant="secondary"
+            onClick={onClose}
+            type="button"
+            disabled={isLoading}
+          />
+          <AppButton
+            label={editMode ? "Update Template" : "Create Template"}
+            icon={editMode ? "save" : "plus"}
+            variant="primary"
+            type="submit"
             isLoading={isLoading}
-            submitIcon={editMode ? "save" : "plus"}
-            cancelIcon="times"
-            submitColor="blue"
-            cancelColor="gray"
-            align="right"
           />
         </div>
       </form>

@@ -15,7 +15,6 @@ const CampusDetails = () => {
   const params = useParams();
   const { data, isLoading, error, refetch } = useGetCampusDetailsQuery(params?.id);
 
-  // State only model fields
   const [campus, setCampus] = useState({
     name: "",
     code: "",
@@ -48,7 +47,6 @@ const CampusDetails = () => {
         createdAt: data.campus.createdAt ? formatDate(data.campus.createdAt) : "",
       });
     }
-
     if (error) {
       toast.error(error?.data?.message);
     }
@@ -68,13 +66,13 @@ const CampusDetails = () => {
       <MetaData title={t("Campus Details") || "Campus Details"} />
 
       <div className="p-6 animate-fade-in">
-        {/* Header Section */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <div>
             <h1 className="text-display-sm font-bold text-dark tracking-tight font-heading">
               {t("Campus")} {t("Details")}
             </h1>
-            <p className="text-sm-custom text-dark-light mt-1 font-normal">
+            <p className="text-sm-custom text-dark-light/70 mt-1 font-normal">
               <i className="fa fa-info-circle mr-2 text-brand-500"></i>
               {t("Viewing Campus Information") || "Viewing campus details and information"}
             </p>
@@ -102,7 +100,7 @@ const CampusDetails = () => {
 
         {/* Main Card */}
         <div className="bg-white rounded-xl shadow-premium border border-surface-100 overflow-hidden">
-          {/* Campus Header – subtle brand gradient */}
+          {/* Campus Header */}
           <div className="bg-gradient-to-r from-brand-50 to-brand-100 p-6 border-b border-surface-100">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
               <div className="relative">
@@ -110,9 +108,7 @@ const CampusDetails = () => {
                   <i className="fa fa-university text-white text-5xl"></i>
                 </div>
                 <div className="absolute bottom-2 right-2">
-                  <AppBadge
-                    variant={campus.isActive ? "success" : "danger"}
-                  >
+                  <AppBadge variant={campus.isActive ? "success" : "danger"}>
                     {campus.isActive ? "Active" : "Inactive"}
                   </AppBadge>
                 </div>
@@ -142,10 +138,10 @@ const CampusDetails = () => {
             </div>
           </div>
 
-          {/* Details Grid – Only model fields */}
+          {/* Details Grid */}
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Main Information Card */}
+              {/* Campus Information */}
               <div className="bg-surface-50 rounded-xl p-5 border border-surface-100">
                 <h3 className="text-xl-custom font-semibold text-dark mb-4 flex items-center tracking-tight font-heading">
                   <i className="fa fa-building mr-3 text-brand-500 text-lg"></i>
@@ -153,54 +149,54 @@ const CampusDetails = () => {
                 </h3>
                 <div className="space-y-4">
                   <div>
-                    <p className="text-xs-custom font-medium text-dark-light mb-1 uppercase tracking-wide">
-                      <i className="fa fa-university mr-2 text-gray-400"></i>
+                    <p className="text-xs-custom font-medium text-dark-light/70 mb-1 uppercase tracking-wide">
+                      <i className="fa fa-university mr-2 text-dark-light/60"></i>
                       {t("Campus Name") || "Campus Name"}
                     </p>
                     <p className="text-base-custom font-semibold text-dark">
-                      {campus.name || <span className="text-gray-400 font-normal">{t("N/A")}</span>}
+                      {campus.name || <span className="text-dark-light/40 font-normal">{t("N/A")}</span>}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs-custom font-medium text-dark-light mb-1 uppercase tracking-wide">
-                      <i className="fa fa-qrcode mr-2 text-gray-400"></i>
+                    <p className="text-xs-custom font-medium text-dark-light/70 mb-1 uppercase tracking-wide">
+                      <i className="fa fa-qrcode mr-2 text-dark-light/60"></i>
                       {t("Campus Code") || "Code"}
                     </p>
                     <p className="text-base-custom font-semibold text-dark">
-                      {campus.code || <span className="text-gray-400 font-normal">{t("N/A")}</span>}
+                      {campus.code || <span className="text-dark-light/40 font-normal">{t("N/A")}</span>}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs-custom font-medium text-dark-light mb-1 uppercase tracking-wide">
-                      <i className="fa fa-map-marker-alt mr-2 text-gray-400"></i>
+                    <p className="text-xs-custom font-medium text-dark-light/70 mb-1 uppercase tracking-wide">
+                      <i className="fa fa-map-marker-alt mr-2 text-dark-light/60"></i>
                       {t("Address") || "Address"}
                     </p>
                     <p className="text-base-custom font-semibold text-dark">
-                      {campus.location || <span className="text-gray-400 font-normal">{t("N/A")}</span>}
+                      {campus.location || <span className="text-dark-light/40 font-normal">{t("N/A")}</span>}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs-custom font-medium text-dark-light mb-1 uppercase tracking-wide">
-                      <i className="fa fa-phone mr-2 text-gray-400"></i>
+                    <p className="text-xs-custom font-medium text-dark-light/70 mb-1 uppercase tracking-wide">
+                      <i className="fa fa-phone mr-2 text-dark-light/60"></i>
                       {t("Phone Number") || "Phone Number"}
                     </p>
                     <p className="text-base-custom font-semibold text-dark">
-                      {campus.contactNumber || <span className="text-gray-400 font-normal">{t("N/A")}</span>}
+                      {campus.contactNumber || <span className="text-dark-light/40 font-normal">{t("N/A")}</span>}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs-custom font-medium text-dark-light mb-1 uppercase tracking-wide">
-                      <i className="fa fa-envelope mr-2 text-gray-400"></i>
+                    <p className="text-xs-custom font-medium text-dark-light/70 mb-1 uppercase tracking-wide">
+                      <i className="fa fa-envelope mr-2 text-dark-light/60"></i>
                       {t("Email") || "Email"}
                     </p>
                     <p className="text-base-custom font-semibold text-dark">
-                      {campus.email || <span className="text-gray-400 font-normal">{t("N/A")}</span>}
+                      {campus.email || <span className="text-dark-light/40 font-normal">{t("N/A")}</span>}
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Status & Timestamp Card */}
+              {/* Status & Info */}
               <div className="bg-surface-50 rounded-xl p-5 border border-surface-100">
                 <h3 className="text-xl-custom font-semibold text-dark mb-4 flex items-center tracking-tight font-heading">
                   <i className="fa fa-info-circle mr-3 text-brand-500 text-lg"></i>
@@ -208,8 +204,8 @@ const CampusDetails = () => {
                 </h3>
                 <div className="space-y-4">
                   <div>
-                    <p className="text-xs-custom font-medium text-dark-light mb-1 uppercase tracking-wide">
-                      <i className="fa fa-user-shield mr-2 text-gray-400"></i>
+                    <p className="text-xs-custom font-medium text-dark-light/70 mb-1 uppercase tracking-wide">
+                      <i className="fa fa-user-shield mr-2 text-dark-light/60"></i>
                       {t("Campus Status") || "Campus Status"}
                     </p>
                     <AppBadge variant={campus.isActive ? "success" : "danger"}>
@@ -217,12 +213,12 @@ const CampusDetails = () => {
                     </AppBadge>
                   </div>
                   <div>
-                    <p className="text-xs-custom font-medium text-dark-light mb-1 uppercase tracking-wide">
-                      <i className="fa fa-calendar-plus mr-2 text-gray-400"></i>
+                    <p className="text-xs-custom font-medium text-dark-light/70 mb-1 uppercase tracking-wide">
+                      <i className="fa fa-calendar-plus mr-2 text-dark-light/60"></i>
                       {t("Created On") || "Created On"}
                     </p>
                     <p className="text-base-custom font-semibold text-dark">
-                      {campus.createdAt || <span className="text-gray-400 font-normal">{t("N/A")}</span>}
+                      {campus.createdAt || <span className="text-dark-light/40 font-normal">{t("N/A")}</span>}
                     </p>
                   </div>
                 </div>

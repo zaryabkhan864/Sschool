@@ -3,11 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 const variants = {
-  primary: "bg-brand-500 hover:bg-brand-600 text-white shadow-soft",
-  success: "bg-green-600 hover:bg-green-700 text-white shadow-soft",
+  primary: "bg-gradient-to-r from-brand-500 to-brand-600 hover:shadow-glow-brand text-white shadow-button",
+  success: "bg-emerald-600 hover:bg-emerald-700 text-white shadow-soft",
   danger: "bg-red-600 hover:bg-red-700 text-white shadow-soft",
-  secondary: "bg-gray-200 hover:bg-gray-300 text-gray-700 shadow-soft",
-  ghost: "text-gray-600 hover:text-brand-600 hover:underline bg-transparent shadow-none",
+  // ✅ NEW: added so callers like TransferModal don't need to bolt a manual
+  // orange className onto "primary" (which caused the same class-collision
+  // bug fixed in PrintLayout/TerminateContractModal).
+  warning: "bg-orange-500 hover:bg-orange-600 text-white shadow-soft",
+  secondary: "bg-surface-100 hover:bg-surface-200 text-ink-700 shadow-none border border-surface-200",
+  ghost: "text-ink-600 hover:text-brand-600 hover:underline bg-transparent shadow-none",
 };
 
 const AppButton = ({

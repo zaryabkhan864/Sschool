@@ -40,7 +40,7 @@ const UpdateCampus = () => {
 
   const { name, code, location, contactNumber, email } = campus;
 
-  // Prefill form with campus details
+  // Prefill form with existing campus data
   useEffect(() => {
     if (data?.campus) {
       setCampus({
@@ -53,7 +53,6 @@ const UpdateCampus = () => {
     }
   }, [data]);
 
-  // Handle API response
   useEffect(() => {
     if (error) {
       toast.error(error?.data?.message || t("Error updating campus"));
@@ -79,7 +78,6 @@ const UpdateCampus = () => {
     if (!name.trim() || !code.trim() || !contactNumber) {
       return toast.error(t("Please fill all required fields"));
     }
-    // ✅ FIX: pass fields directly, not wrapped in `body`
     updateCampus({
       id,
       name: name.trim(),

@@ -6,7 +6,6 @@ import {
   updateAcademicLevel,
   deleteAcademicLevel,
 } from "../controllers/academicLevelController.js";
-
 import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 
 const router = express.Router();
@@ -19,12 +18,13 @@ router
 // Get all Academic Levels
 router.route("/academic-level").get(getAcademicLevels);
 
-// Get / Update / Delete single Academic Level
+// Get single Academic Level
+router.route("/academic-level/:id").get(getAcademicLevelDetails);
+
+// Update / Delete Academic Level
 router
   .route("/admin/academic-level/:id")
   .put(isAuthenticatedUser, authorizeRoles("admin"), updateAcademicLevel)
   .delete(isAuthenticatedUser, authorizeRoles("admin"), deleteAcademicLevel);
-
-router.route("/academic-level/:id").get(getAcademicLevelDetails);
 
 export default router;

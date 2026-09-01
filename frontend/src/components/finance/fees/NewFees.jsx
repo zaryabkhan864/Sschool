@@ -1,12 +1,35 @@
+// component
+// src/components/finance/fees/NewFees.jsx
+//
+// For ad-hoc, one-off fee entries (e.g. a fine, a uniform charge, a
+// manual correction) — NOT the normal path for Admission/Tuition/Exam/
+// Transport/Hostel fees, which are generated automatically from a
+// student's enrollment feePlan and collected via PaymentFees.jsx.
+
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { useCreateFeeMutation } from "../../../redux/api/feesApi";
-
-import MetaData from "../../layout/MetaData";
-import { useGetUserByTypeQuery } from "../../../redux/api/authApi";
 import { useTranslation } from "react-i18next";
+
+import { useCreateFeeMutation } from "../../../redux/api/feesApi";
+import { useGetUserByTypeQuery } from "../../../redux/api/authApi";
+
 import AdminLayout from "../../layout/AdminLayout";
+import MetaData from "../../layout/MetaData";
+import AppPageHeader from "../../layout/AppPageHeader";
+import AppButton from "../../GUI/AppButton";
+
+const FEE_TYPES = ["Admission", "Tuition", "Exam", "Transport", "Hostel"];
+const CURRENCIES = ["USD", "EUR", "GBP", "TL", "AUD", "CAD", "AED"];
+const PAYMENT_FREQUENCIES = ["Monthly", "Quarterly", "Half Yearly", "Annually"];
+const PAYMENT_METHODS = ["Cash", "Bank Transfer", "Online"];
+const STATUSES = ["Unpaid", "Pending", "Paid", "Overdue"];
+
+const getFullName = (u) =>
+  u ? `${u.firstName || ""} ${u.middleName ? u.middleName + " " : ""}${u.lastName || ""}`.trim() : "";
+
+const inputClass = "w-full p-2 border border-gray-300 rounded-md";
+const labelClass = "block text-sm font-medium text-gray-700 mb-2";
 
 const NewFees = () => {
   const { t } = useTranslation();
@@ -14,11 +37,13 @@ const NewFees = () => {
 
   const [createFees, { isLoading, error, isSuccess }] = useCreateFeeMutation();
 
-  // 1 get student data
-  const { data: studentsData, isLoading: studentLoading } = useGetUserByTypeQuery("student");
-  console.log("studentsData", studentsData);
-
-  // 2 ensure proper array handling like counseling component
+  const [studentSearch, setStudentSearch] = useState("");
+  const { data: studentsData, isFetching: studentsLoading } = useGetUserByTypeQuery({
+    type: "student",
+    status: "active",
+    limit: 0,
+    keyword: studentSearch,
+  });
   const students = studentsData?.users || studentsData?.students || [];
 
   const [feesData, setFeesData] = useState({
@@ -26,234 +51,255 @@ const NewFees = () => {
     amount: "",
     feeType: "",
     currency: "USD",
+    paymentFrequency: "",
     dueDate: "",
     status: "Unpaid",
     paymentDate: "",
     paymentMethod: "",
   });
 
-  const { student, amount, feeType, currency, dueDate, status, paymentDate, paymentMethod } = feesData;
+  const {
+    student,
+    amount,
+    feeType,
+    currency,
+    paymentFrequency,
+    dueDate,
+    status,
+    paymentDate,
+    paymentMethod,
+  } = feesData;
+
+  const isPaid = status === "Paid";
 
   useEffect(() => {
     if (error) {
-      toast.error(error?.data?.message || "Something went wrong!");
+      toast.error(error?.data?.message || t("Something went wrong!"));
     }
-
     if (isSuccess) {
-      toast.success("Fees record created successfully");
-      navigate("/finance/students/fees");
+      toast.success(t("Fee record created successfully"));
+      navigate("/admin/finance/fees/unpaid");
     }
-  }, [error, isSuccess, navigate]);
+  }, [error, isSuccess, navigate, t]);
 
   const onChange = (e) => {
-    setFeesData({ ...feesData, [e.target.name]: e.target.value });
+    setFeesData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const submitHandler = (e) => {
     e.preventDefault();
-    if (!student) {
-      toast.error("Please select a student!");
-      return;
-    }
-    if (!amount || amount <= 0) {
-      toast.error("Please enter a valid amount!");
-      return;
-    }
-    if (!feeType) {
-      toast.error("Please select fee type!");
-      return;
-    }
-    if (!dueDate) {
-      toast.error("Please select due date!");
-      return;
-    }
-    createFees(feesData);
+
+    if (!student) return toast.error(t("Please select a student!"));
+    if (!amount || Number(amount) <= 0) return toast.error(t("Please enter a valid amount!"));
+    if (!feeType) return toast.error(t("Please select a fee type!"));
+    if (!paymentFrequency) return toast.error(t("Please select a payment frequency!"));
+    if (!dueDate) return toast.error(t("Please select a due date!"));
+    if (isPaid && !paymentMethod) return toast.error(t("Please select a payment method!"));
+    if (isPaid && !paymentDate) return toast.error(t("Please select a payment date!"));
+
+    createFees({
+      ...feesData,
+      amount: Number(amount),
+      // don't send stale payment info for a fee that isn't marked Paid
+      paymentDate: isPaid ? paymentDate : undefined,
+      paymentMethod: isPaid ? paymentMethod : undefined,
+    });
   };
 
   return (
     <AdminLayout>
-      <MetaData title={"Create New Fees"} />
-      <div className="flex justify-center items-center pt-5 pb-10">
-        <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">{t("New Fees")}</h2>
-          <form onSubmit={submitHandler}>
-            {/* Student Dropdown */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700">
-                {t("Student Name")}
-              </label>
+      <MetaData title={t("New Fee Entry")} />
+
+      <div className="max-w-3xl mx-auto space-y-6 pb-10">
+        <AppPageHeader
+          title={t("New Fee Entry")}
+          subtitle={t("Create a one-off fee charge for a student (fines, uniform, manual corrections, etc.)")}
+          backUrl="/admin/finance/fees/unpaid"
+        />
+
+        <form onSubmit={submitHandler} className="space-y-6">
+          {/* Student */}
+          <div className="bg-surface-50 shadow-soft rounded-xl p-6 space-y-4">
+            <h3 className="text-base-custom font-semibold">{t("Student")}</h3>
+
+            <div>
+              <input
+                type="text"
+                placeholder={t("Search student by name, email or phone...")}
+                className={inputClass}
+                value={studentSearch}
+                onChange={(e) => setStudentSearch(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>{t("Student Name")}</label>
               <select
-                id="student_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md 
-                focus:outline-none focus:ring-2 focus:ring-blue-500"
                 name="student"
+                className={inputClass}
                 value={student}
                 onChange={onChange}
                 required
               >
                 <option value="" disabled>
-                  {t("Select Student")}
+                  {studentsLoading ? t("Loading...") : t("Select Student")}
                 </option>
-                {!studentLoading &&
-                  students?.map((s) => (
-                    <option key={s._id} value={s._id}>
-                      {s.name} -{" "}
-                      {s.currentGrade?.gradeName ||
-                        s.gradeDetails?.[0]?.gradeName ||
-                        "No Grade Assigned"}
-                    </option>
-                  ))}
+                {students.map((s) => (
+                  <option key={s._id} value={s._id}>
+                    {getFullName(s) || s.email} {s.email ? `— ${s.email}` : ""}
+                  </option>
+                ))}
               </select>
             </div>
+          </div>
 
-            {/* Amount & Currency */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  {t("Amount")}
-                </label>
+          {/* Fee details */}
+          <div className="bg-surface-50 shadow-soft rounded-xl p-6 space-y-4">
+            <h3 className="text-base-custom font-semibold">{t("Fee Details")}</h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>{t("Fee Type")}</label>
+                <select name="feeType" className={inputClass} value={feeType} onChange={onChange} required>
+                  <option value="" disabled>
+                    {t("Select Fee Type")}
+                  </option>
+                  {FEE_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {t(type)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className={labelClass}>{t("Payment Frequency")}</label>
+                <select
+                  name="paymentFrequency"
+                  className={inputClass}
+                  value={paymentFrequency}
+                  onChange={onChange}
+                  required
+                >
+                  <option value="" disabled>
+                    {t("Select Frequency")}
+                  </option>
+                  {PAYMENT_FREQUENCIES.map((freq) => (
+                    <option key={freq} value={freq}>
+                      {t(freq)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>{t("Amount")}</label>
                 <input
                   type="number"
                   name="amount"
-                  min="1"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md 
-                  focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  min="0.01"
+                  step="0.01"
+                  className={inputClass}
                   value={amount}
                   onChange={onChange}
                   required
                 />
               </div>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  {t("Currency")}
-                </label>
-                <select
-                  name="currency"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md 
-                  focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={currency}
-                  onChange={onChange}
-                >
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="GBP">GBP</option>
-                  <option value="TL">TL</option>
-                  <option value="AUD">AUD</option>
-                  <option value="CAD">CAD</option>
-                  <option value="AED">AED</option>
+              <div>
+                <label className={labelClass}>{t("Currency")}</label>
+                <select name="currency" className={inputClass} value={currency} onChange={onChange}>
+                  {CURRENCIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
 
-            {/* Due Date */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700">
-                {t("Due Date")}
-              </label>
+            <div>
+              <label className={labelClass}>{t("Due Date")}</label>
               <input
                 type="date"
                 name="dueDate"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md 
-                focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={inputClass}
                 value={dueDate}
                 onChange={onChange}
                 required
               />
             </div>
+          </div>
 
-            {/* Fee Type & Payment Method */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  {t("Fee Type")}
-                </label>
-                <select
-                  name="feeType"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md 
-                  focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={feeType}
-                  onChange={onChange}
-                  required
-                >
-                  <option value="" disabled>
-                    {t("Select Fee Type")}
-                  </option>
-                  <option value="Admission">{t("Admission")}</option>
-                  <option value="Tuition">{t("Tuition")}</option>
-                  <option value="Exam">{t("Exam")}</option>
-                  <option value="Transport">{t("Transport")}</option>
-                  <option value="Hostel">{t("Hostel")}</option>
-                </select>
-              </div>
+          {/* Status & payment info */}
+          <div className="bg-surface-50 shadow-soft rounded-xl p-6 space-y-4">
+            <h3 className="text-base-custom font-semibold">{t("Status")}</h3>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  {t("Payment Method")}
-                </label>
-                <select
-                  name="paymentMethod"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md 
-                  focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={paymentMethod}
-                  onChange={onChange}
-                >
-                  <option value="" disabled>
-                    {t("Select Payment Method")}
+            <div>
+              <label className={labelClass}>{t("Status")}</label>
+              <select name="status" className={inputClass} value={status} onChange={onChange}>
+                {STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {t(s)}
                   </option>
-                  <option value="Cash">{t("Cash")}</option>
-                  <option value="Bank Transfer">{t("Bank Transfer")}</option>
-                  <option value="Online">{t("Online")}</option>
-                </select>
-              </div>
+                ))}
+              </select>
             </div>
 
-            {/* Status & Payment Date */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  {t("Status")}
-                </label>
-                <select
-                  name="status"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md 
-                  focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={status}
-                  onChange={onChange}
-                >
-                  <option value="Unpaid">{t("Unpaid")}</option>
-                  <option value="Paid">{t("Paid")}</option>
-                  <option value="Pending">{t("Pending")}</option>
-                </select>
-              </div>
+            {/* Payment method/date only make sense once the fee is being recorded as already Paid */}
+            {isPaid && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClass}>{t("Payment Method")}</label>
+                  <select
+                    name="paymentMethod"
+                    className={inputClass}
+                    value={paymentMethod}
+                    onChange={onChange}
+                    required
+                  >
+                    <option value="" disabled>
+                      {t("Select Payment Method")}
+                    </option>
+                    {PAYMENT_METHODS.map((method) => (
+                      <option key={method} value={method}>
+                        {t(method)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  {t("Payment Date")}
-                </label>
-                <input
-                  type="date"
-                  name="paymentDate"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md 
-                  focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={paymentDate}
-                  onChange={onChange}
-                />
+                <div>
+                  <label className={labelClass}>{t("Payment Date")}</label>
+                  <input
+                    type="date"
+                    name="paymentDate"
+                    className={inputClass}
+                    value={paymentDate}
+                    onChange={onChange}
+                    required
+                  />
+                </div>
               </div>
-            </div>
+            )}
+          </div>
 
-            {/* Submit */}
-            <button
+          <div className="flex justify-end gap-2 pt-2">
+            <AppButton
+              type="button"
+              text={t("Cancel")}
+              onClick={() => navigate("/admin/finance/fees/unpaid")}
+            />
+            <AppButton
               type="submit"
-              className={`w-full py-2 text-white font-semibold rounded-md ${
-                isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-              } focus:outline-none focus:ring focus:ring-blue-300`}
+              label={isLoading ? t("Creating...") : t("Create Fee Record")}
+              icon="check"
               disabled={isLoading}
-            >
-              {isLoading ? "Creating..." : "CREATE"}
-            </button>
-          </form>
-        </div>
+            />
+          </div>
+        </form>
       </div>
     </AdminLayout>
   );

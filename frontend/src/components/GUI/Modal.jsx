@@ -1,5 +1,19 @@
 import React from 'react';
 
+// ✅ FIX: `bg-${iconColor}-100` was built at runtime — Tailwind's static
+// scanner can't see it, so any iconColor without that exact class already
+// written elsewhere in the codebase would render with NO icon background
+// in a production build. Static map fixes it for good, same pattern as
+// DataTableContainer's stat cards.
+const ICON_COLOR_STYLES = {
+  blue: { bg: 'bg-brand-100', text: 'text-brand-600' },
+  green: { bg: 'bg-emerald-100', text: 'text-emerald-600' },
+  red: { bg: 'bg-red-100', text: 'text-red-600' },
+  yellow: { bg: 'bg-amber-100', text: 'text-amber-600' },
+  purple: { bg: 'bg-purple-100', text: 'text-purple-600' },
+};
+const getIconStyle = (color) => ICON_COLOR_STYLES[color] || { bg: 'bg-surface-100', text: 'text-ink-600' };
+
 const Modal = ({
   isOpen,
   onClose,
@@ -15,7 +29,7 @@ const Modal = ({
   if (!isOpen) return null;
 
   const getSizeClass = () => {
-    switch(size) {
+    switch (size) {
       case 'sm': return 'max-w-md';
       case 'md': return 'max-w-lg';
       case 'lg': return 'max-w-2xl';
@@ -25,16 +39,7 @@ const Modal = ({
     }
   };
 
-  const getIconColorClass = () => {
-    switch(iconColor) {
-      case 'blue': return 'text-blue-600';
-      case 'green': return 'text-green-600';
-      case 'red': return 'text-red-600';
-      case 'yellow': return 'text-yellow-600';
-      case 'purple': return 'text-purple-600';
-      default: return 'text-gray-600';
-    }
-  };
+  const iconStyle = getIconStyle(iconColor);
 
   const handleBackdropClick = (e) => {
     if (closeOnOutsideClick && e.target === e.currentTarget) {
@@ -43,26 +48,26 @@ const Modal = ({
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50"
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-navy-950/60 backdrop-blur-sm"
       onClick={handleBackdropClick}
     >
-      <div className={`bg-white rounded-2xl shadow-2xl w-full ${getSizeClass()} max-h-[90vh] overflow-y-auto ${className}`}>
+      <div className={`bg-white rounded-2xl shadow-premium w-full ${getSizeClass()} max-h-[90vh] overflow-y-auto animate-slide-up ${className}`}>
         {/* Header */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-6 border-b border-surface-100">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {icon && (
-                <div className={`w-10 h-10 rounded-lg bg-${iconColor}-100 flex items-center justify-center`}>
-                  <i className={`fa fa-${icon} ${getIconColorClass()}`}></i>
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconStyle.bg}`}>
+                  <i className={`fa fa-${icon} ${iconStyle.text}`}></i>
                 </div>
               )}
               <div>
-                <h3 className="text-lg font-bold text-gray-800">
+                <h3 className="text-lg-custom font-bold text-ink-900">
                   {title}
                 </h3>
                 {subtitle && (
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs-custom text-ink-400 mt-1">
                     {subtitle}
                   </p>
                 )}
@@ -70,10 +75,10 @@ const Modal = ({
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-surface-100 rounded-lg transition-colors"
               type="button"
             >
-              <i className="fa fa-times text-gray-500"></i>
+              <i className="fa fa-times text-ink-400"></i>
             </button>
           </div>
         </div>

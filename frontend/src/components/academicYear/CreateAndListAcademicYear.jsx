@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
 
-// Redux API for Academic Year
 import {
   useCreateAcademicYearMutation,
   useDeleteAcademicYearMutation,
@@ -11,7 +10,6 @@ import {
   useUpdateAcademicYearMutation,
 } from "../../redux/api/academicYearApi";
 
-// Layout & GUI Components
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 import Loader from "../layout/Loader";
@@ -36,7 +34,6 @@ const CreateAndListAcademicYear = () => {
     startDate: "",
     endDate: "",
     isCurrent: false,
-    // campus field hata diya gaya
   });
   const [editMode, setEditMode] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -57,7 +54,7 @@ const CreateAndListAcademicYear = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // ---------- API queries ----------
+  // ---------- API ----------
   const {
     data,
     isLoading,
@@ -69,13 +66,13 @@ const CreateAndListAcademicYear = () => {
       page: currentPage,
       limit,
       keyword: searchTerm,
+      // "current" → isCurrent=true | "notCurrent" → isCurrent=false | "" → undefined (no filter)
       isCurrent:
         statusFilter === "current"
           ? true
           : statusFilter === "notCurrent"
           ? false
           : undefined,
-      // campus filter ab nahi bhej rahe — backend cookie se uthayega
     },
     { refetchOnMountOrArgChange: true }
   );
@@ -87,11 +84,17 @@ const CreateAndListAcademicYear = () => {
   const academicYears = data?.academicYears || [];
   const pagination = data?.pagination;
 
-  // Delete modal state
+  // ✅ FIX 1: Backend returns pagination.counts.{total, current, notCurrent}
+  // pagination.total is only current page count — use counts.total for real total
+  const counts = pagination?.counts || data?.counts || {
+    total: 0,
+    current: 0,
+    notCurrent: 0,
+  };
+
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [yearToDelete, setYearToDelete] = useState(null);
 
-  // Error handling
   useEffect(() => {
     if (fetchError) {
       toast.error(fetchError?.data?.message || t("Failed to load academic years"));
@@ -108,33 +111,17 @@ const CreateAndListAcademicYear = () => {
   };
 
   const resetForm = () => {
-    setFormData({
-      name: "",
-      startDate: "",
-      endDate: "",
-      isCurrent: false,
-    });
+    setFormData({ name: "", startDate: "", endDate: "", isCurrent: false });
     setEditMode(false);
     setEditId(null);
   };
 
+  // ✅ FIX 2: Generic error handler — no hardcoded backend message strings
   const handleMutation = async (mutationPromise, successMsg) => {
     try {
       const result = await mutationPromise;
       if (result.error) {
-        const errorMsg = result.error.data?.message || "";
-        if (
-          errorMsg.includes("Only one academic year can be current") ||
-          (errorMsg.includes("duplicate key") && errorMsg.includes("isCurrent"))
-        ) {
-          toast.error(
-            t(
-              "Only one academic year can be marked as current at a time. Please unset the current year first."
-            )
-          );
-        } else {
-          toast.error(errorMsg || t("Operation failed"));
-        }
+        toast.error(result.error.data?.message || t("Operation failed"));
       } else {
         toast.success(t(successMsg));
         resetForm();
@@ -148,10 +135,18 @@ const CreateAndListAcademicYear = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      toast.error(t("Please enter academic year name"));
-      return;
+      return toast.error(t("Please enter academic year name"));
     }
+    // ✅ FIX 3: startDate & endDate are now required in model — validate before submit
+    if (!formData.startDate) {
+      return toast.error(t("Please enter a start date"));
+    }
+    if (!formData.endDate) {
+      return toast.error(t("Please enter an end date"));
+    }
+
     const payload = { ...formData };
+
     if (editMode) {
       await handleMutation(
         updateAcademicYear({ id: editId, ...payload }),
@@ -171,7 +166,6 @@ const CreateAndListAcademicYear = () => {
       startDate: year.startDate ? year.startDate.slice(0, 10) : "",
       endDate: year.endDate ? year.endDate.slice(0, 10) : "",
       isCurrent: year.isCurrent,
-      // campus nahi set karna kyunki backend cookie se lega
     });
     setEditMode(true);
     setEditId(year._id);
@@ -200,29 +194,23 @@ const CreateAndListAcademicYear = () => {
     }
   };
 
-  // Handle setting a year as current (with API call)
+  // ✅ FIX 4: handleSetCurrent — send undefined (not "") for missing dates
+  // Previously empty string fallback caused backend required validation to fail
   const handleSetCurrent = async (year) => {
     if (year.isCurrent) {
-      toast.info(t("This year is already current"));
+      toast(t("This year is already current"), { icon: "ℹ️" });
       return;
     }
     try {
       const result = await updateAcademicYear({
         id: year._id,
         name: year.name,
-        startDate: year.startDate?.slice(0, 10) || "",
-        endDate: year.endDate?.slice(0, 10) || "",
+        startDate: year.startDate ? year.startDate.slice(0, 10) : undefined,
+        endDate: year.endDate ? year.endDate.slice(0, 10) : undefined,
         isCurrent: true,
       });
       if (result.error) {
-        const errorMsg = result.error.data?.message || "";
-        if (errorMsg.includes("Only one academic year can be current")) {
-          toast.error(
-            t("Another year is already set as current. Please refresh and try again.")
-          );
-        } else {
-          toast.error(errorMsg);
-        }
+        toast.error(result.error.data?.message || t("Failed to set as current"));
       } else {
         toast.success(t("Year set as current successfully"));
         refetch();
@@ -282,18 +270,17 @@ const CreateAndListAcademicYear = () => {
               {t("Current Year")}
             </span>
           );
-        } else {
-          return (
-            <button
-              onClick={() => handleSetCurrent(row)}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 rounded border border-blue-200 hover:bg-blue-50 transition"
-              title={t("Set as current academic year")}
-            >
-              <i className="fa fa-arrow-right mr-1" />
-              {t("Set as Current")}
-            </button>
-          );
         }
+        return (
+          <button
+            onClick={() => handleSetCurrent(row)}
+            className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 rounded border border-blue-200 hover:bg-blue-50 transition"
+            title={t("Set as current academic year")}
+          >
+            <i className="fa fa-arrow-right mr-1" />
+            {t("Set as Current")}
+          </button>
+        );
       },
     },
   ];
@@ -310,31 +297,32 @@ const CreateAndListAcademicYear = () => {
     />
   );
 
-  // Stats
+  // ✅ FIX 5: Stats use counts.total/current/notCurrent (real totals from backend)
+  // Old code used pagination.total which was only the current page count
   const stats = [
     {
       label: t("Total Years"),
-      value: pagination?.total || academicYears.length,
+      value: counts.total,
       icon: "calendar",
       color: "blue",
     },
     {
       label: t("Current Year"),
-      value: academicYears.filter((y) => y.isCurrent).length,
+      value: counts.current,
       icon: "check-circle",
       color: "green",
     },
     {
-      label: t("Items Shown"),
-      value: academicYears.length,
-      icon: "list-ul",
-      color: "purple",
+      label: t("Not Current"),
+      value: counts.notCurrent,
+      icon: "calendar-times",
+      color: "gray",
     },
     {
       label: t("Total Pages"),
       value: pagination?.totalPages || 1,
       icon: "file-alt",
-      color: "orange",
+      color: "purple",
     },
   ];
 
@@ -350,7 +338,6 @@ const CreateAndListAcademicYear = () => {
     />
   );
 
-  // Filters (ab sirf status filter bacha)
   const filters = (
     <FilterDropdown
       limit={limit}
@@ -418,6 +405,7 @@ const CreateAndListAcademicYear = () => {
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleInputChange}
+                required
               />
               <AppInput
                 label={t("End Date")}
@@ -425,6 +413,7 @@ const CreateAndListAcademicYear = () => {
                 name="endDate"
                 value={formData.endDate}
                 onChange={handleInputChange}
+                required
               />
             </div>
 
@@ -485,7 +474,7 @@ const CreateAndListAcademicYear = () => {
           renderRowActions={renderRowActions}
         />
 
-        {/* Delete Confirmation Modal */}
+        {/* Delete Modal */}
         <ConfirmationModal
           showModal={showDeleteModal}
           setShowModal={setShowDeleteModal}

@@ -42,10 +42,10 @@ import ListTeacherLeave from "../teacherLeave/ListTeacherLeave";
 import UpdateTeacherLeave from "../teacherLeave/UpdateTeacherLeave";
 import CreateTimeTable from "../timetable/CreateTimeTable";
 import NewAcademicLevel from "../timetable/NewAcademiclevel";
-import NewClassGroup from "../timetable/NewClassGroup";
-import ListClassGroups from "../timetable/ListClassGroups";
+import NewClassGroup from "../classgroup/NewClassGroup";
+import ListClassGroups from "../classgroup/ListClassGroups";
 import SessionTemplate from "../timetable/SessionTemplate";
-import UpdateClassGroup from "../timetable/UpdateClassGroup";
+import UpdateClassGroup from "../classgroup/UpdateClassGroup";
 import CreateDaySessionTemplate from "../timetable/CreateDaySessionTemplate";
 import CreateWeekDay from "../timetable/CreateWeekDay";
 import CreateAndListAcademicYear from "../academicYear/CreateAndListAcademicYear";
@@ -53,6 +53,14 @@ import CreateAndListAcademicYear from "../academicYear/CreateAndListAcademicYear
 import ListStudentEnrollement from "../studentEnrollment/ListStudentEnrollement";
 import UpdateStudentEnrollement from "../studentEnrollment/UpdateStudentEnrollement";
 import StudentEnrollementDetails from "../studentEnrollment/StudentEnrollementDetails";
+import ListEmployeeContracts from "../employeeContract/ListEmployeeContracts";
+import UpdateEmployeeContract from "../employeeContract/UpdateEmployeeContract";
+import GradeDownload from "../grade/GradeDownload";
+import CourseDownload from "../course/CourseDownload";
+import ClassGroupDetails from "../classgroup/ClassGroupDetails";
+import ClassGroupStudents from "../classgroup/ClassGroupStudents";
+import ClassGroupDownload from "../classgroup/ClassGroupDownload";
+import CreateSchool from "../school/createSchool";
 
 
 
@@ -108,6 +116,14 @@ const adminRoutes = () => {
         }
       />
       <Route
+        path="/admin/grade/:id/download"
+        element={
+          <ProtectedRoute admin={true}>
+            <GradeDownload />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin/course/new"
         element={
           <ProtectedRoute admin={true}>
@@ -136,6 +152,14 @@ const adminRoutes = () => {
         element={
           <ProtectedRoute admin={true}>
             <CourseDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/course/:id/download"
+        element={
+          <ProtectedRoute admin={true}>
+            <CourseDownload />
           </ProtectedRoute>
         }
       />
@@ -344,6 +368,14 @@ const adminRoutes = () => {
         }
       />
       <Route
+        path="/admin/school/new"
+        element={
+          <ProtectedRoute admin={true}>
+            <CreateSchool />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin/campus/new"
         element={
           <ProtectedRoute admin={true}>
@@ -416,7 +448,30 @@ const adminRoutes = () => {
           </ProtectedRoute>
         }
       />
-
+      <Route
+        path="/admin/class-group/:id/details"
+        element={
+          <ProtectedRoute admin={true}>
+            <ClassGroupDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/class-groups/:id/students"
+        element={
+          <ProtectedRoute admin={true}>
+            <ClassGroupStudents />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/class-group/:id/download"
+        element={
+          <ProtectedRoute admin={true}>
+            <ClassGroupDownload />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/admin/session-templates"
         element={
@@ -449,18 +504,6 @@ const adminRoutes = () => {
           </ProtectedRoute>
         }
       />
-
-
-
-
-      {/* <Route
-        path="/admin/studentenrollement/new"
-        element={
-          <ProtectedRoute admin={true}>
-            <NewStudentEnrollement />
-          </ProtectedRoute>
-        } */}
-      />
       <Route
         path="/admin/studentenrollements"
         element={
@@ -470,7 +513,7 @@ const adminRoutes = () => {
         }
       />
       <Route
-        path="/admin/student-enrollments/:studentId"  
+        path="/admin/student-enrollments/:studentId"
         element={
           <ProtectedRoute admin={true}>
             <UpdateStudentEnrollement />
@@ -485,6 +528,26 @@ const adminRoutes = () => {
           </ProtectedRoute>
         }
       />
+
+
+      <Route
+        path="/admin/employee-contracts"
+        element={
+          <ProtectedRoute admin={true}>
+            <ListEmployeeContracts />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/employee-contracts/:employeeId"
+        element={
+          <ProtectedRoute admin={true}>
+            <UpdateEmployeeContract />
+          </ProtectedRoute>
+        }
+      />
+
+
     </>
   );
 };

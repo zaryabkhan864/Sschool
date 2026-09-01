@@ -15,8 +15,8 @@ const AppTextarea = ({
   return (
     <div>
       {label && (
-        <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
-          {label} {required && "*"}
+        <label className="block text-xs-custom font-semibold text-ink-700 uppercase tracking-wider mb-1.5">
+          {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
       <textarea
@@ -26,7 +26,7 @@ const AppTextarea = ({
         rows={rows}
         placeholder={placeholder}
         required={required}
-        className={`w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all bg-white placeholder:text-gray-400 resize-none ${className}`}
+        className={`w-full px-4 py-2.5 text-sm-custom border border-surface-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all bg-white placeholder:text-ink-400 resize-none ${className}`}
         {...rest}
       />
     </div>

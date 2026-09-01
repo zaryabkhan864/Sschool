@@ -4,11 +4,23 @@ const academicYearSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
+      required: [true, "Academic year name is required"],
       trim: true,
     },
-    startDate: Date,
-    endDate: Date,
+    startDate: {
+      type: Date,
+      required: [true, "Academic year start date is required"],
+    },
+    endDate: {
+      type: Date,
+      required: [true, "Academic year end date is required"],
+      validate: {
+        validator: function (value) {
+          return value > this.startDate;
+        },
+        message: "End date must be after start date",
+      },
+    },
     isCurrent: {
       type: Boolean,
       default: false,
@@ -16,16 +28,16 @@ const academicYearSchema = new mongoose.Schema(
     campus: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Campus",
-      required: true,
+      required: [true, "Academic year must be linked to a campus"],
     },
   },
   { timestamps: true }
 );
 
-// ✅ Compound unique index for name per campus
+// One academic year name per campus
 academicYearSchema.index({ campus: 1, name: 1 }, { unique: true });
 
-// ✅ Partial unique index: only one current year per campus
+// Only one current year per campus at a time
 academicYearSchema.index(
   { campus: 1, isCurrent: 1 },
   {
@@ -34,7 +46,7 @@ academicYearSchema.index(
   }
 );
 
-// ✅ Pre-save hook: unset other current years within the same campus
+// Pre-save: unset other current years in the same campus
 academicYearSchema.pre("save", async function (next) {
   if (this.isCurrent) {
     await this.constructor.updateMany(
@@ -49,5 +61,4 @@ academicYearSchema.pre("save", async function (next) {
   next();
 });
 
-const AcademicYear = mongoose.model("AcademicYear", academicYearSchema);
-export default AcademicYear;
+export default mongoose.model("AcademicYear", academicYearSchema);

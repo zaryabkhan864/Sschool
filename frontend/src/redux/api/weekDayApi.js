@@ -11,9 +11,9 @@ export const weekDayApi = createApi({
         url: "/week-day",
         params: {
           page: params?.page,
+          limit: params?.limit,   // ✅ yeh add kiya
           keyword: params?.keyword,
           paginate: params?.paginate,
-          // agar aur filters chahiye (jaise isWorkingDay) toh yahan add kar sakte ho
         },
       }),
       providesTags: ["WeekDay"],
@@ -58,7 +58,7 @@ export const weekDayApi = createApi({
 
 export const {
   useGetWeekDaysQuery,
-  useGetWeekDayDetailsQuery,   // ✅ ab ye export bhi ho raha hai
+  useGetWeekDayDetailsQuery,
   useCreateWeekDayMutation,
   useUpdateWeekDayMutation,
   useDeleteWeekDayMutation,

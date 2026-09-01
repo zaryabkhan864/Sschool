@@ -6,9 +6,16 @@ import Teacher from "../models/user.js";
 import APIFilters from "../utils/apiFilters.js";
 import mongoose from "mongoose";
 
+// ============================================================
+// CREATE course => /api/v1/admin/courses
+// ============================================================
 export const newCourse = catchAsyncErrors(async (req, res, next) => {
-  const { campus } = req.cookies;
-  const { selectedYear } = req.cookies;
+
+  const { campus, academicYear } = req.cookies;
+
+  if (!academicYear) {
+    return next(new ErrorHandler("Please select an academic year first", 400));
+  }
 
   const { courseName, description, code, teacher } = req.body;
 
@@ -22,30 +29,99 @@ export const newCourse = catchAsyncErrors(async (req, res, next) => {
   }
   const teacherId = teacher === "" ? null : teacher;
 
-  // Create course (grade field removed)
   const course = await Course.create({
     courseName,
     description,
     code,
     teacher: teacherId,
     campus,
-    year: selectedYear,
+    academicYear,
   });
 
-  res.status(200).json({ course });
+  res.status(201).json({ success: true, course });
 });
+// ============================================================
+// BULK CREATE courses => /api/v1/admin/courses/bulk
+// ============================================================
+export const bulkCreateCourses = catchAsyncErrors(async (req, res, next) => {
+  // Cookies ki jagah body se campus aur academicYear lo
+  const { campus, academicYear } = req.body;
 
+  if (!academicYear) {
+    return next(new ErrorHandler("Please select an academic year first", 400));
+  }
+
+  // Optional: campus check bhi laga sakte ho
+  if (!campus) {
+    return next(new ErrorHandler("Please provide a campus", 400));
+  }
+
+  const { courses } = req.body; // array of course objects
+
+  if (!courses || !Array.isArray(courses) || courses.length === 0) {
+    return next(new ErrorHandler("Please provide an array of courses", 400));
+  }
+
+  const courseDocs = [];
+  const errors = [];
+
+  for (let i = 0; i < courses.length; i++) {
+    const { courseName, description, code, teacher } = courses[i];
+
+    // Validate required fields
+    if (!courseName || !description || !code) {
+      errors.push(
+        `Course at index ${i} is missing required fields (courseName, description, code).`
+      );
+      continue;
+    }
+
+    // Validate teacher if provided
+    let teacherId = null;
+    if (teacher) {
+      const teacherDetail = await Teacher.findById(teacher);
+      if (!teacherDetail) {
+        errors.push(`Teacher not found for course at index ${i}`);
+        continue;
+      }
+      teacherId = teacher;
+    }
+
+    courseDocs.push({
+      courseName,
+      description,
+      code,
+      teacher: teacherId,
+      campus,        // body se aaya hua
+      academicYear,  // body se aaya hua
+    });
+  }
+
+  if (errors.length > 0) {
+    return next(new ErrorHandler(`Validation errors: ${errors.join("; ")}`, 400));
+  }
+
+  // Insert many with ordered: true (all or nothing)
+  const insertedCourses = await Course.insertMany(courseDocs, { ordered: true });
+
+  res.status(201).json({
+    success: true,
+    count: insertedCourses.length,
+    courses: insertedCourses,
+  });
+});
 // ============================================================
 // GET all courses (with filters, pagination, counts)
 // ============================================================
 export const getCourses = catchAsyncErrors(async (req, res, next) => {
-  const { campus, selectedYear } = req.cookies;
+  // ✅ FIX: read the real "academicYear" cookie instead of the
+  // nonexistent "academicYear"
+  const { campus, academicYear } = req.cookies;
   const limit = Number(req.query.limit);
   const isDropdownRequest = limit === 0;
 
-  // campus & year filter (skip for dropdown)
   if (campus && !isDropdownRequest) req.query.campus = campus;
-  if (selectedYear && !isDropdownRequest) req.query.year = selectedYear;
+  if (academicYear && !isDropdownRequest) req.query.academicYear = academicYear;
 
   // status filter handling
   if (req.query.status) {
@@ -79,25 +155,26 @@ export const getCourses = catchAsyncErrors(async (req, res, next) => {
     .sort()
     .pagination();
 
-  // Populate only campus and teacher (grade removed)
-  const populateOptions = ["campus"];
+  // ✅ FIX: populate academicYear too. Teacher select fields fixed —
+  // User model has no `name` field (only firstName/middleName/lastName).
+  // ✅ ADDED: status field in teacher select for status badge in frontend
+  const populateOptions = ["campus", { path: "academicYear", select: "name" }];
 
-  // Teacher population
   if (req.query.teacher || (req.query.keyword && req.query.keyword.includes("teacher"))) {
     populateOptions.push({
       path: "teacher",
-      select: "name email phone department",
+      select: "firstName middleName lastName email phoneNumber status",  // status added
       populate: { path: "campus", select: "name" },
     });
   } else {
-    populateOptions.push({ path: "teacher", select: "name email" });
+    populateOptions.push({ path: "teacher", select: "firstName middleName lastName email status" }); // status added
   }
 
   // Students population (optional)
   if (req.query.populateStudents === "true") {
     populateOptions.push({
       path: "students",
-      select: "name email rollNumber", // removed grade from select
+      select: "firstName middleName lastName email",
     });
   }
 
@@ -113,10 +190,16 @@ export const getCourses = catchAsyncErrors(async (req, res, next) => {
         course.courseName?.toLowerCase().includes(keyword) ||
         course.code?.toLowerCase().includes(keyword) ||
         course.description?.toLowerCase().includes(keyword);
-      const teacherMatches = course.teacher && (
-        course.teacher.name?.toLowerCase().includes(keyword) ||
-        course.teacher.email?.toLowerCase().includes(keyword)
-      );
+
+      // ✅ FIX: build name from firstName/lastName instead of nonexistent .name
+      const teacherFullName = course.teacher
+        ? `${course.teacher.firstName || ""} ${course.teacher.lastName || ""}`.toLowerCase()
+        : "";
+      const teacherMatches =
+        course.teacher &&
+        (teacherFullName.includes(keyword) ||
+          course.teacher.email?.toLowerCase().includes(keyword));
+
       return courseMatches || teacherMatches;
     });
 
@@ -149,7 +232,7 @@ export const getCourses = catchAsyncErrors(async (req, res, next) => {
 });
 
 // ============================================================
-// UPDATE course  →  /api/v1/courses/:id
+// UPDATE course => /api/v1/admin/courses/:id
 // ============================================================
 export const updateCourse = catchAsyncErrors(async (req, res, next) => {
   let course = await Course.findById(req.params.id);
@@ -157,7 +240,8 @@ export const updateCourse = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Course not found", 404));
   }
 
-  const { campus, selectedYear } = req.cookies;
+  // ✅ FIX: real cookie name is "academicYear"
+  const { campus, academicYear } = req.cookies;
   const { courseName, description, code, teacher } = req.body;
 
   // Teacher handling
@@ -174,7 +258,6 @@ export const updateCourse = catchAsyncErrors(async (req, res, next) => {
     selectedCampus = campus;
   }
 
-  // Update course document – grade field removed entirely
   course = await Course.findByIdAndUpdate(
     req.params.id,
     {
@@ -183,16 +266,18 @@ export const updateCourse = catchAsyncErrors(async (req, res, next) => {
       code,
       teacher: teacherId,
       campus: selectedCampus,
-      year: selectedYear,
+      // ✅ FIX: keep the course's existing academicYear if the cookie is
+      // missing at update time, instead of overwriting it with undefined
+      academicYear: academicYear || course.academicYear,
     },
-    { new: true }
+    { new: true, runValidators: true }
   );
 
-  res.status(200).json({ course });
+  res.status(200).json({ success: true, course });
 });
 
 // ============================================================
-// DELETE course  →  /api/v1/courses/:id
+// DELETE course => /api/v1/admin/courses/:id
 // ============================================================
 export const deleteCourse = catchAsyncErrors(async (req, res, next) => {
   const course = await Course.findById(req.params.id);
@@ -200,32 +285,72 @@ export const deleteCourse = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Course not found", 404));
   }
 
-  // Grade reference removal no longer needed – removed
-
   await Course.findByIdAndDelete(req.params.id);
-  res.status(200).json({ message: "Course deleted successfully" });
+  res.status(200).json({ success: true, message: "Course deleted successfully" });
 });
 
 // ============================================================
-// GET single course details  →  /api/v1/courses/:id
+// GET single course details => /api/v1/courses/:id
 // ============================================================
 export const getCourseDetails = catchAsyncErrors(async (req, res, next) => {
+  // ✅ ADDED: status in teacher select
   const course = await Course.findById(req.params.id)
-    .populate("campus")
-    // .populate("grade", "gradeName level") → removed
-    .populate("teacher", "name email");
+    .populate("campus", "name")
+    .populate("academicYear", "name")
+    .populate("teacher", "firstName middleName lastName email avatar status");   // status added
 
   if (!course) {
     return next(new ErrorHandler("Course not found", 404));
   }
 
-  res.status(200).json({ course });
+  // Build a clean teacher object with a full name
+  let teacherData = null;
+  if (course.teacher) {
+    const { firstName, middleName, lastName, email, avatar, status } = course.teacher;
+    teacherData = {
+      _id: course.teacher._id,
+      name: [firstName, middleName, lastName].filter(Boolean).join(" "),
+      email,
+      avatar,
+      status,   // include status for details view
+    };
+  }
+
+  // Student count from enrollments (if you have an Enrollment model)
+  let studentCount = 0;
+  try {
+    studentCount = await Enrollment.countDocuments({
+      course: course._id,
+      status: "active",
+    });
+  } catch (err) {
+    // Enrollment model may not exist yet – keep 0
+  }
+
+  res.status(200).json({
+    success: true,
+    course: {
+      _id: course._id,
+      courseName: course.courseName,
+      description: course.description,
+      code: course.code,
+      campus: course.campus,
+      academicYear: course.academicYear,
+      academicYearName: course.academicYear?.name || "",
+      teacher: teacherData,
+      status: course.status ? "Active" : "Inactive",
+      createdAt: course.createdAt,
+      studentCount,
+    },
+  });
 });
+
 // ============================================================
 // GET courses by grade & teacher (teacher dashboard)
+// Unchanged logic — this endpoint never actually used `year`
 // ============================================================
 export const getCoursesByGradeAndTeacherID = catchAsyncErrors(async (req, res) => {
-  const { campus, year } = req.cookies;
+  const { campus } = req.cookies;
   const { gradeId, teacherId, userRole } = req.body;
 
   const grade = await Grade.findOne({

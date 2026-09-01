@@ -35,24 +35,25 @@ const AppSearchableDropdown = ({
     <div className="relative w-full" ref={wrapperRef}>
       {/* Dropdown Trigger */}
       <div
-        className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white cursor-pointer flex items-center justify-between hover:border-gray-400 transition-colors"
+        className={`w-full border rounded-xl px-4 py-2.5 bg-white cursor-pointer flex items-center justify-between transition-all
+          ${isOpen ? 'border-brand-500 ring-2 ring-brand-500/20' : 'border-surface-200 hover:border-surface-300'}`}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="text-sm text-gray-700 truncate">
+        <span className={`text-sm-custom truncate ${selectedOption ? 'text-ink-900' : 'text-ink-400'}`}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        <i className={`fa fa-chevron-${isOpen ? 'up' : 'down'} text-gray-400 text-xs`} />
+        <i className={`fa fa-chevron-${isOpen ? 'up' : 'down'} text-ink-400 text-xs transition-transform`} />
       </div>
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+        <div className="absolute z-20 mt-2 w-full bg-white border border-surface-100 rounded-xl shadow-premium max-h-60 overflow-auto animate-slide-up">
           {/* Search Input */}
           {searchable && (
-            <div className="sticky top-0 bg-white p-2 border-b border-gray-100">
+            <div className="sticky top-0 bg-white p-2 border-b border-surface-100">
               <input
                 type="text"
-                className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full px-3 py-1.5 text-sm-custom border border-surface-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
                 placeholder="Search..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -63,27 +64,34 @@ const AppSearchableDropdown = ({
 
           {/* Options */}
           {isLoading ? (
-            <div className="p-4 text-center text-sm text-gray-500">Loading...</div>
+            <div className="p-4 text-center text-sm-custom text-ink-400">
+              <i className="fa fa-spinner fa-spin mr-2"></i>Loading...
+            </div>
           ) : filteredOptions.length === 0 ? (
-            <div className="p-4 text-center text-sm text-gray-500">No options</div>
+            <div className="p-4 text-center text-sm-custom text-ink-400">No options</div>
           ) : (
-            filteredOptions.map((option) => (
-              <div
-                key={option.value}
-                className={`px-3 py-2 cursor-pointer hover:bg-gray-50 text-sm ${
-                  option.disabled ? 'opacity-50 pointer-events-none bg-gray-50' : ''
-                }`}
-                onClick={() => {
-                  if (!option.disabled) {
-                    onChange(option.value);
-                    setIsOpen(false);
-                    setSearch('');
-                  }
-                }}
-              >
-                {renderOption ? renderOption(option) : option.label}
-              </div>
-            ))
+            <div className="p-1.5">
+              {filteredOptions.map((option) => (
+                <div
+                  key={option.value}
+                  className={`px-3 py-2 mx-0.5 rounded-lg cursor-pointer text-sm-custom transition-colors
+                    ${option.disabled
+                      ? 'opacity-50 pointer-events-none text-ink-400'
+                      : option.value === value
+                        ? 'bg-brand-50 text-brand-700 font-semibold'
+                        : 'text-ink-700 hover:bg-surface-50'}`}
+                  onClick={() => {
+                    if (!option.disabled) {
+                      onChange(option.value);
+                      setIsOpen(false);
+                      setSearch('');
+                    }
+                  }}
+                >
+                  {renderOption ? renderOption(option) : option.label}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}
@@ -92,7 +100,7 @@ const AppSearchableDropdown = ({
       {clearable && value && (
         <button
           type="button"
-          className="absolute right-8 top-2 text-gray-400 hover:text-gray-600"
+          className="absolute right-9 top-2.5 text-ink-400 hover:text-ink-600 transition-colors"
           onClick={(e) => {
             e.stopPropagation();
             onChange('');

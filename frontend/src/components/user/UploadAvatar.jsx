@@ -5,6 +5,10 @@ import toast from "react-hot-toast";
 import { useSelector } from "react-redux";
 import MetaData from "../layout/MetaData";
 import UserLayout from "../GUI/UserLayout";
+import AppPageHeader from "../layout/AppPageHeader";
+import AppCard from "../GUI/AppCard";
+import AppButton from "../GUI/AppButton";
+import AvatarUpload from "../GUI/AvatarUpload";
 
 const UploadAvatar = () => {
   const { user } = useSelector((state) => state.auth);
@@ -25,20 +29,10 @@ const UploadAvatar = () => {
     }
 
     if (isSuccess) {
-      toast.success("Avatar Uploaded");
+      toast.success("Avatar Uploaded Successfully");
       navigate("/me/profile");
     }
-  }, [error, isSuccess]);
-
-  const submitHandler = (e) => {
-    e.preventDefault();
-
-    const userData = {
-      avatar,
-    };
-
-    uploadAvatar(userData);
-  };
+  }, [error, isSuccess, navigate]);
 
   const onChange = (e) => {
     const reader = new FileReader();
@@ -53,54 +47,47 @@ const UploadAvatar = () => {
     reader.readAsDataURL(e.target.files[0]);
   };
 
+  const submitHandler = (e) => {
+    e.preventDefault();
+    uploadAvatar({ avatar });
+  };
+
   return (
     <UserLayout>
       <MetaData title={"Upload Avatar"} />
-      <div className="flex justify-center items-center min-h-screen bg-gray-100">
-        <div className="w-full max-w-md bg-white shadow-lg rounded-lg p-6">
-          <form onSubmit={submitHandler} className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-700 text-center">Upload Avatar</h2>
 
-            <div className="flex items-center space-x-4">
-              <div className="w-24 h-24">
-                <img
-                  src={avatarPreview}
-                  className="w-full h-full object-cover rounded-full border"
-                  alt="Avatar Preview"
+      <div className="max-w-4xl mx-auto">
+        <AppPageHeader
+          title="Upload Avatar"
+          subtitle="Update your profile picture"
+          backUrl="/me/profile"
+        />
+
+        <form onSubmit={submitHandler}>
+          <AppCard
+            title="Profile Picture"
+            icon="fa-camera"
+            footer={
+              <div className="flex justify-end gap-2">
+                <AppButton backUrl="/me/profile" />
+                <AppButton
+                  type="submit"
+                  label="Upload"
+                  loadingLabel="Uploading..."
+                  isLoading={isLoading}
+                  icon="fa-upload"
                 />
               </div>
-              <div className="flex-1">
-                <label
-                  htmlFor="customFile"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Choose Avatar
-                </label>
-                <input
-                  type="file"
-                  name="avatar"
-                  id="customFile"
-                  accept="images/*"
-                  onChange={onChange}
-                  className="mt-1 block w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-full file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-indigo-50 file:text-indigo-700
-                    hover:file:bg-indigo-100"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-2 px-4 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1"
-              disabled={isLoading}
-            >
-              {isLoading ? "Uploading..." : "Upload"}
-            </button>
-          </form>
-        </div>
+            }
+          >
+            <AvatarUpload
+              preview={avatarPreview}
+              onChange={onChange}
+              title="Choose a new avatar"
+              subtitle="Max size 2MB"
+            />
+          </AppCard>
+        </form>
       </div>
     </UserLayout>
   );

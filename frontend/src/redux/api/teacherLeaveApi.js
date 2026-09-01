@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 export const teacherLeaveApi = createApi({
   reducerPath: "teacherLeaveApi",
   baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" }),
-  tagTypes: ["TeacherLeave", "AdminTeacherLeaves", "Reviews"],
+  tagTypes: ["TeacherLeave", "AdminTeacherLeaves", "Reviews", "TeacherLeaveBalance"],
   endpoints: (builder) => ({
     getTeacherLeaves: builder.query({
       query: (params) => ({
@@ -19,6 +19,16 @@ export const teacherLeaveApi = createApi({
       query: (id) => `/teacherleave/${id}`,
       providesTags: ["TeacherLeave"],
     }),
+    // ✅ NEW: allowance vs used vs remaining for a teacher (optionally for a given year)
+    getTeacherLeaveBalance: builder.query({
+      query: ({ teacherId, year } = {}) => ({
+        url: `/teacherleave/balance/${teacherId}`,
+        params: year ? { year } : undefined,
+      }),
+      providesTags: (result, error, { teacherId }) => [
+        { type: "TeacherLeaveBalance", id: teacherId },
+      ],
+    }),
     createTeacherLeave: builder.mutation({
       query(body) {
         return {
@@ -27,7 +37,10 @@ export const teacherLeaveApi = createApi({
           body,
         };
       },
-      invalidatesTags: ["AdminTeacherLeave"],
+      invalidatesTags: (result, error, body) => [
+        "AdminTeacherLeave",
+        { type: "TeacherLeaveBalance", id: body?.teacher },
+      ],
     }),
     updateTeacherLeave: builder.mutation({
       query({ id, body }) {
@@ -37,7 +50,7 @@ export const teacherLeaveApi = createApi({
           body,
         };
       },
-      invalidatesTags: ["TeacherLeave", "AdminTeacherLeave"],
+      invalidatesTags: ["TeacherLeave", "AdminTeacherLeave", "TeacherLeaveBalance"],
     }),
     deleteTeacherLeave: builder.mutation({
       query(id) {
@@ -46,7 +59,7 @@ export const teacherLeaveApi = createApi({
           method: "DELETE",
         };
       },
-      invalidatesTags: ["AdminTeacherLeave"],
+      invalidatesTags: ["AdminTeacherLeave", "TeacherLeaveBalance"],
     }),
   }),
 });
@@ -54,6 +67,7 @@ export const teacherLeaveApi = createApi({
 export const {
   useGetTeacherLeavesQuery,
   useGetTeacherLeaveDetailsQuery,
+  useGetTeacherLeaveBalanceQuery,
   useCreateTeacherLeaveMutation,
   useUpdateTeacherLeaveMutation,
   useDeleteTeacherLeaveMutation,

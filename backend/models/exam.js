@@ -1,126 +1,130 @@
+// models/exam.js
 import mongoose from "mongoose";
+
+const examMarkSchema = new mongoose.Schema(
+  {
+    student: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      validate: {
+        validator: async function (studentId) {
+          const user = await mongoose.model("User").findById(studentId);
+          return user && user.role === "student";
+        },
+        message: "The referenced user must be a student.",
+      },
+    },
+    // One entry per question — length must equal the exam's
+    // totalQuestions, each value capped at marksPerQuestion. Checked in
+    // the parent's pre-validate hook below.
+    answers: {
+      type: [Number],
+      default: [],
+    },
+  },
+  { _id: false }
+);
 
 const examSchema = new mongoose.Schema(
   {
-    semester: {
-      type: Number,
-      required: [true, "Please specify the semester"],
-      enum: [1, 2], // 1 year = 2 semesters
+    title: {
+      type: String,
+      required: [true, "Please enter a title for the exam"],
+      trim: true,
+      maxLength: [150, "Title cannot exceed 150 characters"],
     },
-    quarter: {
+    examNumber: {
       type: Number,
-      required: [true, "Please specify the quarter"],
-      enum: [1, 2], // Each semester has 2 quarters
+      required: [true, "Please specify the exam number"],
+      min: [1, "Exam number must be at least 1"],
     },
+    // ✅ NEW — the date the exam was actually conducted
+    date: {
+      type: Date,
+      required: [true, "Please enter the date the exam was conducted"],
+    },
+
     course: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Course",
       required: [true, "Please specify the associated course"],
     },
-    grade: {
+    classGroup: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Grade",
-      required: [true, "Please specify the associated grade"],
+      ref: "ClassGroup",
+      required: [true, "Please specify the associated class group"],
     },
-    user: {
+    teacher: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: [true, "Please specify the teacher responsible for this exam"],
       validate: {
         validator: async function (teacherId) {
-            const user = await mongoose.model("User").findById(teacherId);
-            return user && user.role === "teacher";
+          const user = await mongoose.model("User").findById(teacherId);
+          return user && user.role === "teacher";
         },
-        message: "The referenced user must be a teacher."
+        message: "The referenced user must be a teacher.",
+      },
     },
-    campus:{
+    campus: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Campus",
+      required: [true, "Campus is required"],
     },
-    year: {
-      type: Number,
-      required: [true, "Please enter course year"],
+    academicYear: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AcademicYear",
+      required: [true, "Academic year is required"],
     },
 
+    // ✅ FIX: previously hardcoded to exactly 10 questions with no upper
+    // cap on marks per question. Now fully teacher-configurable per exam,
+    // same as the Quiz module — one exam can have 10 questions, another
+    // 20 or 50, each worth however many marks the teacher decides.
+    totalQuestions: {
+      type: Number,
+      required: [true, "Please specify how many questions this exam has"],
+      min: [1, "An exam must have at least 1 question"],
+      max: [200, "An exam cannot exceed 200 questions"],
     },
-    marks: [
-      {
-        student: {
-          type: mongoose.Schema.Types.ObjectId,
-          required: true,
-          ref: "User",
-          validate: {
-            validator: async function (studentId) {
-                const user = await mongoose.model("User").findById(studentId);
-                return user && user.role === "student";
-            },
-            message: "The referenced user must be a student."
-        }
-        },
-        question1: {
-          type: Number,
-          required: true,
-          default: 0,
-          min: [0, "Marks cannot be less than 0"], // Each question is worth 2 marks
-        },
-        question2: {
-          type: Number,
-          required: true,
-          default: 0,
-          min: [0, "Marks cannot be less than 0"],
-        },
-        question3: {
-          type: Number,
-          required: true,
-          default: 0,
-          min: [0, "Marks cannot be less than 0"],
-        },
-        question4: {
-          type: Number,
-          required: true,
-          default: 0,
-          min: [0, "Marks cannot be less than 0"],
-        },
-        question5: {
-          type: Number,
-          required: true,
-          default: 0,
-          min: [0, "Marks cannot be less than 0"],
-        },
-        question6: {
-          type: Number,
-          required: true,
-          default: 0,
-          min: [0, "Marks cannot be less than 0"], 
-        },
-        question7: {
-          type: Number,
-          required: true,
-          default: 0,
-          min: [0, "Marks cannot be less than 0"],
-        },
-        question8: {
-          type: Number,
-          required: true,
-          default: 0,
-          min: [0, "Marks cannot be less than 0"],
-        },
-        question9: {
-          type: Number,
-          required: true,
-          default: 0,
-          min: [0, "Marks cannot be less than 0"],
-        },
-        question10: {
-          type: Number,
-          required: true,
-          default: 0,
-          min: [0, "Marks cannot be less than 0"],
-        },
-      },
-    ],
+    marksPerQuestion: {
+      type: Number,
+      required: [true, "Please specify how many marks each question is worth"],
+      min: [1, "Each question must be worth at least 1 mark"],
+    },
+
+    marks: [examMarkSchema],
   },
   { timestamps: true }
 );
+
+examSchema.virtual("totalMarks").get(function () {
+  return this.totalQuestions * this.marksPerQuestion;
+});
+examSchema.set("toJSON", { virtuals: true });
+examSchema.set("toObject", { virtuals: true });
+
+// One exam-number per class group + course + academic year.
+examSchema.index({ classGroup: 1, course: 1, examNumber: 1, academicYear: 1 }, { unique: true });
+examSchema.index({ teacher: 1, campus: 1, academicYear: 1 });
+
+examSchema.pre("validate", function (next) {
+  for (const mark of this.marks) {
+    if (mark.answers.length !== this.totalQuestions) {
+      return next(
+        new Error(
+          `Each student's answers must have exactly ${this.totalQuestions} entries (this exam has ${this.totalQuestions} questions)`
+        )
+      );
+    }
+    for (const a of mark.answers) {
+      if (a < 0 || a > this.marksPerQuestion) {
+        return next(new Error(`Each answer must be between 0 and ${this.marksPerQuestion} marks`));
+      }
+    }
+  }
+  next();
+});
 
 export default mongoose.model("Exam", examSchema);

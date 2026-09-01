@@ -6,11 +6,8 @@ import { useTranslation } from "react-i18next";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 
-// Redux
-import { useRegisterMutation } from "../../redux/api/authApi";
-import { useGetUserByTypeQuery } from "../../redux/api/authApi";
+import { useRegisterMutation, useGetUserByTypeQuery } from "../../redux/api/authApi";
 
-// Shared GUI Components
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 import AppPageHeader from "../layout/AppPageHeader";
@@ -21,19 +18,26 @@ import GenderRadio from "../GUI/GenderRadio";
 import NationalitySelect from "../GUI/NationalitySelect";
 import AvatarUpload from "../GUI/AvatarUpload";
 
+// ✅ User model has no `name` field — build from parts
+const getFullName = (user) => {
+  if (!user) return "";
+  const { firstName = "", middleName = "", lastName = "" } = user;
+  return `${firstName} ${middleName ? middleName + " " : ""}${lastName}`.trim();
+};
+
 const NewStudent = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { countries } = useCountries();
   const { refetch } = useGetUserByTypeQuery({ type: "student" });
 
-  // 学生状态（不含 status 字段）
   const [student, setStudent] = useState({
     role: "student",
     firstName: "",
     middleName: "",
     lastName: "",
-    age: "",
+    fatherName: "",       // ✅ added
+    motherName: "",       // ✅ added
     dateOfBirth: "",
     gender: "",
     nationality: "",
@@ -48,26 +52,17 @@ const NewStudent = () => {
     siblings: [],
   });
 
+  // ✅ age is display-only — NOT part of model, NOT sent to backend
+  const [ageDisplay, setAgeDisplay] = useState("");
   const [avatarPreview, setAvatarPreview] = useState("");
+
   const {
-    firstName,
-    middleName,
-    lastName,
-    age,
-    dateOfBirth,
-    gender,
-    nationality,
-    passportNumber,
-    nationalID,
-    phoneNumber,
-    secondaryPhoneNumber,
-    address,
-    email,
-    password,
-    siblings,
+    firstName, middleName, lastName, fatherName, motherName, // ✅ added
+    dateOfBirth, gender,
+    nationality, passportNumber, nationalID, phoneNumber,
+    secondaryPhoneNumber, address, email, password, siblings,
   } = student;
 
-  // 年龄计算
   const calculateAgeFromDOB = (dob) => {
     if (!dob) return "";
     const today = new Date();
@@ -80,7 +75,6 @@ const NewStudent = () => {
     return calculatedAge.toString();
   };
 
-  // 注册 mutation
   const [register, { isLoading, error, isSuccess }] = useRegisterMutation();
 
   useEffect(() => {
@@ -92,7 +86,6 @@ const NewStudent = () => {
     }
   }, [error, isSuccess, navigate, refetch, t]);
 
-  // 表单变更处理
   const onChange = (e) => {
     const { name, value, type, files } = e.target;
     if (name === "avatar") {
@@ -102,25 +95,19 @@ const NewStudent = () => {
       reader.onload = () => {
         if (reader.readyState === 2) {
           setAvatarPreview(reader.result);
-          setStudent({ ...student, avatar: reader.result });
+          setStudent((prev) => ({ ...prev, avatar: reader.result }));
         }
       };
       reader.readAsDataURL(file);
     } else if (name === "dateOfBirth") {
-      setStudent((prev) => ({
-        ...prev,
-        dateOfBirth: value,
-        age: calculateAgeFromDOB(value),
-      }));
+      setAgeDisplay(calculateAgeFromDOB(value));
+      setStudent((prev) => ({ ...prev, dateOfBirth: value }));
     } else {
-      setStudent({
-        ...student,
-        [name]: value,
-      });
+      setStudent((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  // 兄弟姐妹管理
+  // Sibling search
   const [siblingSearchTerm, setSiblingSearchTerm] = useState("");
   const [siblingSearchResults, setSiblingSearchResults] = useState([]);
 
@@ -133,7 +120,7 @@ const NewStudent = () => {
     if (siblingData?.users) {
       const alreadySelectedIds = new Set(siblings);
       const available = siblingData.users.filter(
-        (u) => !alreadySelectedIds.has(u._id) && u._id !== "current-student-id"
+        (u) => !alreadySelectedIds.has(u._id)
       );
       setSiblingSearchResults(available);
     } else {
@@ -141,15 +128,12 @@ const NewStudent = () => {
     }
   }, [siblingData, siblings]);
 
-  const addSibling = (studentId, studentName) => {
+  const addSibling = (studentId) => {
     if (siblings.includes(studentId)) {
       toast.error(t("Student already added as sibling"));
       return;
     }
-    setStudent((prev) => ({
-      ...prev,
-      siblings: [...prev.siblings, studentId],
-    }));
+    setStudent((prev) => ({ ...prev, siblings: [...prev.siblings, studentId] }));
     setSiblingSearchTerm("");
   };
 
@@ -160,25 +144,38 @@ const NewStudent = () => {
     }));
   };
 
-  // 提交处理：不发送 status 字段（后端会根据角色决定）
   const submitHandler = (e) => {
     e.preventDefault();
 
-    const submitData = {
+    // ✅ Validate all required fields per backend model
+    if (
+      !firstName.trim() ||
+      !lastName.trim() ||
+      !email.trim() ||
+      !password.trim() ||
+      !dateOfBirth ||
+      !gender ||
+      !nationality ||
+      !phoneNumber.trim()
+    ) {
+      return toast.error(t("Please fill all required fields"));
+    }
+
+    register({
       ...student,
+      // ✅ gender must be lowercase — model enum: "male"/"female"/"other"
+      gender: gender.toLowerCase(),
       phoneNumber: phoneNumber ? `+${phoneNumber}` : "",
       secondaryPhoneNumber: secondaryPhoneNumber ? `+${secondaryPhoneNumber}` : "",
-      age: undefined, // 仅用于UI显示
-    };
-
-    register(submitData);
+      // ✅ age excluded — not a model field
+    });
   };
 
   return (
     <AdminLayout>
       <MetaData title={t("New Student")} />
 
-      <div className="max-w-6xl mx-auto ">
+      <div className="max-w-6xl mx-auto">
         <AppPageHeader
           title={t("New Student")}
           subtitle={t("Enroll a new student to the academy")}
@@ -186,7 +183,7 @@ const NewStudent = () => {
         />
 
         <form onSubmit={submitHandler} className="space-y-6">
-          {/* 账户凭证卡片 */}
+          {/* ── Student Credentials ── */}
           <AppCard title={t("Student Credentials")} icon="fa-lock">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <AppInput
@@ -195,12 +192,14 @@ const NewStudent = () => {
                 value={firstName}
                 onChange={onChange}
                 required
+                maxLength={25}               
               />
               <AppInput
                 label={t("Middle Name")}
                 name="middleName"
                 value={middleName}
                 onChange={onChange}
+                maxLength={25}               
               />
               <AppInput
                 label={t("Last Name")}
@@ -208,8 +207,30 @@ const NewStudent = () => {
                 value={lastName}
                 onChange={onChange}
                 required
+                maxLength={50}               
               />
             </div>
+
+            {/* ✅ Parent Names */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <AppInput
+                label={t("Father Name")}
+                name="fatherName"
+                value={fatherName}
+                onChange={onChange}
+                maxLength={50}
+                placeholder={t("Optional")}
+              />
+              <AppInput
+                label={t("Mother Name")}
+                name="motherName"
+                value={motherName}
+                onChange={onChange}
+                maxLength={50}
+                placeholder={t("Optional")}
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
               <AppInput
                 label={t("Email Address")}
@@ -231,7 +252,7 @@ const NewStudent = () => {
             </div>
           </AppCard>
 
-          {/* 学术与个人信息卡片 */}
+          {/* ── Academic & Personal Details ── */}
           <AppCard
             title={t("Academic & Personal Details")}
             icon="fa-graduation-cap"
@@ -250,7 +271,6 @@ const NewStudent = () => {
           >
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <GenderRadio value={gender} onChange={onChange} />
-
               <AppInput
                 label={t("Date of Birth")}
                 type="date"
@@ -262,16 +282,14 @@ const NewStudent = () => {
                   .toISOString()
                   .split("T")[0]}
               />
-
+              {/* age display only */}
               <AppInput
                 label={t("Age")}
                 type="number"
-                name="age"
-                value={age}
+                value={ageDisplay}
                 readOnly
                 helperText={t("Auto-calculated")}
               />
-
               <NationalitySelect value={nationality} onChange={onChange} />
             </div>
 
@@ -281,31 +299,33 @@ const NewStudent = () => {
                 name="passportNumber"
                 value={passportNumber}
                 onChange={onChange}
-                placeholder={t("Min 8 characters")}
+                placeholder={t("Min 6 characters")}   
+                maxLength={20}                         
               />
               <AppInput
                 label={t("National ID")}
                 name="nationalID"
                 value={nationalID}
                 onChange={onChange}
-                placeholder={t("Min 11 Max 20 characters")}
+                placeholder={t("Min 11 Max 20 digits")}
+                maxLength={20}                      
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-semibold text-gray-500 uppercase">
-                  {t("Primary Contact")}
+                  {t("Primary Contact")} <span className="text-red-500">*</span>  
                 </label>
                 <PhoneInput
                   country={"tr"}
                   value={phoneNumber}
-                  onChange={(val) => setStudent({ ...student, phoneNumber: val })}
+                  onChange={(val) => setStudent((prev) => ({ ...prev, phoneNumber: val }))}
+                  inputProps={{ maxLength: 17 }}      
                   inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg"
                   containerClass="!w-full"
                 />
               </div>
-
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-semibold text-gray-500 uppercase">
                   {t("Emergency Contact")}
@@ -313,14 +333,15 @@ const NewStudent = () => {
                 <PhoneInput
                   country={"tr"}
                   value={secondaryPhoneNumber}
-                  onChange={(val) => setStudent({ ...student, secondaryPhoneNumber: val })}
+                  onChange={(val) => setStudent((prev) => ({ ...prev, secondaryPhoneNumber: val }))}
+                  inputProps={{ maxLength: 17 }}     
                   inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg"
                   containerClass="!w-full"
                 />
               </div>
             </div>
 
-            {/* 兄弟姐妹部分 */}
+            {/* Siblings */}
             <div className="mt-6 border-t pt-4">
               <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <i className="fa fa-users text-gray-400"></i>
@@ -347,9 +368,9 @@ const NewStudent = () => {
                     <li
                       key={s._id}
                       className="px-3 py-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center text-sm"
-                      onClick={() => addSibling(s._id, s.name)}
+                      onClick={() => addSibling(s._id)}
                     >
-                      <span>{s.name}</span>
+                      <span>{getFullName(s)}</span>
                       <span className="text-gray-400 text-xs">{s.email}</span>
                     </li>
                   ))}
@@ -365,7 +386,7 @@ const NewStudent = () => {
                         key={id}
                         className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
                       >
-                        {sibling?.name || id}
+                        {sibling ? getFullName(sibling) : id}
                         <button
                           type="button"
                           onClick={() => removeSibling(id)}
@@ -380,23 +401,9 @@ const NewStudent = () => {
               )}
             </div>
 
-            {/* 头像与地址 */}
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              <AvatarUpload
-                preview={avatarPreview}
-                onChange={onChange}
-                title={t("Student Picture")}
-                subtitle={t("Max size 2MB")}
-              />
-
-              <AppInput
-                label={t("Residential Address")}
-                name="address"
-                value={address}
-                onChange={onChange}
-                type="textarea"
-                rows={2}
-              />
+              <AvatarUpload preview={avatarPreview} onChange={onChange} title={t("Student Picture")} subtitle={t("Max size 2MB")} />
+              <AppInput label={t("Residential Address")} name="address" value={address} onChange={onChange} type="textarea" rows={2} />
             </div>
           </AppCard>
         </form>

@@ -19,6 +19,11 @@ const weekDaySchema = new mongoose.Schema(
       ref: "Campus",
       required: true,
     },
+    academicYear: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AcademicYear",
+      required: true,
+    },
     isWorkingDay: {
       type: Boolean,
       default: true,

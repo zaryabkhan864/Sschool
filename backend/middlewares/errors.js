@@ -13,14 +13,26 @@ export default (err, req, res, next) => {
   }
 
   // Handle Validation Error
-  if (err.name === "ValidationError") {
-    const message = Object.values(err.errors).map((value) => value.message);
+  if (err.name === "ValidationError" && err.errors) {
+    const message = Object.values(err.errors)
+      .map((value) => value.message)
+      .join(", ");
     error = new ErrorHandler(message, 400);
   }
 
   // Handle Mongoose Duplicate Key Error
-  if (err.code === 11000) {
-    const message = `Duplicate ${Object.keys(err.keyValue)} entered.`;
+  // (also covers bulk insertMany errors, whose shape differs from single-doc errors)
+  if (err.code === 11000 || err.name === "MongoBulkWriteError") {
+    const keyValue =
+      err.keyValue ||
+      err.writeErrors?.[0]?.err?.keyValue ||
+      err.writeErrors?.[0]?.keyValue ||
+      err.result?.result?.writeErrors?.[0]?.err?.keyValue;
+
+    const message = keyValue
+      ? `Duplicate ${Object.keys(keyValue).join(", ")} entered.`
+      : "Duplicate value entered.";
+
     error = new ErrorHandler(message, 400);
   }
 

@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { useCountries } from "react-countries";
+import React, { useEffect, useState, useMemo } from "react";
+
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -7,9 +7,7 @@ import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 
 // Redux
-import { useRegisterMutation } from "../../redux/api/authApi";
-import { useGetUserByTypeQuery } from "../../redux/api/authApi";
-import { useGetGradesQuery } from "../../redux/api/gradesApi";
+import { useRegisterMutation, useGetUserByTypeQuery } from "../../redux/api/authApi";
 
 // Shared GUI Components
 import AdminLayout from "../layout/AdminLayout";
@@ -23,21 +21,26 @@ import NationalitySelect from "../GUI/NationalitySelect";
 import AvatarUpload from "../GUI/AvatarUpload";
 import SearchableDropdown from "../layout/SearchableDropdown";
 
+// ✅ User model has no `name` field — build from parts
+const getFullName = (user) => {
+  if (!user) return "";
+  const { firstName = "", middleName = "", lastName = "" } = user;
+  return `${firstName} ${middleName ? middleName + " " : ""}${lastName}`.trim();
+};
+
 const Register = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { countries } = useCountries();
   const { refetch } = useGetUserByTypeQuery({ type: "user" });
 
-  // Grade search state
-  const [gradeSearchTerm, setGradeSearchTerm] = useState("");
-  const [gradePage, setGradePage] = useState(1);
-  const [gradesList, setGradesList] = useState([]);
-  const [hasMore, setHasMore] = useState(true);
+  // Role search state
+  const [roleSearchTerm, setRoleSearchTerm] = useState("");
 
   const [user, setUser] = useState({
     role: "user",
-    name: "",
+    firstName: "",
+    middleName: "",
+    lastName: "",
     age: "",
     gender: "",
     nationality: "",
@@ -47,17 +50,19 @@ const Register = () => {
     address: "",
     grade: "",
     dateOfBirth: "",
-    status: true,
+    accountStatus: "active",
     email: "",
     password: "",
     avatar: "",
-    siblings: [], // will hold array of student IDs
+    siblings: [],
   });
 
   const [avatarPreview, setAvatarPreview] = useState("");
   const {
     role,
-    name,
+    firstName,
+    middleName,
+    lastName,
     age,
     gender,
     nationality,
@@ -67,27 +72,13 @@ const Register = () => {
     address,
     grade,
     dateOfBirth,
-    status,
+    accountStatus,
     email,
     password,
     siblings,
   } = user;
 
   const [register, { isLoading, error, isSuccess }] = useRegisterMutation();
-
-  // Grade fetch query
-  const {
-    data: gradesData,
-    isFetching: gradeLoading,
-    error: gradeError,
-  } = useGetGradesQuery(
-    {
-      page: gradePage,
-      limit: 10,
-      keyword: gradeSearchTerm,
-    }
-    // No skip – we want data ready when dropdown opens
-  );
 
   // Age calculation
   const calculateAgeFromDOB = (dob) => {
@@ -112,41 +103,29 @@ const Register = () => {
     }));
   };
 
-  // Handle age manual override
+  // Handle age manual override (though age is readOnly)
   const handleAgeChange = (e) => {
     setUser({ ...user, age: e.target.value });
   };
 
-  // Sync grades list when data arrives
-  useEffect(() => {
-    if (gradesData?.grades) {
-      const newGrades = gradesData.grades;
-      setGradesList((prev) => (gradePage === 1 ? newGrades : [...prev, ...newGrades]));
-      setHasMore(newGrades.length === 10);
+  // Handle role change
+  const handleRoleChange = (selectedValue) => {
+    if (selectedValue !== "student") {
+      setUser((prev) => ({ ...prev, role: selectedValue, siblings: [] }));
+    } else {
+      setUser((prev) => ({ ...prev, role: selectedValue }));
     }
-  }, [gradesData, gradePage]);
-
-  // Handle search/scroll from SearchableDropdown
-  const handleGradeSearch = useCallback((searchValue, page) => {
-    setGradeSearchTerm(searchValue);
-    setGradePage(page);
-    if (page === 1) {
-      setGradesList([]); // clear old results for new search
-    }
-  }, []);
+  };
 
   // Handle success/error
   useEffect(() => {
-    if (error) toast.error(error?.data?.message);
+    if (error) toast.error(error?.data?.message || t("Error creating user"));
     if (isSuccess) {
       toast.success(t("User Created Successfully"));
       navigate("/admin/users");
       refetch();
     }
-    if (gradeError) {
-      toast.error("Failed to load grades");
-    }
-  }, [error, isSuccess, navigate, refetch, t, gradeError]);
+  }, [error, isSuccess, navigate, refetch, t]);
 
   // General onChange handler
   const onChange = (e) => {
@@ -163,17 +142,13 @@ const Register = () => {
         }
       };
       reader.readAsDataURL(file);
-    } else if (name === "status") {
-      setUser({ ...user, [name]: value === "true" });
+    } else if (name === "accountStatus") {
+      setUser({ ...user, accountStatus: value });
     } else if (name === "age") {
       handleAgeChange(e);
-    } else if (name === "role") {
-      // When role changes to non-student, clear siblings
-      if (value !== "student") {
-        setUser((prev) => ({ ...prev, role: value, siblings: [] }));
-      } else {
-        setUser((prev) => ({ ...prev, role: value }));
-      }
+    } else if (name === "passportNumber") {
+      // Auto-uppercase to match backend
+      setUser({ ...user, passportNumber: value.toUpperCase() });
     } else {
       setUser({ ...user, [name]: value });
     }
@@ -191,17 +166,15 @@ const Register = () => {
     return minDate.toISOString().split("T")[0];
   };
 
-  // ------------------ Siblings management ------------------
+  // ------------------ Siblings management (still present, but unreachable) ------------------
   const [siblingSearchTerm, setSiblingSearchTerm] = useState("");
   const [siblingSearchResults, setSiblingSearchResults] = useState([]);
 
-  // Fetch students for sibling search (role=student, dropdown=true)
   const { data: siblingData, isFetching: siblingLoading } = useGetUserByTypeQuery(
     { type: "student", keyword: siblingSearchTerm, dropdown: true },
-    { skip: siblingSearchTerm.length < 2 || role !== "student" } // only search when role is student and at least 2 chars
+    { skip: siblingSearchTerm.length < 2 || role !== "student" }
   );
 
-  // Update results when data arrives
   useEffect(() => {
     if (siblingData?.users) {
       const alreadySelectedIds = new Set(siblings);
@@ -212,8 +185,7 @@ const Register = () => {
     }
   }, [siblingData, siblings]);
 
-  // Add a sibling
-  const addSibling = (studentId, studentName) => {
+  const addSibling = (studentId) => {
     if (siblings.includes(studentId)) {
       toast.error(t("Student already added as sibling"));
       return;
@@ -222,10 +194,9 @@ const Register = () => {
       ...prev,
       siblings: [...prev.siblings, studentId],
     }));
-    setSiblingSearchTerm(""); // clear search after adding
+    setSiblingSearchTerm("");
   };
 
-  // Remove a sibling
   const removeSibling = (studentId) => {
     setUser((prev) => ({
       ...prev,
@@ -233,53 +204,83 @@ const Register = () => {
     }));
   };
 
-  // Submit handler
+  // Submit handler with full validation
   const submitHandler = (e) => {
     e.preventDefault();
 
-    if (!name.trim()) {
-      toast.error("User name is required");
-      return;
-    }
-    if (!email.trim()) {
-      toast.error("Email is required");
-      return;
-    }
-    if (!password.trim()) {
-      toast.error("Password is required");
-      return;
-    }
-    if (!role) {
-      toast.error("Please select a role");
-      return;
+    // Trim strings for accurate checking
+    const trimmedFirstName = firstName.trim();
+    const trimmedLastName = lastName.trim();
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+
+    // Required field checks (same style as NewTeacher)
+    if (
+      !trimmedFirstName ||
+      !trimmedLastName ||
+      !trimmedEmail ||
+      !trimmedPassword ||
+      !dateOfBirth ||
+      !gender ||
+      !phoneNumber ||
+      phoneNumber === "+"  // PhoneInput may leave just a +
+    ) {
+      return toast.error(t("Please fill all required fields"));
     }
 
+    // Updated passport validation: backend uses min 6, max 20 alphanumeric
+    if (passportNumber && !/^[a-zA-Z0-9]{6,20}$/.test(passportNumber)) {
+      return toast.error(t("Passport number must be 6-20 alphanumeric characters"));
+    }
+
+    // Role is required
+    if (!role) {
+      return toast.error(t("Please select a role"));
+    }
+
+    // Build final user data
     const userData = {
       ...user,
-      phoneNumber: phoneNumber ? `+${phoneNumber}` : "",
-      secondaryPhoneNumber: secondaryPhoneNumber ? `+${secondaryPhoneNumber}` : "",
+      firstName: trimmedFirstName,
+      lastName: trimmedLastName,
+      email: trimmedEmail,
+      password: trimmedPassword,
+      gender: gender.toLowerCase(),
+      phoneNumber: phoneNumber,                // PhoneInput already includes +
+      secondaryPhoneNumber: secondaryPhoneNumber || "",
       age: age || calculateAgeFromDOB(dateOfBirth),
-      // siblings is already in user, will be sent only if role === "student"
+      accountStatus,
+      passportNumber: passportNumber.trim().toUpperCase(),
     };
 
     register(userData);
   };
 
-  // Prepare options for SearchableDropdown
-  const gradeOptions = useMemo(
-    () =>
-      gradesList.map((g) => ({
-        value: g._id || g.id,
-        label: g.gradeName || g.name,
-      })),
-    [gradesList]
+  // Role options – Student and Teacher removed
+  const roleOptions = useMemo(
+    () => [
+      { value: "user", label: t("User") },
+      { value: "admin", label: t("Admin") },
+      { value: "finance", label: t("Finance") },
+      { value: "principle", label: t("Principle") },
+      { value: "counselor", label: t("Counselor") },
+    ],
+    [t]
   );
+
+  // Filter role options based on search term
+  const filteredRoleOptions = useMemo(() => {
+    if (!roleSearchTerm.trim()) return roleOptions;
+    return roleOptions.filter((opt) =>
+      opt.label.toLowerCase().includes(roleSearchTerm.toLowerCase())
+    );
+  }, [roleOptions, roleSearchTerm]);
 
   return (
     <AdminLayout>
       <MetaData title={t("New User")} />
 
-      <div className="max-w-6xl mx-auto py-4 px-4">
+      <div className="max-w-6xl mx-auto">
         <AppPageHeader
           title={t("New User")}
           subtitle={t("Create a new user account")}
@@ -289,14 +290,33 @@ const Register = () => {
         <form onSubmit={submitHandler} className="space-y-6">
           {/* Section 1: Account Credentials */}
           <AppCard title={t("Account Credentials")} icon="fa-lock">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <AppInput
-                label={t("Full Name")}
-                name="name"
-                value={name}
+                label={t("First Name")}
+                name="firstName"
+                value={firstName}
                 onChange={onChange}
                 required
+                maxLength={25}
               />
+              <AppInput
+                label={t("Middle Name")}
+                name="middleName"
+                value={middleName}
+                onChange={onChange}
+                maxLength={25}
+              />
+              <AppInput
+                label={t("Last Name")}
+                name="lastName"
+                value={lastName}
+                onChange={onChange}
+                required
+                maxLength={50}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
               <AppInput
                 label={t("Email Address")}
                 type="email"
@@ -314,27 +334,20 @@ const Register = () => {
                 required
                 minLength="6"
               />
-              <div>
-                <label className="block text-[11px] font-semibold text-gray-500 uppercase mb-1">
-                  {t("Role")} *
-                </label>
-                <select
-                  name="role"
-                  value={role}
-                  onChange={onChange}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-white"
-                  required
-                >
-                  <option value="">Select Role</option>
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                  <option value="teacher">Teacher</option>
-                  <option value="student">Student</option>
-                  <option value="finance">Finance</option>
-                  <option value="principle">Principle</option>
-                  <option value="counsellor">Counsellor</option>
-                </select>
-              </div>
+
+              {/* Role Select - using SearchableDropdown */}
+              <SearchableDropdown
+                label={t("Role")}
+                placeholder={t("Select Role")}
+                value={role}
+                onChange={handleRoleChange}
+                onSearch={(searchValue) => setRoleSearchTerm(searchValue)}
+                options={filteredRoleOptions}
+                isLoading={false}
+                hasMore={false}
+                emptyMessage={t("No role found")}
+                loadingMessage=""
+              />
             </div>
           </AppCard>
 
@@ -347,8 +360,8 @@ const Register = () => {
                 <AppButton backUrl="/admin/users" />
                 <AppButton
                   type="submit"
-                  label="Create User"
-                  loadingLabel="Creating..."
+                  label={t("Create User")}
+                  loadingLabel={t("Creating...")}
                   isLoading={isLoading}
                   icon="fa-user-plus"
                 />
@@ -368,7 +381,7 @@ const Register = () => {
                 required
                 max={getMaxDate()}
                 min={getMinDate()}
-                helperText="Must be at least 5 years old"
+                helperText={t("Must be at least 5 years old")}
               />
 
               <AppInput
@@ -379,47 +392,36 @@ const Register = () => {
                 onChange={onChange}
                 min="5"
                 max="100"
-                helperText="Auto-calculated"
+                helperText={t("Auto-calculated")}
+                readOnly
               />
 
               <NationalitySelect value={nationality} onChange={onChange} />
             </div>
 
-            {/* Row 2: Grade, Passport, Primary Contact, Emergency Contact */}
+            {/* Row 2: Passport, Primary Contact, Emergency Contact */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-              <SearchableDropdown
-                label={t("Grade")}
-                placeholder="Search grade..."
-                value={grade}
-                onChange={(selectedValue) => setUser({ ...user, grade: selectedValue })}
-                onSearch={handleGradeSearch}
-                options={gradeOptions}
-                isLoading={gradeLoading}
-                hasMore={hasMore}
-                emptyMessage={t("No results found")}
-                loadingMessage={t("Loading...")}
-              />
-
               <AppInput
                 label={t("Passport No")}
                 name="passportNumber"
                 value={passportNumber}
                 onChange={onChange}
-                placeholder="Min 8 characters"
-                pattern="[a-zA-z0-9]{8,14}"
-                minLength="8"
-                maxLength="14"
+                placeholder={t("Min 6 characters")}
+                pattern="[a-zA-Z0-9]{6,20}"
+                minLength="6"
+                maxLength="20"
               />
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-semibold text-gray-500 uppercase">
-                  {t("Primary Contact")}
+                  {t("Primary Contact")} <span className="text-red-500">*</span>
                 </label>
                 <PhoneInput
                   country={"tr"}
                   value={phoneNumber}
                   onChange={(val) => setUser({ ...user, phoneNumber: val })}
-                  inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg"
+                  inputProps={{ maxLength: 17 }}
+                  inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg focus:!border-brand-500 focus:!ring-2 focus:!ring-brand-500/20 focus:!shadow-none"
                   containerClass="!w-full"
                 />
               </div>
@@ -432,13 +434,14 @@ const Register = () => {
                   country={"tr"}
                   value={secondaryPhoneNumber}
                   onChange={(val) => setUser({ ...user, secondaryPhoneNumber: val })}
-                  inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg"
+                  inputProps={{ maxLength: 17 }}
+                  inputClass="!w-full !h-[38px] !text-sm !border-gray-300 !rounded-lg focus:!border-brand-500 focus:!ring-2 focus:!ring-brand-500/20 focus:!shadow-none"
                   containerClass="!w-full"
                 />
               </div>
             </div>
 
-            {/* Siblings Section (only for students) */}
+            {/* Siblings Section (only for students) – unreachable because student role removed */}
             {role === "student" && (
               <div className="mt-6 border-t pt-4">
                 <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
@@ -446,7 +449,6 @@ const Register = () => {
                   {t("Siblings (Optional)")}
                 </h3>
 
-                {/* Search Input */}
                 <div className="relative">
                   <AppInput
                     label={t("Search for a student")}
@@ -461,23 +463,21 @@ const Register = () => {
                   )}
                 </div>
 
-                {/* Search Results Dropdown */}
                 {siblingSearchTerm.length >= 2 && siblingSearchResults.length > 0 && (
                   <ul className="mt-1 border border-gray-200 rounded-md max-h-40 overflow-y-auto shadow-sm">
                     {siblingSearchResults.map((s) => (
                       <li
                         key={s._id}
                         className="px-3 py-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center text-sm"
-                        onClick={() => addSibling(s._id, s.name)}
+                        onClick={() => addSibling(s._id)}
                       >
-                        <span>{s.name}</span>
+                        <span>{getFullName(s)}</span>
                         <span className="text-gray-400 text-xs">{s.email}</span>
                       </li>
                     ))}
                   </ul>
                 )}
 
-                {/* Selected Siblings Chips */}
                 {siblings.length > 0 && (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {siblings.map((id) => {
@@ -487,7 +487,7 @@ const Register = () => {
                           key={id}
                           className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
                         >
-                          {sibling?.name || id}
+                          {sibling ? getFullName(sibling) : id}
                           <button
                             type="button"
                             onClick={() => removeSibling(id)}
@@ -521,32 +521,33 @@ const Register = () => {
                 rows={2}
               />
 
-              <div>
-                <label className="block text-[11px] font-semibold text-gray-500 uppercase mb-1">
+              {/* Status Radio - using accountStatus */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">
                   {t("Status")}
                 </label>
-                <div className="flex items-center gap-4 mt-1">
-                  <label className="flex items-center gap-1.5">
+                <div className="flex gap-4 mt-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
-                      name="status"
-                      value="true"
-                      checked={status === true || status === "true"}
+                      name="accountStatus"
+                      value="active"
+                      checked={accountStatus === "active"}
                       onChange={onChange}
-                      className="w-3.5 h-3.5 text-green-600"
+                      className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
                     />
-                    <span className="text-xs text-gray-700">Active</span>
+                    <span className="text-sm text-gray-700">{t("Active")}</span>
                   </label>
-                  <label className="flex items-center gap-1.5">
+                  <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
-                      name="status"
-                      value="false"
-                      checked={status === false || status === "false"}
+                      name="accountStatus"
+                      value="inactive"
+                      checked={accountStatus === "inactive"}
                       onChange={onChange}
-                      className="w-3.5 h-3.5 text-red-600"
+                      className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
                     />
-                    <span className="text-xs text-gray-700">Inactive</span>
+                    <span className="text-sm text-gray-700">{t("Inactive")}</span>
                   </label>
                 </div>
               </div>

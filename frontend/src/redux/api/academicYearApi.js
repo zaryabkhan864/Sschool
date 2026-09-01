@@ -4,11 +4,12 @@ export const academicYearApi = createApi({
   reducerPath: "academicYearApi",
   baseQuery: fetchBaseQuery({
     baseUrl: "/api/v1",
-    credentials: "include", // ✅ ensure cookies are sent
+    credentials: "include",
   }),
   tagTypes: ["AcademicYear"],
 
   endpoints: (builder) => ({
+    // GET ALL
     getAcademicYears: builder.query({
       query: (params = {}) => {
         const queryParams = {
@@ -26,19 +27,16 @@ export const academicYearApi = createApi({
           params: queryParams,
         };
       },
-      transformResponse: (response) => response,
       providesTags: (result) =>
         result?.academicYears
           ? [
-              ...result.academicYears.map(({ _id }) => ({
-                type: "AcademicYear",
-                id: _id,
-              })),
+              ...result.academicYears.map(({ _id }) => ({ type: "AcademicYear", id: _id })),
               { type: "AcademicYear", id: "LIST" },
             ]
           : [{ type: "AcademicYear", id: "LIST" }],
     }),
 
+    // GET LIST (for dropdowns)
     getAcademicYearsList: builder.query({
       query: (params = {}) => {
         const queryParams = {
@@ -55,24 +53,22 @@ export const academicYearApi = createApi({
           params: queryParams,
         };
       },
-      transformResponse: (response) => response,
       providesTags: (result) =>
         result?.academicYears
           ? [
-              ...result.academicYears.map(({ _id }) => ({
-                type: "AcademicYear",
-                id: _id,
-              })),
+              ...result.academicYears.map(({ _id }) => ({ type: "AcademicYear", id: _id })),
               { type: "AcademicYear", id: "LIST" },
             ]
           : [{ type: "AcademicYear", id: "LIST" }],
     }),
 
+    // GET ONE
     getAcademicYearDetails: builder.query({
       query: (id) => `/academic-years/${id}`,
       providesTags: (result, error, id) => [{ type: "AcademicYear", id }],
     }),
 
+    // CREATE
     createAcademicYear: builder.mutation({
       query: (body) => ({
         url: "/admin/academic-years",
@@ -82,6 +78,7 @@ export const academicYearApi = createApi({
       invalidatesTags: [{ type: "AcademicYear", id: "LIST" }],
     }),
 
+    // UPDATE
     updateAcademicYear: builder.mutation({
       query: ({ id, ...body }) => ({
         url: `/admin/academic-years/${id}`,
@@ -94,6 +91,7 @@ export const academicYearApi = createApi({
       ],
     }),
 
+    // DELETE
     deleteAcademicYear: builder.mutation({
       query: (id) => ({
         url: `/admin/academic-years/${id}`,

@@ -3,7 +3,7 @@ import ErrorHandler from "../utils/errorHandler.js";
 import APIFilters from "../utils/apiFilters.js";
 import AcademicYear from "../models/academicYear.js";
 
-// ✅ Helper: get campus from cookie
+// Helper: get campus from cookie
 const getCampusFilter = (req) => {
   const campus = req.cookies?.campus;
   if (!campus) {
@@ -12,14 +12,12 @@ const getCampusFilter = (req) => {
   return campus;
 };
 
-// ============================================================
-// CREATE academic year
-// ============================================================
+// Create academic year => /api/v1/admin/academic-years
 export const createAcademicYear = catchAsyncErrors(async (req, res, next) => {
   const campus = getCampusFilter(req);
   const { name, startDate, endDate, isCurrent } = req.body;
 
-  // campus sirf cookie se hi liya jaata hai, req.body mein se nahi
+  // campus is only taken from cookie, never from req.body
   const year = await AcademicYear.create({
     name,
     startDate,
@@ -34,14 +32,11 @@ export const createAcademicYear = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
-// ============================================================
-// GET all academic years (scoped to campus)
-// ============================================================
+// Get all academic years (scoped to campus) => /api/v1/academic-years
 export const getAcademicYears = catchAsyncErrors(async (req, res, next) => {
   const campus = getCampusFilter(req);
   req.query.campus = campus;
 
-  // ✅ Default sort by name ascending if not provided
   if (!req.query.sort) {
     req.query.sort = "name";
   }
@@ -55,20 +50,15 @@ export const getAcademicYears = catchAsyncErrors(async (req, res, next) => {
     .search()
     .filters()
     .sort();
+
   const baseQuery = baseApiFilters.query;
   const total = await AcademicYear.countDocuments(baseQuery._conditions);
 
-  // Current/not current counts
-  let current = 0, notCurrent = 0;
+  let current = 0;
+  let notCurrent = 0;
   try {
-    current = await AcademicYear.countDocuments({
-      ...baseQuery._conditions,
-      isCurrent: true,
-    });
-    notCurrent = await AcademicYear.countDocuments({
-      ...baseQuery._conditions,
-      isCurrent: false,
-    });
+    current = await AcademicYear.countDocuments({ ...baseQuery._conditions, isCurrent: true });
+    notCurrent = await AcademicYear.countDocuments({ ...baseQuery._conditions, isCurrent: false });
   } catch (error) {
     current = total;
     notCurrent = 0;
@@ -83,12 +73,11 @@ export const getAcademicYears = catchAsyncErrors(async (req, res, next) => {
     .pagination();
 
   const years = await apiFilters.query;
-  // no manual keyword filter needed, APIFilters.search() handles it
 
   let pagination = null;
   if (apiFilters.shouldPaginate) {
     pagination = {
-      total: years.length, // ✅ ab finalYears ki jagah years use kiya
+      total: years.length,
       page: apiFilters.page,
       limit: apiFilters.limit,
       totalPages: Math.ceil(total / apiFilters.limit),
@@ -105,9 +94,26 @@ export const getAcademicYears = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
-// ============================================================
-// UPDATE academic year
-// ============================================================
+// Get single academic year => /api/v1/academic-years/:id
+export const getAcademicYearDetails = catchAsyncErrors(async (req, res, next) => {
+  const campus = getCampusFilter(req);
+
+  const academicYear = await AcademicYear.findById(req.params.id);
+  if (!academicYear) {
+    return next(new ErrorHandler("Academic year not found", 404));
+  }
+
+  if (academicYear.campus.toString() !== campus.toString()) {
+    return next(new ErrorHandler("Not authorised to view this academic year", 403));
+  }
+
+  res.status(200).json({
+    success: true,
+    academicYear,
+  });
+});
+
+// Update academic year => /api/v1/admin/academic-years/:id
 export const updateAcademicYear = catchAsyncErrors(async (req, res, next) => {
   const campus = getCampusFilter(req);
 
@@ -127,7 +133,7 @@ export const updateAcademicYear = catchAsyncErrors(async (req, res, next) => {
   academicYear.endDate = endDate ?? academicYear.endDate;
   academicYear.isCurrent = isCurrent ?? academicYear.isCurrent;
 
-  await academicYear.save(); // pre-save hook will handle current year logic
+  await academicYear.save(); // pre-save hook handles current year logic
 
   res.status(200).json({
     success: true,
@@ -135,9 +141,7 @@ export const updateAcademicYear = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
-// ============================================================
-// DELETE academic year
-// ============================================================
+// Delete academic year => /api/v1/admin/academic-years/:id
 export const deleteAcademicYear = catchAsyncErrors(async (req, res, next) => {
   const campus = getCampusFilter(req);
 
@@ -162,30 +166,7 @@ export const deleteAcademicYear = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
-// ============================================================
-// GET single academic year details
-// ============================================================
-export const getAcademicYearDetails = catchAsyncErrors(async (req, res, next) => {
-  const campus = getCampusFilter(req);
-
-  const academicYear = await AcademicYear.findById(req.params.id);
-  if (!academicYear) {
-    return next(new ErrorHandler("Academic year not found", 404));
-  }
-
-  if (academicYear.campus.toString() !== campus.toString()) {
-    return next(new ErrorHandler("Not authorised to view this academic year", 403));
-  }
-
-  res.status(200).json({
-    success: true,
-    academicYear,
-  });
-});
-
-// ============================================================
-// GET academic years list (for dropdowns, scoped to campus)
-// ============================================================
+// Get academic years list for dropdowns => /api/v1/academic-years/list
 export const getAcademicYearsList = catchAsyncErrors(async (req, res, next) => {
   const campus = getCampusFilter(req);
   const limit = parseInt(req.query.limit) || 10;
@@ -198,7 +179,7 @@ export const getAcademicYearsList = catchAsyncErrors(async (req, res, next) => {
     .filters()
     .sort();
 
-  let years = await apiFilters.query.limit(limit);
+  const years = await apiFilters.query.limit(limit);
 
   res.status(200).json({
     success: true,

@@ -9,27 +9,28 @@ const FilterDropdown = ({ limit, onLimitChange, onReset, children }) => {
     <div className="relative">
       <button
         onClick={() => setShowFilters(!showFilters)}
-        className="px-4 py-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 flex items-center gap-2"
+        type="button"
+        className="px-4 py-2.5 text-sm-custom border border-surface-200 rounded-xl bg-white hover:bg-surface-50 flex items-center gap-2 transition-all"
       >
-        <i className="fa fa-sliders-h"></i>
-        <span>{t('Filters')}</span>
-        <i className={`fa fa-chevron-${showFilters ? 'up' : 'down'} text-sm`}></i>
+        <i className="fa fa-sliders-h text-ink-400"></i>
+        <span className="font-medium text-ink-700">{t('Filters')}</span>
+        <i className={`fa fa-chevron-${showFilters ? 'up' : 'down'} text-xs text-ink-400 transition-transform`}></i>
       </button>
 
       {showFilters && (
-        <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-10 p-4">
+        <div className="absolute right-0 mt-2 w-72 bg-white border border-surface-100 rounded-xl shadow-premium z-10 p-4 animate-slide-up">
           <div className="space-y-4">
             {/* Custom filters passed as children */}
             {children && (
               <>
-                <div className="space-y-2">{children}</div>
-                <div className="border-t border-gray-200"></div>
+                <div className="space-y-4">{children}</div>
+                <div className="border-t border-surface-100"></div>
               </>
             )}
 
             {/* Default items per page */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs-custom font-semibold text-ink-700 uppercase tracking-wider">
                 {t('Items per page')}
               </label>
               <select
@@ -38,7 +39,7 @@ const FilterDropdown = ({ limit, onLimitChange, onReset, children }) => {
                   onLimitChange(Number(e.target.value));
                   setShowFilters(false);
                 }}
-                className="w-full p-2 border border-gray-300 rounded-md"
+                className="w-full px-4 py-2.5 text-sm-custom border border-surface-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all bg-white"
               >
                 {[5, 8, 10, 15, 20, 50].map(n => (
                   <option key={n} value={n}>{n} {t('items')}</option>
@@ -53,7 +54,8 @@ const FilterDropdown = ({ limit, onLimitChange, onReset, children }) => {
                   onReset();
                   setShowFilters(false);
                 }}
-                className="w-full px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md"
+                type="button"
+                className="w-full px-4 py-2.5 text-sm-custom font-medium bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-xl transition-all"
               >
                 <i className="fa fa-undo mr-2"></i>{t('Reset Filters')}
               </button>

@@ -39,11 +39,11 @@ const TeacherLeaveSchema = new mongoose.Schema(
         validator: async function (userId) {
           if (!userId) return true; // If not yet approved, skip validation
           const user = await mongoose.model("User").findById(userId);
-          return user && (user.role === "admin" || user.role === "principal");
+          return user && (user.role === "admin" || user.role === "principle");
         },
-        message: "Only admin or principal can approve leave.",
+        message: "Only admin or principle can approve leave.",
       },
-    }, 
+    },
     campus: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Campus",

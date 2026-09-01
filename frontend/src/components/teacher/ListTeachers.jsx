@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -7,7 +7,9 @@ import { useTranslation } from "react-i18next";
 import {
   useDeleteUserMutation,
   useGetUserByTypeQuery,
+  useGetAcademicYearsQuery,
 } from "../../redux/api/authApi";
+import { useGetCampusQuery } from "../../redux/api/campusApi";
 
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
@@ -21,6 +23,12 @@ import EmptyState from "../GUI/EmptyState";
 import TruncatedCell from "../GUI/TruncatedCell";
 import PhoneLink from "../GUI/PhoneLink";
 import AppBadge from "../GUI/AppBadge";
+import SearchableDropdown from "../layout/SearchableDropdown";
+
+const getFullName = (user) => {
+  const { firstName = "", middleName = "", lastName = "" } = user;
+  return `${firstName} ${middleName ? middleName + " " : ""}${lastName}`.trim();
+};
 
 const ListTeachers = () => {
   const { t } = useTranslation();
@@ -34,9 +42,41 @@ const ListTeachers = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(8);
   const [genderFilter, setGenderFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState(""); // now filters by accountStatus
+  const [campusFilter, setCampusFilter] = useState("");
+  const [campusSearchTerm, setCampusSearchTerm] = useState("");
+  const [academicYearFilter, setAcademicYearFilter] = useState("");
 
-  // Toast from navigation (e.g., after creating a teacher)
+  // Fetch campuses
+  const { data: campusesData, isFetching: campusesLoading } = useGetCampusQuery({
+    limit: 0,
+    keyword: campusSearchTerm,
+  });
+
+  const campusOptions = useMemo(() => {
+    const campuses = campusesData?.campuses || [];
+    const options = [{ value: "", label: t("All Campuses"), subtitle: "" }];
+    campuses.forEach((c) =>
+      options.push({ value: c._id, label: c.name, subtitle: c.location })
+    );
+    return options;
+  }, [campusesData, t]);
+
+  // Fetch academic years
+  const { data: academicYearsData, isFetching: academicYearsLoading } =
+    useGetAcademicYearsQuery();
+  const academicYearsOptions = useMemo(() => {
+    const years = academicYearsData || [];
+    return [
+      { value: "", label: t("All Academic Years") },
+      ...years.map((y) => ({
+        value: y._id || y,
+        label: y.name || y.year || y,
+      })),
+    ];
+  }, [academicYearsData, t]);
+
+  // Success toast from navigation state
   useEffect(() => {
     if (location.state?.showSuccessToast) {
       toast.success(t("Teacher created successfully!"));
@@ -53,33 +93,29 @@ const ListTeachers = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // API query
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-    isFetching,
-  } = useGetUserByTypeQuery({
-    type: "teacher",
-    page: currentPage,
-    limit,
-    keyword: searchTerm,
-    gender: genderFilter || undefined,
-    status: statusFilter || undefined,
-  }, {
-    refetchOnMountOrArgChange: true,
-  });
+  // Main data query – note the field name change
+  const { data, isLoading, error, refetch, isFetching } = useGetUserByTypeQuery(
+    {
+      type: "teacher",
+      contracted: true,
+      campus: campusFilter || undefined,
+      academicYear: academicYearFilter || undefined,
+      page: currentPage,
+      limit,
+      keyword: searchTerm,
+      gender: genderFilter || undefined,
+      accountStatus: statusFilter || undefined,   // ✅ changed from "status" to "accountStatus"
+    },
+    { refetchOnMountOrArgChange: true }
+  );
 
-  const [
-    deleteUser,
-    { isLoading: isDeleteLoading, error: deleteError, isSuccess: deleteSuccess },
-  ] = useDeleteUserMutation();
+  const [deleteUser, { isLoading: isDeleteLoading, error: deleteError, isSuccess: deleteSuccess }] =
+    useDeleteUserMutation();
 
   const [showModal, setShowModal] = useState(false);
   const [selectedTeacherId, setSelectedTeacherId] = useState(null);
 
-  // Global error / success handling
+  // Error / success handling
   useEffect(() => {
     if (error) toast.error(error?.data?.message || t("Something went wrong"));
     if (deleteError) toast.error(deleteError?.data?.message || t("Failed to delete teacher"));
@@ -87,11 +123,11 @@ const ListTeachers = () => {
       toast.success(t("Teacher deleted successfully"));
       setShowModal(false);
       setSelectedTeacherId(null);
+      refetch();
     }
     if (user?.role === "admin") setUserRole("admin");
-  }, [error, deleteError, deleteSuccess, user, t]);
+  }, [error, deleteError, deleteSuccess, user, t, refetch]);
 
-  // Refetch when requested from navigation state (e.g., after edit)
   useEffect(() => {
     if (location.state?.shouldRefetch) {
       refetch();
@@ -113,135 +149,126 @@ const ListTeachers = () => {
     toast.success(t("Refreshed"));
   };
 
-  const handleEditTeacher = (id) => {
-    navigate(`/admin/teachers/${id}`);
-  };
+  const handleEditTeacher = (id) => navigate(`/admin/teachers/${id}`);
+  const handleViewDetails = (id) => navigate(`/admin/teacher/${id}/details`);
 
-  const handleViewDetails = (id) => {
-    navigate(`/admin/teacher/${id}/details`);
-  };
-
-  // Columns using AppBadge for status, gender, country
+  // Column definitions – updated status column
   const columns = [
     {
       header: t("Teacher Name"),
-      accessor: "name",
+      accessor: "firstName",
       width: "30%",
       minWidth: "200px",
-      render: (value) => <TruncatedCell maxChars={30}>{value}</TruncatedCell>
+      render: (_, row) => <TruncatedCell maxChars={30}>{getFullName(row)}</TruncatedCell>,
     },
     {
       header: t("Gender"),
       accessor: "gender",
       width: "12%",
       minWidth: "100px",
-      render: (value) => <AppBadge type="gender" value={value} />
-
+      render: (value) => <AppBadge type="gender" value={value} />,
     },
     {
       header: t("Country"),
       accessor: "nationality",
       width: "15%",
       minWidth: "120px",
-      render: (value) => <TruncatedCell maxChars={18}>{value}</TruncatedCell>
+      render: (value) => <TruncatedCell maxChars={18}>{value || "—"}</TruncatedCell>,
     },
     {
       header: t("Contact Number"),
       accessor: "phoneNumber",
       width: "20%",
       minWidth: "150px",
-      render: (value) => <PhoneLink number={value} />
+      render: (value) => <PhoneLink number={value} />,
     },
     {
       header: t("Status"),
-      accessor: "status", // assume the field is named "status"
+      accessor: "accountStatus",                              // ✅ changed to accountStatus
       width: "15%",
       minWidth: "100px",
-      // FIX: robustly interpret the status value
-      render: (value) => {
-        // Normalize to boolean: true if value is truthy and matches common active representations
-        const isActive = 
-          value === true ||
-          value === "active" ||
-          value === "Active" ||
-          value === "ACTIVE" ||
-          value === 1;
-          return <AppBadge type="booleanStatus" active={isActive} />;
-      }
-    }
+      render: (value) => <AppBadge type="accountStatus" value={value} />,   // ✅ uses new badge type
+    },
   ];
 
-  // Stats
-  const counts = data?.pagination?.counts || data?.counts || { total: 0, active: 0, deactive: 0 };
+  // Stats – still uses counts.active / counts.deactive (backend should supply these)
+  const counts = data?.pagination?.counts || data?.counts || {
+    total: 0, active: 0, deactive: 0,
+  };
 
   const stats = [
-    {
-      label: t("Total Teachers"),
-      value: counts.total,
-      icon: "chalkboard-teacher",
-      color: "blue"
-    },
-    {
-      label: t("Active"),
-      value: counts.active,
-      icon: "check-circle",
-      color: "green"
-    },
-    {
-      label: t("Deactive"),
-      value: counts.deactive,
-      icon: "times-circle",
-      color: "red"
-    },
-    {
-      label: t("Total Pages"),
-      value: data?.pagination?.totalPages || 1,
-      icon: "file-alt",
-      color: "purple"
-    }
+    { label: t("Total Teachers"), value: counts.total, icon: "chalkboard-teacher", color: "blue" },
+    { label: t("Active"), value: counts.active, icon: "check-circle", color: "green" },
+    { label: t("Deactive"), value: counts.deactive, icon: "times-circle", color: "red" },
+    { label: t("Total Pages"), value: data?.pagination?.totalPages || 1, icon: "file-alt", color: "purple" },
   ];
 
-  const addButton = userRole === "admin" ? (
-    <AppButton to="/admin/teacher/new" label={t("Add New Teacher")} icon="plus" />
-  ) : null;
+  const addButton =
+    userRole === "admin" ? (
+      <AppButton to="/admin/teacher/new" label={t("Add New Teacher")} icon="plus" />
+    ) : null;
 
   const refreshButton = (
-    <AppButton
-      onClick={handleRefresh}
-      text={t("Refresh")}
-      icon="sync-alt"
-      disabled={isFetching}
-      className="ml-2"
-    />
+    <AppButton onClick={handleRefresh} text={t("Refresh")} icon="sync-alt" disabled={isFetching} className="ml-2" />
   );
 
-  // Filter dropdown using shared component
+  // Filter panel
   const filters = (
     <FilterDropdown
       limit={limit}
-      onLimitChange={(newLimit) => {
-        setLimit(newLimit);
-        setCurrentPage(1);
-      }}
+      onLimitChange={(newLimit) => { setLimit(newLimit); setCurrentPage(1); }}
       onReset={() => {
         setSearch("");
         setSearchTerm("");
         setGenderFilter("");
         setStatusFilter("");
+        setCampusFilter("");
+        setAcademicYearFilter("");
         setCurrentPage(1);
         setLimit(8);
       }}
     >
-      <div>
+      {/* Academic Year filter */}
+      <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t("Gender")}
+          {t("Academic Year")}
         </label>
         <select
-          value={genderFilter}
+          value={academicYearFilter}
           onChange={(e) => {
-            setGenderFilter(e.target.value);
+            setAcademicYearFilter(e.target.value);
             setCurrentPage(1);
           }}
+          disabled={academicYearsLoading}
+          className="w-full p-2 border border-gray-300 rounded-md"
+        >
+          {academicYearsOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Campus filter */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">{t("Campus")}</label>
+        <SearchableDropdown
+          value={campusFilter}
+          onChange={(val) => { setCampusFilter(val); setCurrentPage(1); }}
+          onSearch={setCampusSearchTerm}
+          options={campusOptions}
+          isLoading={campusesLoading}
+          placeholder={t("All Campuses")}
+        />
+      </div>
+
+      {/* Gender filter */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">{t("Gender")}</label>
+        <select
+          value={genderFilter}
+          onChange={(e) => { setGenderFilter(e.target.value); setCurrentPage(1); }}
           className="w-full p-2 border border-gray-300 rounded-md"
         >
           <option value="">{t("All Genders")}</option>
@@ -251,21 +278,18 @@ const ListTeachers = () => {
         </select>
       </div>
 
+      {/* Account Status filter – updated to reflect accountStatus values */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t("Status")}
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">{t("Status")}</label>
         <select
           value={statusFilter}
-          onChange={(e) => {
-            setStatusFilter(e.target.value);
-            setCurrentPage(1);
-          }}
+          onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
           className="w-full p-2 border border-gray-300 rounded-md"
         >
           <option value="">{t("All Status")}</option>
           <option value="active">{t("Active")}</option>
-          <option value="deactive">{t("Deactive")}</option>
+          <option value="inactive">{t("Inactive")}</option>
+          <option value="pending">{t("Pending")}</option>
         </select>
       </div>
     </FilterDropdown>

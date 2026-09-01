@@ -40,7 +40,7 @@ const PrincipalDashboard = () => {
   const { t } = useTranslation();
   const [selectedTimeRange, setSelectedTimeRange] = useState("monthly");
 
-  // Principal Stats with modern design
+  // Principle Stats with modern design
   const principalStats = [
     {
       id: 1,
@@ -226,13 +226,13 @@ const PrincipalDashboard = () => {
 
   return (
     <AdminLayout>
-      <MetaData title="Principal Dashboard" />
+      <MetaData title="Principle Dashboard" />
       
       <div className="p-4 md:p-8 bg-gray-50/50 min-h-screen">
         {/* Header Welcome Section */}
         <div className="mb-8">
           <h1 className="text-2xl font-black text-gray-800 tracking-tight">
-            {t("Principal Dashboard")}
+            {t("Principle Dashboard")}
           </h1>
           <p className="text-gray-500 text-sm mt-1">
             {t("School administration overview and key performance indicators.")}

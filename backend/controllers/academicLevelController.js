@@ -3,14 +3,14 @@ import AcademicLevel from "../models/academicLevel.js";
 import APIFilters from "../utils/apiFilters.js";
 import ErrorHandler from "../utils/errorHandler.js";
 
-// Helper to get required academicYear and campus (query > cookies)
+// Helper: get academicYear and campus from query params or cookies
 const getContext = (req) => {
   const academicYear = req.query.academicYear || req.cookies.academicYear;
   const campus = req.query.campus || req.cookies.campus;
   return { academicYear, campus };
 };
 
-// Create Academic Level
+// Create Academic Level => /api/v1/admin/academic-level
 export const newAcademicLevel = catchAsyncErrors(async (req, res, next) => {
   const { academicYear, campus } = getContext(req);
 
@@ -21,17 +21,17 @@ export const newAcademicLevel = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Campus not selected", 400));
   }
 
-  const data = {
+  const level = await AcademicLevel.create({
     ...req.body,
     campus,
     academicYear,
-  };
+  });
 
-  const level = await AcademicLevel.create(data);
-  res.status(200).json({ level });
+  // ✅ FIX: 201 for resource creation (was 200)
+  res.status(201).json({ success: true, level });
 });
 
-// Get all Academic Levels (FILTERED BY CURRENT CAMPUS & YEAR)
+// Get all Academic Levels => /api/v1/academic-level
 export const getAcademicLevels = catchAsyncErrors(async (req, res, next) => {
   const { academicYear, campus } = getContext(req);
 
@@ -42,23 +42,35 @@ export const getAcademicLevels = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Campus not selected", 400));
   }
 
-  // Base query with both campus and academicYear
-  const baseQuery = AcademicLevel.find({ campus, academicYear });
-
+  // No pagination — return all (for dropdowns, selects)
   if (req.query.paginate === "false") {
-    const levels = await baseQuery.clone().populate("campus").populate("academicYear");
+    const levels = await AcademicLevel.find({ campus, academicYear })
+      .populate("campus")
+      .populate("academicYear")
+      .sort({ order: 1 });
+
     return res.status(200).json({ success: true, levels });
   }
 
-  const resPerPage = 10;
+  // ✅ FIX: respect limit from query (was hardcoded resPerPage=10)
+  const resPerPage = parseInt(req.query.limit) || 10;
+
+  const baseQuery = AcademicLevel.find({ campus, academicYear });
   const apiFilters = new APIFilters(baseQuery, req.query).search().filters();
 
-  let levels = await apiFilters.query.clone().populate("campus").populate("academicYear");
-  const filteredCount = levels.length;
+  // Count before pagination
+  const filteredCount = await AcademicLevel.countDocuments(
+    apiFilters.query.getFilter()
+  );
 
   apiFilters.pagination(resPerPage);
-  levels = await apiFilters.query.clone().populate("campus").populate("academicYear");
 
+  const levels = await apiFilters.query
+    .populate("campus")
+    .populate("academicYear")
+    .sort({ order: 1 });
+
+  // ✅ FIX: success:true added
   res.status(200).json({
     success: true,
     resPerPage,
@@ -67,7 +79,7 @@ export const getAcademicLevels = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
-// Get Academic Level Details (only if belongs to current campus)
+// Get single Academic Level => /api/v1/academic-level/:id
 export const getAcademicLevelDetails = catchAsyncErrors(async (req, res, next) => {
   const { campus } = getContext(req);
 
@@ -75,10 +87,7 @@ export const getAcademicLevelDetails = catchAsyncErrors(async (req, res, next) =
     return next(new ErrorHandler("Campus not selected", 400));
   }
 
-  const level = await AcademicLevel.findOne({
-    _id: req.params.id,
-    campus,
-  })
+  const level = await AcademicLevel.findOne({ _id: req.params.id, campus })
     .populate("campus")
     .populate("academicYear");
 
@@ -86,10 +95,11 @@ export const getAcademicLevelDetails = catchAsyncErrors(async (req, res, next) =
     return next(new ErrorHandler("Academic level not found", 404));
   }
 
-  res.status(200).json({ level });
+  // ✅ FIX: success:true added
+  res.status(200).json({ success: true, level });
 });
 
-// Update Academic Level (only if belongs to current campus)
+// Update Academic Level => /api/v1/admin/academic-level/:id
 export const updateAcademicLevel = catchAsyncErrors(async (req, res, next) => {
   const { campus } = getContext(req);
 
@@ -97,27 +107,25 @@ export const updateAcademicLevel = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Campus not selected", 400));
   }
 
-  let level = await AcademicLevel.findOne({
-    _id: req.params.id,
-    campus,
-  });
+  const existing = await AcademicLevel.findOne({ _id: req.params.id, campus });
 
-  if (!level) {
+  if (!existing) {
     return next(new ErrorHandler("Academic level not found", 404));
   }
 
-  level = await AcademicLevel.findOneAndUpdate(
+  const level = await AcademicLevel.findOneAndUpdate(
     { _id: req.params.id, campus },
     req.body,
-    { new: true }
+    { new: true, runValidators: true }
   )
     .populate("campus")
     .populate("academicYear");
 
-  res.status(200).json({ level });
+  // ✅ FIX: success:true added
+  res.status(200).json({ success: true, level });
 });
 
-// Delete Academic Level (only if belongs to current campus)
+// Delete Academic Level => /api/v1/admin/academic-level/:id
 export const deleteAcademicLevel = catchAsyncErrors(async (req, res, next) => {
   const { campus } = getContext(req);
 
@@ -125,10 +133,7 @@ export const deleteAcademicLevel = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Campus not selected", 400));
   }
 
-  const level = await AcademicLevel.findOne({
-    _id: req.params.id,
-    campus,
-  });
+  const level = await AcademicLevel.findOne({ _id: req.params.id, campus });
 
   if (!level) {
     return next(new ErrorHandler("Academic level not found", 404));
@@ -136,7 +141,6 @@ export const deleteAcademicLevel = catchAsyncErrors(async (req, res, next) => {
 
   await AcademicLevel.findOneAndDelete({ _id: req.params.id, campus });
 
-  res.status(200).json({
-    message: "Academic level deleted successfully",
-  });
+  // ✅ FIX: success:true added
+  res.status(200).json({ success: true, message: "Academic level deleted successfully" });
 });

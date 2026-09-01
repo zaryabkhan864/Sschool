@@ -5,11 +5,12 @@ import ErrorHandler from "../utils/errorHandler.js";
 
 // ➕ Create Week Day
 export const newWeekDay = catchAsyncErrors(async (req, res) => {
-  const { campus } = req.cookies;
+  const { campus, academicYear } = req.cookies;
 
   const data = {
     ...req.body,
     campus,
+    academicYear,
   };
 
   const day = await WeekDay.create(data);
@@ -18,20 +19,19 @@ export const newWeekDay = catchAsyncErrors(async (req, res) => {
 
 // 📋 Get all Week Days (with pagination, search, filtering)
 export const getWeekDays = catchAsyncErrors(async (req, res) => {
-  const { campus } = req.cookies;
+  const { campus, academicYear } = req.cookies;
 
-  // ---------- Base filter: always filter by campus ----------
-  let baseFilter = { campus };
+  // ---------- Base filter: always filter by campus and academicYear ----------
+  let baseFilter = { campus, academicYear };
 
   // ---------- Handle additional query filters (only schema fields) ----------
-  // Extract only valid WeekDay fields from req.query
   const allowedFilters = ["isWorkingDay"]; // extend if you add more filterable fields
   const filters = {};
   allowedFilters.forEach((field) => {
     if (req.query[field] !== undefined) filters[field] = req.query[field];
   });
 
-  // Merge with base campus filter
+  // Merge with base campus & academicYear filter
   const queryFilters = { ...baseFilter, ...filters };
 
   // ---------- APIFilters instance ----------
@@ -76,7 +76,13 @@ export const getWeekDays = catchAsyncErrors(async (req, res) => {
 
 // 🔍 Get Single Week Day Details
 export const getWeekDayDetails = catchAsyncErrors(async (req, res, next) => {
-  const day = await WeekDay.findById(req.params.id);
+  const { campus, academicYear } = req.cookies;
+
+  const day = await WeekDay.findOne({
+    _id: req.params.id,
+    campus,
+    academicYear,
+  });
 
   if (!day) {
     return next(new ErrorHandler("Week day not found", 404));
@@ -87,7 +93,13 @@ export const getWeekDayDetails = catchAsyncErrors(async (req, res, next) => {
 
 // ✏️ Update Week Day
 export const updateWeekDay = catchAsyncErrors(async (req, res, next) => {
-  let day = await WeekDay.findById(req.params.id);
+  const { campus, academicYear } = req.cookies;
+
+  let day = await WeekDay.findOne({
+    _id: req.params.id,
+    campus,
+    academicYear,
+  });
 
   if (!day) {
     return next(new ErrorHandler("Week day not found", 404));
@@ -102,7 +114,13 @@ export const updateWeekDay = catchAsyncErrors(async (req, res, next) => {
 
 // ❌ Delete Week Day
 export const deleteWeekDay = catchAsyncErrors(async (req, res, next) => {
-  const day = await WeekDay.findById(req.params.id);
+  const { campus, academicYear } = req.cookies;
+
+  const day = await WeekDay.findOne({
+    _id: req.params.id,
+    campus,
+    academicYear,
+  });
 
   if (!day) {
     return next(new ErrorHandler("Week day not found", 404));

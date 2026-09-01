@@ -33,8 +33,9 @@ const sessionTemplateSchema = new mongoose.Schema(
       ref: "Campus",
       required: true,
     },
-    year: {
-      type: Number,
+    academicYear: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AcademicYear",
       required: true,
     },
   },

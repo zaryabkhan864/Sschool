@@ -6,73 +6,80 @@ module.exports = {
   ],
   theme: {
     extend: {
-      // Semantic font scale (use these classes for all text elements)
+      fontFamily: {
+        sans: ['"Inter"', '"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        heading: ['"Plus Jakarta Sans"', '"Inter"', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'monospace'],
+      },
       fontSize: {
-        'xs-custom': ['0.75rem', { lineHeight: '1rem' }],     // 12px
-        'sm-custom': ['0.875rem', { lineHeight: '1.25rem' }], // 14px
-        'base-custom': ['1rem', { lineHeight: '1.5rem' }],    // 16px
-        'lg-custom': ['1.125rem', { lineHeight: '1.75rem' }], // 18px
-        'xl-custom': ['1.25rem', { lineHeight: '1.75rem' }],  // 20px
-        '2xl-custom': ['1.5rem', { lineHeight: '2rem' }],     // 24px
-        'display-sm': ['2.25rem', { lineHeight: '2.5rem', letterSpacing: '-0.02em' }], // 36px
-        'display-lg': ['3.5rem', { lineHeight: '1', letterSpacing: '-0.02em' }],       // 56px
+        'xs-custom': ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.01em' }],
+        'sm-custom': ['0.875rem', { lineHeight: '1.25rem' }],
+        'base-custom': ['1rem', { lineHeight: '1.5rem' }],
+        'lg-custom': ['1.125rem', { lineHeight: '1.75rem' }],
+        'xl-custom': ['1.25rem', { lineHeight: '1.75rem' }],
+        '2xl-custom': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.01em' }],
+        'display-sm': ['2.25rem', { lineHeight: '2.5rem', letterSpacing: '-0.025em' }],
+        'display-lg': ['3.5rem', { lineHeight: '1.1', letterSpacing: '-0.03em' }],
+        'nav-group': ['0.6875rem', { lineHeight: '1rem', letterSpacing: '0.09em' }],
+        'nav-item': ['0.875rem', { lineHeight: '1.25rem' }],
+        'nav-caption': ['0.6875rem', { lineHeight: '0.875rem', letterSpacing: '0.05em' }],
       },
       fontWeight: {
-        light: '300',
         normal: '400',
         medium: '500',
         semibold: '600',
         bold: '700',
         extrabold: '800',
       },
-      fontFamily: {
-        sans: ['Geist', 'Inter', 'system-ui', 'sans-serif'],
-        heading: ['Montserrat', 'sans-serif'],           
-      },
       colors: {
         brand: {
-          50: '#fff1f2',
-          100: '#ffe4e6',
-          500: '#f43f5e',
-          600: '#e11d48',
-          700: '#be123c',
-          900: '#881337',
+          50: '#f0f6ff', 100: '#e0edff', 200: '#c7ddff', 300: '#9ec3ff',
+          400: '#6d9eff', 500: '#3b76f6', 600: '#2557eb', 700: '#1d43d8',
+          800: '#1e38af', 900: '#1e328b', 950: '#0f1d52',
         },
-        dark: {
-          light: '#1f2937',
-          DEFAULT: '#111827', // Rich Black/Gray
-          darker: '#0d1117',
+        navy: {
+          700: '#2c3b52',
+          800: '#1e293b',
+          900: '#0f172a',
+          950: '#080d1a',
         },
         surface: {
-          50: '#f9fafb',
-          100: '#f3f4f6',
-        }
+          50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1',
+          800: '#1e293b', 900: '#0f172a',
+        },
+        // Neutral text scale for light-background areas (cards, inputs, badges) —
+        // replaces old ad-hoc gray-*/dark/dark-light usage across components
+        ink: {
+          900: '#0f172a',
+          700: '#334155',
+          600: '#475569',
+          400: '#94a3b8',
+          300: '#cbd5e1',
+        },
       },
       boxShadow: {
-        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
-        'premium': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        'soft': '0 2px 12px -2px rgba(15, 23, 42, 0.04)',
+        'card': '0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.03)',
+        'button': '0 8px 20px -4px rgba(37, 87, 235, 0.25)',
+        'glow-brand': '0 0 16px rgba(59, 118, 246, 0.4)',
+        'glow-soft': '0 0 32px rgba(59, 118, 246, 0.15)',
+        'premium': '0 20px 40px -8px rgba(8, 13, 26, 0.35)',
       },
       borderRadius: {
-        'xl': '1rem',
-        '2xl': '1.5rem',
+        'xl': '0.875rem',
+        '2xl': '1.25rem',
+        '3xl': '1.75rem',
       },
       animation: {
-        'fade-in': 'fadeIn 0.5s ease-out',
-        'slide-up': 'slideUp 0.4s ease-out',
+        'fade-in': 'fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+        'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
       keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
-        },
-        slideUp: {
-          '0%': { transform: 'translateY(10px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
-        }
+        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+        slideUp: { '0%': { transform: 'translateY(12px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
       },
     },
   },
-  plugins: [
-    require('flowbite/plugin'),
-  ],
+  plugins: [require('flowbite/plugin')],
 };

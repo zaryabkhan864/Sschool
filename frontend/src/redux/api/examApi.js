@@ -1,44 +1,77 @@
+// redux/api/examApi.js
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export const examApi = createApi({
   reducerPath: "examApi",
   baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" }),
-  tagTypes: ["Student", "AdminStudents", "Exam"],
+  tagTypes: ["Exams", "Exam"],
   endpoints: (builder) => ({
-    addExamMarks: builder.mutation({
+    fetchOrCreateExam: builder.mutation({
       query(body) {
         return {
-          url: "/students/exam/marks",
+          url: "/teacher/exam/fetch-or-create",
           method: "POST",
           body,
         };
-      }
+      },
+      invalidatesTags: [{ type: "Exams", id: "LIST" }],
     }),
+
+    getExams: builder.query({
+      query: ({ page = 1, limit = 10, classGroup, course, keyword } = {}) => ({
+        url: "/teacher/exams",
+        params: {
+          page,
+          limit,
+          ...(classGroup && { classGroup }),
+          ...(course && { course }),
+          ...(keyword && { keyword }),
+        },
+      }),
+      providesTags: (result) =>
+        result?.exams
+          ? [
+              ...result.exams.map(({ _id }) => ({ type: "Exams", id: _id })),
+              { type: "Exams", id: "LIST" },
+            ]
+          : [{ type: "Exams", id: "LIST" }],
+    }),
+
+    getExamDetails: builder.query({
+      query: (id) => `/exams/${id}`,
+      providesTags: (result, error, id) => [{ type: "Exam", id }],
+    }),
+
     updateExamMarks: builder.mutation({
-      query({ id, body }) {
+      query({ id, ...body }) {
         return {
-          url: `/students/exam/${id}`,
+          url: `/teacher/exam/${id}`,
           method: "PUT",
           body,
         };
       },
-    }),
-    getStudentsExamDetailsByExamData: builder.mutation({
-      query(body) {
-        return {
-          url: "/students/exam-record",
-          method: "POST",
-          body,
-        };
-      },
-      invalidatesTags: ["Student Record By Exam Form Record"],
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Exam", id },
+        { type: "Exams", id: "LIST" },
+      ],
     }),
 
+    deleteExam: builder.mutation({
+      query(id) {
+        return {
+          url: `/teacher/exam/${id}`,
+          method: "DELETE",
+        };
+      },
+      invalidatesTags: [{ type: "Exams", id: "LIST" }],
+    }),
   }),
 });
 
 export const {
-  useAddExamMarksMutation,
+  useFetchOrCreateExamMutation,
+  useGetExamsQuery,
+  useGetExamDetailsQuery,
   useUpdateExamMarksMutation,
-  useGetStudentsExamDetailsByExamDataMutation
+  useDeleteExamMutation,
 } = examApi;

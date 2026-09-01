@@ -4,7 +4,10 @@ import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 // Redux
-import { useGetGradeDetailsQuery } from "../../redux/api/gradesApi";
+import {
+  useGetGradeDetailsQuery,
+  useGetGradeCoursesQuery,       // ✅ naya hook import
+} from "../../redux/api/gradesApi";
 
 // Shared GUI Components
 import AdminLayout from "../layout/AdminLayout";
@@ -17,20 +20,43 @@ import AppBadge from "../GUI/AppBadge";
 const GradeDetails = () => {
   const { t } = useTranslation();
   const params = useParams();
-  const { data, isLoading, error, refetch } = useGetGradeDetailsQuery(params?.id);
 
+  // --- Main grade detail query ---
+  const {
+    data: gradeData,
+    isLoading: gradeLoading,
+    error: gradeError,
+    refetch: gradeRefetch,
+  } = useGetGradeDetailsQuery(params?.id);
+
+  // --- Naya endpoint: sirf courses (count + names) ---
+  const {
+    data: coursesData,
+    isLoading: coursesLoading,
+    error: coursesError,
+    refetch: coursesRefetch,
+  } = useGetGradeCoursesQuery(params?.id);
+
+  // --- State for grade info and stats ---
   const [grade, setGrade] = useState({
     gradeName: "",
     description: "",
     year: "",
     campus: "",
     campusName: "",
-    courses: [],
     createdAt: "",
     status: true,
   });
 
-  // Format date
+  const [stats, setStats] = useState({
+    totalTeachers: 0,
+    totalStudents: 0,
+  });
+
+  // --- State for course list (naye endpoint se aayega) ---
+  const [courseList, setCourseList] = useState([]);
+  const [courseCount, setCourseCount] = useState(0);
+
   const formatDate = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -41,42 +67,49 @@ const GradeDetails = () => {
     });
   };
 
-  // Calculate statistics
-  const calculateStatistics = () => {
-    if (!grade.courses) return { totalCourses: 0, totalTeachers: 0, totalStudents: 0 };
-    const totalCourses = grade.courses.length;
-    const teacherIds = new Set(grade.courses.map((course) => course.teacher));
-    const totalTeachers = teacherIds.size;
-    const totalStudents = totalCourses * 25; // placeholder
-    return { totalCourses, totalTeachers, totalStudents };
-  };
-
+  // Effect: Grade detail data update
   useEffect(() => {
-    if (data?.grade) {
+    if (gradeData?.grade) {
+      const g = gradeData.grade;
       setGrade({
-        gradeName: data.grade.gradeName || "",
-        description: data.grade.description || "",
-        year: data.grade.year || "",
-        campus: data.grade.campus || "",
-        campusName: data.grade.campusName || "Main Campus",
-        courses: data.grade.courses || [],
-        createdAt: data.grade.createdAt ? formatDate(data.grade.createdAt) : "",
-        status: data.grade.status ?? true,
+        gradeName: g.gradeName || "",
+        description: g.description || "",
+        year: g.academicYear?.name || "",
+        campus: g.campus || "",
+        campusName: g.campus?.name || "Main Campus",
+        createdAt: g.createdAt ? formatDate(g.createdAt) : "",
+        status: g.status ?? true,
+      });
+      setStats({
+        totalTeachers: g.stats?.totalTeachers || 0,
+        totalStudents: g.stats?.totalStudents || 0,
       });
     }
-    if (error) {
-      toast.error(error?.data?.message || t("Error loading grade details"));
+    if (gradeError) {
+      toast.error(gradeError?.data?.message || t("Error loading grade details"));
     }
-  }, [data, error, t]);
+  }, [gradeData, gradeError, t]);
 
+  // Effect: Courses data update
+  useEffect(() => {
+    if (coursesData?.success) {
+      setCourseList(coursesData.courses || []);
+      setCourseCount(coursesData.count || 0);
+    }
+    if (coursesError) {
+      toast.error(coursesError?.data?.message || t("Error loading courses"));
+    }
+  }, [coursesData, coursesError, t]);
+
+  // Combined refresh
   const handleRefresh = () => {
-    refetch();
+    gradeRefetch();
+    coursesRefetch();
     toast.success(t("Refreshed") || "Refreshed");
   };
 
-  const stats = calculateStatistics();
-
-  if (isLoading) {
+  // Combined loading state
+  if (gradeLoading || coursesLoading) {
     return <Loader />;
   }
 
@@ -84,19 +117,17 @@ const GradeDetails = () => {
     <AdminLayout>
       <MetaData title={t("Grade Details")} />
 
-      <div className="max-w-6xl mx-auto p-6">
-        {/* Report-style header */}
-        <div className="mb-8 border-b border-gray-200 pb-4">
-          <h1 className="text-2xl-custom font-bold text-gray-800 tracking-tight">
+      <div className="max-w-6xl mx-auto p-6 animate-fade-in">
+        <div className="mb-8 border-b border-surface-100 pb-4">
+          <h1 className="text-2xl-custom font-bold text-dark tracking-tight font-heading">
             {t("Grade Details")}
           </h1>
-          <p className="text-base-custom text-gray-500 mt-1">
-            <i className="fa fa-info-circle mr-2 text-gray-400"></i>
+          <p className="text-sm-custom text-dark-light/70 mt-1 font-normal">
+            <i className="fa fa-info-circle mr-2 text-dark-light/60"></i>
             {t("Viewing grade details and information")}
           </p>
         </div>
 
-        {/* Action buttons */}
         <div className="flex justify-end items-center gap-3 mb-8">
           <AppButton
             to="/admin/grades"
@@ -109,7 +140,7 @@ const GradeDetails = () => {
             label={t("refresh")}
             icon="sync-alt"
             variant="secondary"
-            disabled={isLoading}
+            disabled={gradeLoading || coursesLoading}
           />
           <AppButton
             to={`/admin/grades/edit/${params.id}`}
@@ -119,36 +150,47 @@ const GradeDetails = () => {
           />
         </div>
 
-        {/* Grid of information cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Grade Information Card */}
           <AppCard title={t("Grade Information")} icon="fa-graduation-cap">
             <div className="space-y-4">
               <div>
-                <p className="text-xs-custom font-medium text-gray-500 uppercase tracking-wide mb-1">
-                  <i className="fa fa-tag mr-2 text-gray-400"></i>
+                <p className="text-xs-custom font-medium text-dark-light/70 uppercase tracking-wide mb-1">
+                  <i className="fa fa-tag mr-2 text-dark-light/60"></i>
                   {t("Grade Name")}
                 </p>
-                <p className="text-lg-custom font-semibold text-gray-800">
-                  {grade.gradeName || <span className="text-gray-400">{t("N/A")}</span>}
+                <p className="text-lg-custom font-semibold text-dark">
+                  {grade.gradeName || (
+                    <span className="text-dark-light/40 font-normal">
+                      {t("N/A")}
+                    </span>
+                  )}
                 </p>
               </div>
               <div>
-                <p className="text-xs-custom font-medium text-gray-500 uppercase tracking-wide mb-1">
-                  <i className="fa fa-calendar mr-2 text-gray-400"></i>
+                <p className="text-xs-custom font-medium text-dark-light/70 uppercase tracking-wide mb-1">
+                  <i className="fa fa-calendar mr-2 text-dark-light/60"></i>
                   {t("Academic Year")}
                 </p>
-                <p className="text-lg-custom font-semibold text-gray-800">
-                  {grade.year || <span className="text-gray-400">{t("N/A")}</span>}
+                <p className="text-lg-custom font-semibold text-dark">
+                  {grade.year || (
+                    <span className="text-dark-light/40 font-normal">
+                      {t("N/A")}
+                    </span>
+                  )}
                 </p>
               </div>
               <div>
-                <p className="text-xs-custom font-medium text-gray-500 uppercase tracking-wide mb-1">
-                  <i className="fa fa-school mr-2 text-gray-400"></i>
+                <p className="text-xs-custom font-medium text-dark-light/70 uppercase tracking-wide mb-1">
+                  <i className="fa fa-school mr-2 text-dark-light/60"></i>
                   {t("Campus")}
                 </p>
-                <p className="text-lg-custom font-semibold text-gray-800">
-                  {grade.campusName || <span className="text-gray-400">{t("N/A")}</span>}
+                <p className="text-lg-custom font-semibold text-dark">
+                  {grade.campusName || (
+                    <span className="text-dark-light/40 font-normal">
+                      {t("N/A")}
+                    </span>
+                  )}
                 </p>
               </div>
               <div className="pt-2">
@@ -157,52 +199,62 @@ const GradeDetails = () => {
             </div>
           </AppCard>
 
-          {/* Description Card (spans 2 columns) */}
-          <AppCard title={t("Grade Description")} icon="fa-file-alt" className="md:col-span-2">
+          {/* Description Card */}
+          <AppCard
+            title={t("Grade Description")}
+            icon="fa-file-alt"
+            className="md:col-span-2"
+          >
             <div>
-              <p className="text-xs-custom font-medium text-gray-500 uppercase tracking-wide mb-2">
-                <i className="fa fa-align-left mr-2 text-gray-400"></i>
+              <p className="text-xs-custom font-medium text-dark-light/70 uppercase tracking-wide mb-2">
+                <i className="fa fa-align-left mr-2 text-dark-light/60"></i>
                 {t("Overview")}
               </p>
-              <div className="bg-surface-50 p-4 rounded-lg border border-gray-200 min-h-[120px]">
-                <p className="text-base-custom text-gray-800 leading-relaxed">
-                  {grade.description || <span className="text-gray-400">{t("noDescription")}</span>}
+              <div className="bg-surface-50 p-4 rounded-lg border border-surface-100 min-h-[120px]">
+                <p className="text-base-custom text-dark leading-relaxed">
+                  {grade.description || (
+                    <span className="text-dark-light/40">
+                      {t("noDescription")}
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
           </AppCard>
 
-          {/* Courses Card */}
+          {/* Courses Card – Ab naye endpoint se data aayega */}
           <AppCard title={t("Courses")} icon="fa-book">
             <div className="space-y-4">
               <div>
-                <p className="text-xs-custom font-medium text-gray-500 uppercase tracking-wide mb-1">
-                  <i className="fa fa-list-ul mr-2 text-gray-400"></i>
+                <p className="text-xs-custom font-medium text-dark-light/70 uppercase tracking-wide mb-1">
+                  <i className="fa fa-list-ul mr-2 text-dark-light/60"></i>
                   {t("Total Courses")}
                 </p>
-                <p className="text-lg-custom font-semibold text-gray-800">
+                <p className="text-lg-custom font-semibold text-dark">
                   <span className="text-2xl-custom font-bold text-brand-600">
-                    {grade.courses?.length || 0}
+                    {courseCount}
                   </span>{" "}
                   {t("courses")}
                 </p>
               </div>
               <div>
-                <p className="text-xs-custom font-medium text-gray-500 uppercase tracking-wide mb-2">
-                  <i className="fa fa-book-open mr-2 text-gray-400"></i>
+                <p className="text-xs-custom font-medium text-dark-light/70 uppercase tracking-wide mb-2">
+                  <i className="fa fa-book-open mr-2 text-dark-light/60"></i>
                   {t("Course List")}
                 </p>
-                <div className="max-h-48 overflow-y-auto bg-white p-3 rounded-lg border border-gray-200">
-                  {grade.courses && grade.courses.length > 0 ? (
+                <div className="max-h-48 overflow-y-auto bg-white p-3 rounded-lg border border-surface-100">
+                  {courseList.length > 0 ? (
                     <ul className="space-y-2">
-                      {grade.courses.map((course) => (
+                      {courseList.map((course) => (
                         <li
                           key={course._id}
-                          className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0"
+                          className="flex items-center justify-between py-2 border-b border-surface-100 last:border-b-0"
                         >
                           <div>
-                            <p className="font-medium text-gray-800">{course.courseName}</p>
-                            <p className="text-xs-custom text-gray-500">{course.code}</p>
+                            <p className="font-medium text-dark">
+                              {course.courseName}
+                            </p>
+                            {/* Agar code chahiye to ye line add kar sakte hain, par naye endpoint sirf naam deta hai */}
                           </div>
                           <AppButton
                             to={`/admin/courses/${course._id}`}
@@ -214,58 +266,63 @@ const GradeDetails = () => {
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-gray-400 text-sm-custom">{t("noCourses")}</p>
+                    <p className="text-dark-light/40 text-sm-custom">
+                      {t("noCourses")}
+                    </p>
                   )}
                 </div>
               </div>
             </div>
           </AppCard>
 
-          {/* Statistics Card */}
+          {/* Statistics Card – Total Students & Teachers (vahi rahega) */}
           <AppCard title={t("Grade Statistics")} icon="fa-chart-bar">
             <div className="space-y-4">
               <div>
-                <p className="text-xs-custom font-medium text-gray-500 uppercase tracking-wide mb-1">
-                  <i className="fa fa-users mr-2 text-gray-400"></i>
+                <p className="text-xs-custom font-medium text-dark-light/70 uppercase tracking-wide mb-1">
+                  <i className="fa fa-users mr-2 text-dark-light/60"></i>
                   {t("Total Students")}
                 </p>
-                <p className="text-lg-custom font-semibold text-gray-800">
-                  <span className="text-2xl-custom font-bold text-blue-600">
+                <p className="text-lg-custom font-semibold text-dark">
+                  <span className="text-2xl-custom font-bold text-brand-600">
                     {stats.totalStudents}
                   </span>{" "}
                   {t("students")}
                 </p>
               </div>
               <div>
-                <p className="text-xs-custom font-medium text-gray-500 uppercase tracking-wide mb-1">
-                  <i className="fa fa-chalkboard-teacher mr-2 text-gray-400"></i>
+                <p className="text-xs-custom font-medium text-dark-light/70 uppercase tracking-wide mb-1">
+                  <i className="fa fa-chalkboard-teacher mr-2 text-dark-light/60"></i>
                   {t("Total Teachers")}
                 </p>
-                <p className="text-lg-custom font-semibold text-gray-800">
-                  <span className="text-2xl-custom font-bold text-purple-600">
+                <p className="text-lg-custom font-semibold text-dark">
+                  <span className="text-2xl-custom font-bold text-brand-600">
                     {stats.totalTeachers}
                   </span>{" "}
                   {t("teachers")}
                 </p>
               </div>
               <div>
-                <p className="text-xs-custom font-medium text-gray-500 uppercase tracking-wide mb-1">
-                  <i className="fa fa-calendar-plus mr-2 text-gray-400"></i>
+                <p className="text-xs-custom font-medium text-dark-light/70 uppercase tracking-wide mb-1">
+                  <i className="fa fa-calendar-plus mr-2 text-dark-light/60"></i>
                   {t("Created On")}
                 </p>
-                <p className="text-lg-custom font-semibold text-gray-800">
-                  {grade.createdAt || <span className="text-gray-400">{t("N/A")}</span>}
+                <p className="text-lg-custom font-semibold text-dark">
+                  {grade.createdAt || (
+                    <span className="text-dark-light/40">
+                      {t("N/A")}
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
           </AppCard>
         </div>
 
-        {/* Bottom action buttons and metadata */}
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-sm-custom text-gray-500">
+        <div className="mt-8 pt-6 border-t border-surface-100">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-sm-custom text-dark-light/70">
             <div className="mb-4 sm:mb-0">
-              <i className="fa fa-clock mr-2 text-gray-400"></i>
+              <i className="fa fa-clock mr-2 text-dark-light/60"></i>
               {t("lastUpdated")}: {new Date().toLocaleString()}
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -276,10 +333,10 @@ const GradeDetails = () => {
                 variant="secondary"
               />
               <AppButton
-                to={`/admin/grades/${params.id}/courses`}
-                label={t("manageCourses")}
-                icon="book"
-                variant="secondary"
+              to={`/admin/grade/${params.id}/download`}
+              label={t("Download")}
+              icon="download"
+              variant="secondary"
               />
               <AppButton
                 to={`/admin/grades/${params.id}/timetable`}
@@ -292,7 +349,7 @@ const GradeDetails = () => {
                 label={t("refreshData")}
                 icon="sync-alt"
                 variant="secondary"
-                disabled={isLoading}
+                disabled={gradeLoading || coursesLoading}
               />
             </div>
           </div>

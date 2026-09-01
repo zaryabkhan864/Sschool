@@ -4,7 +4,7 @@ const courseSchema = new mongoose.Schema(
   {
     courseName: {
       type: String,
-      required: [true, "please enter course name"],
+      required: [true, "Please enter course name"],
       maxLength: [200, "Course name cannot exceed 200 characters"],
     },
     description: {
@@ -15,24 +15,30 @@ const courseSchema = new mongoose.Schema(
     code: {
       type: String,
       required: [true, "Please enter the code of course"],
-      maxLength: [8, "Code cannot exceed 8 characters"],
+      maxLength: [9, "Code cannot exceed  characters"],
     },
     teacher: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: false,
       default: null,
-    }, // Assigned teacher
+    },
     campus: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Campus",
     },
-    year: {
-      type: Number,
-      required: [true, "Please enter course year"],
+    academicYear: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AcademicYear",
+      required: [true, "Please select an academic year"],
+    },
+    // NEW – status field for the course itself
+    status: {
+      type: Boolean,
+      default: true,   // true = Active, false = Inactive
     },
   },
-  { timestamps: false }
+  { timestamps: true }   // now createdAt and updatedAt will be generated
 );
 
 export default mongoose.model("Course", courseSchema);

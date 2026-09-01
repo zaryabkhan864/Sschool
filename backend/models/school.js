@@ -1,15 +1,50 @@
-// create  school model , like my other model design pateran , add campus and year filed in it 
-import mongoose from "mongoose"
+import mongoose from "mongoose";
+
 const schoolSchema = new mongoose.Schema(
-{
-    campus:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"Campus"
+  {
+    name: {
+      type: String,
+      required: [true, "Please enter school name"],
+      trim: true,
     },
-    year:{
-        type: Number,
-        required: [true, "Please enter school year"],
-    }
-}
-)   
-export default mongoose.model("School",schoolSchema)
+    logo: {
+      public_id: {
+        type: String,
+      },
+      url: {
+        type: String,
+      },
+    },
+    description: {
+      type: String,
+      trim: true,
+    },
+    tagline: {
+      type: String,
+      trim: true,
+    },
+    address: {
+      type: String,
+      trim: true,
+    },
+    contactNumber: {
+      type: String,
+      trim: true,
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
+    website: {
+      type: String,
+      trim: true,
+    },
+    establishedYear: {
+      type: Number,
+    },
+  },
+  { timestamps: true }
+);
+
+export default mongoose.model("School", schoolSchema);

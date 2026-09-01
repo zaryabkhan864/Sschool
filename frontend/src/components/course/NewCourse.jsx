@@ -17,6 +17,12 @@ import AppInfoBox from "../layout/AppInfoBox";
 import AppButton from "../GUI/AppButton";
 import SearchableDropdown from "../layout/SearchableDropdown";
 
+const getFullName = (user) => {
+  if (!user) return "";
+  const { firstName = "", middleName = "", lastName = "" } = user;
+  return `${firstName} ${middleName ? middleName + " " : ""}${lastName}`.trim();
+};
+
 const NewCourse = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -37,11 +43,13 @@ const NewCourse = () => {
   const [createCourse, { isLoading: isCreating, error, isSuccess }] =
     useCreateCourseMutation();
 
+  // ✅ Only fetch teachers who are contracted AND have accountStatus = "active"
   const { data: teachersData, isFetching: teachersLoading } =
     useGetUserByTypeQuery({
       type: "teacher",
-      status: "active",
-      limit: 0, // fetch all teachers (no pagination)
+      contracted: true,      // only contracted teachers
+      status: "active",      // 👈 only active accounts
+      limit: 0,              // fetch all (dropdown mode)
       keyword: teacherSearch,
     });
 
@@ -73,13 +81,19 @@ const NewCourse = () => {
     createCourse(course);
   };
 
-  // Prepare teacher options for dropdown
+  // ✅ Teacher dropdown options with status as subtitle
   const teacherOptions = useMemo(() => {
-    return (teachersData?.users || []).map((user) => ({
-      value: user._id,
-      label: user.name,
-      subtitle: user.email,
-    }));
+    return (teachersData?.users || []).map((user) => {
+      const fullName = getFullName(user) || user.email;
+      const statusLabel = user.status
+        ? user.status.charAt(0).toUpperCase() + user.status.slice(1)
+        : "";
+      return {
+        value: user._id,
+        label: fullName,
+        subtitle: statusLabel,   // status will show as subtitle
+      };
+    });
   }, [teachersData]);
 
   return (
@@ -143,7 +157,6 @@ const NewCourse = () => {
                   placeholder={t("Select Teacher")}
                   isLoading={teachersLoading}
                   required
-                  // showSelected is removed – defaults to true, so selected teacher appears
                 />
               </div>
 

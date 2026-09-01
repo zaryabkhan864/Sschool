@@ -1,149 +1,179 @@
-import Exam from "../models/exam.js";
-import Student from "../models/user.js";
-import ErrorHandler from "../utils/errorHandler.js";
+// controllers/examController.js
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
-import mongoose from "mongoose";
+import Exam from "../models/exam.js";
+import StudentEnrollment from "../models/studentEnrollment.js";
+import ErrorHandler from "../utils/errorHandler.js";
 
-export const newExam = catchAsyncErrors(async (req, res) => {
-  const exam = await Exam.create(req.body);
-  res.status(200).json({
-    success: true,
-    exam,
-  });
-});
+const getContext = (req) => {
+  const academicYear = req.query.academicYear || req.cookies.academicYear;
+  const campus = req.query.campus || req.cookies.campus;
+  return { academicYear, campus };
+};
 
-export const getStudentsExamRecord = catchAsyncErrors(async (req, res, next) => {
-  const { grade, course, semester, quarter, user } = req.body; 
+const populateOptions = [
+  { path: "classGroup", select: "displayName section grade academicLevel" },
+  { path: "course", select: "courseName code" },
+  { path: "teacher", select: "firstName middleName lastName email" },
+  { path: "campus", select: "name" },
+  { path: "academicYear", select: "name" },
+  { path: "marks.student", select: "firstName middleName lastName userId" },
+];
 
-  // Extract year from cookies or request body
-  const { campus, selectedYear } = req.cookies;
-  const year = selectedYear || req.body.year;
+// ============================================================
+// POST => /api/v1/teacher/exam/fetch-or-create
+// ============================================================
+export const fetchOrCreateExam = catchAsyncErrors(async (req, res, next) => {
+  const { academicYear, campus } = getContext(req);
+  if (!academicYear) return next(new ErrorHandler("Academic Year not selected", 400));
+  if (!campus) return next(new ErrorHandler("Campus not selected", 400));
 
-  if (!year) {
-    return next(new ErrorHandler("Year is required", 400));
+  const teacher = req.user?._id;
+  if (!teacher) return next(new ErrorHandler("Teacher could not be resolved", 400));
+
+  const { classGroup, course, examNumber, title, date, totalQuestions, marksPerQuestion } = req.body;
+
+  if (!classGroup || !course || !examNumber) {
+    return next(new ErrorHandler("Class group, course and exam number are required", 400));
   }
 
-  // Step 1: Check if an exam exists with the given details
-  let existingExam = await Exam.findOne({
-    grade,
+  const existingExam = await Exam.findOne({
+    classGroup,
     course,
-    semester,
-    quarter,
-    user,
-    campus,
-    year: Number(year)
-  }).populate({
-    path: "marks.student",
-    select: "name",
-  });
+    examNumber,
+    academicYear,
+  }).populate(populateOptions);
 
   if (existingExam) {
-    const examWithStudentNames = {
-      ...existingExam.toObject(),
-      marks: existingExam.marks.map((mark) => ({
-        ...mark.toObject(),
-        studentName: mark.student?.name || "Unknown",
-        student: mark.student?._id
-      })),
-    };
-
     return res.status(200).json({
       success: true,
-      message: "Exam data retrieved successfully.",
-      exam: examWithStudentNames,
+      message: "Existing exam loaded.",
+      isNew: false,
+      exam: existingExam,
     });
   }
 
-  // If no exam exists, fetch students by grade
-  const students = await Student.aggregate([
-    {
-      $match: {
-        "campus": new mongoose.Types.ObjectId(campus)
-      }
-    },
-    {
-      $addFields: {
-        currentGrade: { 
-          $arrayElemAt: ["$grade", -1]
-        }
-      }
-    },
-    {
-      $match: {
-        "currentGrade.gradeId": new mongoose.Types.ObjectId(grade)
-      }
-    }
-  ]);
-  
-  if (!students || students.length === 0) {
-    return next(new ErrorHandler("Students not found", 404));
+  if (!date || !totalQuestions || !marksPerQuestion) {
+    return next(
+      new ErrorHandler("Date, total questions and marks per question are required to create a new exam", 400)
+    );
   }
 
-  // Create a new exam with initial marks for each student
-  const initialMarks = students.map((student) => ({
-    student: student._id,
-    question1: 0,
-    question2: 0,
-    question3: 0,
-    question4: 0,
-    question5: 0,
-    question6: 0,
-    question7: 0,
-    question8: 0,
-    question9: 0,
-    question10: 0,
+  const enrollments = await StudentEnrollment.find({ classGroup, status: "active" });
+  if (!enrollments.length) {
+    return next(new ErrorHandler("No active students found in this class group", 404));
+  }
+
+  const initialMarks = enrollments.map((e) => ({
+    student: e.student,
+    answers: Array(Number(totalQuestions)).fill(0),
   }));
 
-  const newExam = await Exam.create({
-    semester,
-    quarter,
+  const exam = await Exam.create({
+    title: title || `Exam ${examNumber}`,
+    examNumber,
+    date,
     course,
-    grade,
-    user,
+    classGroup,
+    teacher,
     campus,
-    year: Number(year),
+    academicYear,
+    totalQuestions: Number(totalQuestions),
+    marksPerQuestion: Number(marksPerQuestion),
     marks: initialMarks,
   });
 
-  const newExamWithStudentNames = {
-    ...newExam.toObject(),
-    marks: newExam.marks.map((mark) => {
-      const student = students.find((s) => s._id.toString() === mark.student.toString());
-      return {
-        ...mark.toObject(),
-        studentName: student?.name || "Unknown",
-      };
-    }),
-  };
+  const populated = await Exam.findById(exam._id).populate(populateOptions);
 
-  return res.status(201).json({
+  res.status(201).json({
     success: true,
-    message: "No Exam found. New exam record created.",
-    exam: newExamWithStudentNames,
+    message: "New exam created.",
+    isNew: true,
+    exam: populated,
   });
 });
 
-export const updateExam = catchAsyncErrors(async (req, res, next) => {
-  let exam = await Exam.findById(req.params.id);
+// ============================================================
+// GET (list) => /api/v1/teacher/exams
+// ============================================================
+export const getExams = catchAsyncErrors(async (req, res, next) => {
+  const { academicYear, campus } = getContext(req);
+  if (!academicYear) return next(new ErrorHandler("Academic Year not selected", 400));
+  if (!campus) return next(new ErrorHandler("Campus not selected", 400));
 
-  if (!exam) {
-    return next(new ErrorHandler("Exam not found", 404));
+  const { classGroup, course, keyword } = req.query;
+  const baseConditions = { campus, academicYear };
+  if (classGroup) baseConditions.classGroup = classGroup;
+  if (course) baseConditions.course = course;
+  if (keyword && keyword.trim()) {
+    baseConditions.title = { $regex: keyword.trim(), $options: "i" };
   }
 
-  // If year is being updated, ensure it's a number
-  if (req.body.year) {
-    req.body.year = Number(req.body.year);
-  }
+  const resPerPage = parseInt(req.query.limit) || 10;
+  const page = parseInt(req.query.page) || 1;
 
-  exam = await Exam.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
-    runValidators: true,
-    useFindAndModify: false // Add this for better compatibility
-  });
+  const total = await Exam.countDocuments(baseConditions);
+
+  const exams = await Exam.find(baseConditions)
+    .populate(populateOptions)
+    .sort({ date: -1 })
+    .skip((page - 1) * resPerPage)
+    .limit(resPerPage);
 
   res.status(200).json({
     success: true,
-    exam,
-    message: "Exam marks updated successfully",
+    exams,
+    pagination: {
+      total,
+      page,
+      limit: resPerPage,
+      totalPages: Math.ceil(total / resPerPage),
+    },
   });
+});
+
+// ============================================================
+// GET single => /api/v1/exams/:id
+// ============================================================
+export const getExamDetails = catchAsyncErrors(async (req, res, next) => {
+  const exam = await Exam.findById(req.params.id).populate(populateOptions);
+  if (!exam) return next(new ErrorHandler("Exam not found", 404));
+  res.status(200).json({ success: true, exam });
+});
+
+// ============================================================
+// PUT => /api/v1/teacher/exam/:id
+// totalQuestions/marksPerQuestion are fixed at creation, same reasoning
+// as the Quiz module — changing them after marks exist would corrupt data.
+// ============================================================
+export const updateExamMarks = catchAsyncErrors(async (req, res, next) => {
+  const exam = await Exam.findById(req.params.id);
+  if (!exam) return next(new ErrorHandler("Exam not found", 404));
+
+  const { marks, title, date } = req.body;
+
+  if (marks) exam.marks = marks;
+  if (title) exam.title = title;
+  if (date) exam.date = date;
+
+  await exam.save();
+
+  const populated = await Exam.findById(exam._id).populate(populateOptions);
+
+  res.status(200).json({
+    success: true,
+    message: "Exam marks updated successfully",
+    exam: populated,
+  });
+});
+
+// ============================================================
+// DELETE => /api/v1/teacher/exam/:id
+// ============================================================
+export const deleteExam = catchAsyncErrors(async (req, res, next) => {
+  const exam = await Exam.findById(req.params.id);
+  if (!exam) return next(new ErrorHandler("Exam not found", 404));
+
+  await Exam.findByIdAndDelete(req.params.id);
+
+  res.status(200).json({ success: true, message: "Exam deleted successfully" });
 });

@@ -16,24 +16,18 @@ export const campusApi = createApi({
           status: params?.status,
           paginate: params?.paginate,
         };
-
         Object.keys(queryParams).forEach(
           (key) => queryParams[key] === undefined && delete queryParams[key]
         );
-
         return {
           url: "/campus",
           params: queryParams,
         };
       },
-
       providesTags: (result) =>
         result?.campuses
           ? [
-              ...result.campuses.map(({ _id }) => ({
-                type: "Campus",
-                id: _id,
-              })),
+              ...result.campuses.map(({ _id }) => ({ type: "Campus", id: _id })),
               { type: "Campus", id: "LIST" },
             ]
           : [{ type: "Campus", id: "LIST" }],
@@ -42,9 +36,7 @@ export const campusApi = createApi({
     // GET ONE
     getCampusDetails: builder.query({
       query: (id) => `/campus/${id}`,
-      providesTags: (result, error, id) => [
-        { type: "Campus", id },
-      ],
+      providesTags: (result, error, id) => [{ type: "Campus", id }],
     }),
 
     // CREATE
@@ -70,21 +62,21 @@ export const campusApi = createApi({
       ],
     }),
 
-    // SET TOKEN
+    // DELETE
+    deleteCampus: builder.mutation({
+      query: (id) => ({
+        url: `/admin/campus/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: [{ type: "Campus", id: "LIST" }],
+    }),
+
+    // SET CAMPUS TOKEN (cookie)
     setCampusToken: builder.mutation({
       query: (id) => ({
         url: `/campus/token/${id}`,
         method: "GET",
       }),
-    }),
-
-    // DELETE (soft)
-    deleteCampus: builder.mutation({
-      query: (id) => ({
-        url: `/campus/${id}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: [{ type: "Campus", id: "LIST" }],
     }),
   }),
 });
@@ -94,6 +86,6 @@ export const {
   useGetCampusDetailsQuery,
   useCreateCampusMutation,
   useUpdateCampusMutation,
-  useSetCampusTokenMutation,
   useDeleteCampusMutation,
+  useSetCampusTokenMutation,
 } = campusApi;

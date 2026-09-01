@@ -3,15 +3,15 @@ import PropTypes from "prop-types";
 
 const AppCard = ({ title, icon, header, children, footer, className = "" }) => {
   return (
-    <div className={`bg-white rounded-xl shadow-soft border border-gray-200 overflow-visible ${className}`}>
+    <div className={`bg-white rounded-2xl shadow-soft border border-surface-100 overflow-visible ${className}`}>
       {(header || title) && (
-        <div className="p-6 border-b border-gray-100">
+        <div className="p-6 border-b border-surface-100">
           {header ? (
             header
           ) : (
             <div className="flex items-center gap-2">
               {icon && <i className={`fa ${icon} text-brand-500 text-sm-custom`}></i>}
-              <h3 className="font-bold text-sm-custom text-gray-800 uppercase tracking-wide">
+              <h3 className="font-bold text-sm-custom text-ink-900 uppercase tracking-wide">
                 {title}
               </h3>
             </div>
@@ -22,7 +22,7 @@ const AppCard = ({ title, icon, header, children, footer, className = "" }) => {
       {children && <div className="p-6">{children}</div>}
 
       {footer && (
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-xl">
+        <div className="px-6 py-4 bg-surface-50 border-t border-surface-100 rounded-b-2xl">
           {footer}
         </div>
       )}

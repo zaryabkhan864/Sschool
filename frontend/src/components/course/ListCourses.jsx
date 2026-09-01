@@ -19,7 +19,6 @@ import ActionButtons from "../GUI/ActionButtons";
 import FilterDropdown from "../GUI/FilterDropdown";
 import EmptyState from "../GUI/EmptyState";
 import TruncatedCell from "../GUI/TruncatedCell";
-// AppBadge import removed because status column is no longer used
 
 const ListCourses = () => {
   const { t } = useTranslation();
@@ -57,13 +56,16 @@ const ListCourses = () => {
     error,
     refetch,
     isFetching,
-  } = useGetCoursesQuery({
-    page: currentPage,
-    limit,
-    keyword: searchTerm,
-  }, {
-    refetchOnMountOrArgChange: true,
-  });
+  } = useGetCoursesQuery(
+    {
+      page: currentPage,
+      limit,
+      keyword: searchTerm,
+    },
+    {
+      refetchOnMountOrArgChange: true,
+    }
+  );
 
   const [
     deleteCourse,
@@ -76,7 +78,8 @@ const ListCourses = () => {
   // Global error / success handling
   useEffect(() => {
     if (error) toast.error(error?.data?.message || t("Something went wrong"));
-    if (deleteError) toast.error(deleteError?.data?.message || t("Failed to delete course"));
+    if (deleteError)
+      toast.error(deleteError?.data?.message || t("Failed to delete course"));
     if (deleteSuccess) {
       toast.success(t("Course deleted successfully"));
       setShowModal(false);
@@ -115,14 +118,73 @@ const ListCourses = () => {
     navigate(`/admin/course/${id}/details`);
   };
 
-  // Columns (status column removed)
+  // ✅ Improved status badge – covers all teacher statuses
+  const getStatusBadge = (status) => {
+    if (!status) return null;
+    const base =
+      "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium";
+    switch (status.toLowerCase()) {
+      case "active":
+        return (
+          <span className={`${base} bg-green-100 text-green-800`}>
+            {t("active")}
+          </span>
+        );
+      case "inactive":
+        return (
+          <span className={`${base} bg-gray-100 text-gray-800`}>
+            {t("inactive")}
+          </span>
+        );
+      case "pending":
+        return (
+          <span className={`${base} bg-yellow-100 text-yellow-800`}>
+            {t("pending")}
+          </span>
+        );
+      case "suspended":
+        return (
+          <span className={`${base} bg-red-100 text-red-800`}>
+            {t("suspended")}
+          </span>
+        );
+      case "uncontracted":           // ✅ new – teacher whose contract ended
+        return (
+          <span className={`${base} bg-orange-100 text-orange-800`}>
+            {t("uncontracted")}
+          </span>
+        );
+      case "transferred":
+        return (
+          <span className={`${base} bg-blue-100 text-blue-800`}>
+            {t("transferred")}
+          </span>
+        );
+      case "resigned":
+      case "terminated":
+        return (
+          <span className={`${base} bg-red-100 text-red-800`}>
+            {t(status)}
+          </span>
+        );
+      default:
+        // fallback – shows the raw status text
+        return (
+          <span className={`${base} bg-gray-100 text-gray-800`}>
+            {status}
+          </span>
+        );
+    }
+  };
+
+  // Columns
   const columns = [
     {
       header: t("Course Name"),
       accessor: "courseName",
       width: "55%",
       minWidth: "200px",
-      render: (value) => <TruncatedCell maxChars={55}>{value}</TruncatedCell>
+      render: (value) => <TruncatedCell maxChars={55}>{value}</TruncatedCell>,
     },
     {
       header: t("Course Code"),
@@ -130,65 +192,90 @@ const ListCourses = () => {
       width: "20%",
       minWidth: "120px",
       render: (value) => (
-        <TruncatedCell lines={1} className="font-mono font-medium text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100">
+        <TruncatedCell
+          lines={1}
+          className="font-mono font-medium text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100"
+        >
           {value || <span className="text-gray-400 italic">{t("N/A")}</span>}
         </TruncatedCell>
-      )
+      ),
     },
     {
       header: t("Teacher"),
       accessor: "teacher",
       width: "25%",
       minWidth: "200px",
-      render: (value) => value ? (
-        <div className="truncate">
-          <span className="text-sm text-gray-700 font-medium truncate block" title={value.name}>
-            {value.name}
-          </span>
-          {value.email && (
-            <p className="text-[10px] text-gray-400 truncate" title={value.email}>
-              {value.email}
-            </p>
-          )}
-        </div>
-      ) : (
-        <span className="text-sm text-gray-400 italic">{t("Not assigned")}</span>
-      )
-    }
-    // Status column was here and has been removed
+      render: (value) => {
+        // ✅ Handle missing or deleted teacher reference
+        if (!value || (typeof value === "object" && !value.firstName && !value.lastName)) {
+          return (
+            <div className="flex flex-col">
+              <span className="text-gray-700 font-medium">—</span>
+              <span className="text-xs text-gray-400 italic">
+                {t("Not assigned")}
+              </span>
+            </div>
+          );
+        }
+
+        // Build teacher’s full name
+        const fullName = [value.firstName, value.lastName]
+          .filter(Boolean)
+          .join(" ");
+
+        return (
+          <div className="flex flex-col">
+            {/* Name (truncated if long) */}
+            <span
+              className="text-gray-700 font-medium truncate"
+              title={fullName || value.email}
+            >
+              {fullName || value.email}
+            </span>
+            {/* Status badge – now always visible */}
+            <div className="mt-1">{getStatusBadge(value.status)}</div>
+          </div>
+        );
+      },
+    },
   ];
 
-  // Stats (still uses status for counting active courses)
+  // Stats (unchanged)
   const stats = [
     {
       label: t("Total Courses"),
       value: data?.pagination?.total || 0,
       icon: "book",
-      color: "blue"
+      color: "blue",
     },
     {
       label: t("Active Courses"),
-      value: data?.courses?.filter(course => course.status).length || 0,
+      value: data?.pagination?.counts?.active ?? 0,
       icon: "check-circle",
-      color: "green"
+      color: "green",
     },
     {
       label: t("Items Shown"),
       value: data?.courses?.length || 0,
       icon: "list-ul",
-      color: "purple"
+      color: "purple",
     },
     {
       label: t("Total Pages"),
       value: data?.pagination?.totalPages || 1,
       icon: "file-alt",
-      color: "orange"
-    }
+      color: "orange",
+    },
   ];
 
-  const addButton = userRole === "admin" ? (
-    <AppButton to="/admin/course/new" label={t("Add New Course")} icon="plus" />
-  ) : null;
+  const addButton =
+    userRole === "admin" ? (
+      <AppButton
+        to="/admin/course/new"
+        label={t("Add New Course")}
+        icon="plus"
+      />
+    ) : null;
 
   const refreshButton = (
     <AppButton
@@ -200,7 +287,6 @@ const ListCourses = () => {
     />
   );
 
-  // Filter dropdown using shared component
   const filters = (
     <FilterDropdown
       limit={limit}
@@ -232,8 +318,14 @@ const ListCourses = () => {
   const emptyState = (
     <EmptyState
       icon="book"
-      title={searchTerm ? t("No courses found matching your search") : t("No courses found")}
-      message={t("Try adjusting your search or filters to find what you're looking for.")}
+      title={
+        searchTerm
+          ? t("No courses found matching your search")
+          : t("No courses found")
+      }
+      message={t(
+        "Try adjusting your search or filters to find what you're looking for."
+      )}
     />
   );
 

@@ -21,6 +21,12 @@ import EmptyState from "../GUI/EmptyState";
 import TruncatedCell from "../GUI/TruncatedCell";
 import AppBadge from "../GUI/AppBadge";
 
+// Helper to get full name from user object
+const getFullName = (user) => {
+  const { firstName = "", middleName = "", lastName = "" } = user;
+  return `${firstName} ${middleName ? middleName + " " : ""}${lastName}`.trim();
+};
+
 const ListUsers = () => {
   const { t } = useTranslation();
   const location = useLocation();
@@ -61,13 +67,15 @@ const ListUsers = () => {
     refetch,
     isFetching,
   } = useGetUserByTypeQuery({
-    type: "employee", // fetches users with role != 'student'
+    type: "all", // fetches users with role != 'student'
     page: currentPage,
     limit,
     keyword: searchTerm,
     gender: genderFilter || undefined,
     status: statusFilter || undefined,
     campus: campusFilter || undefined,
+    ignoreAcademicYear: true,
+    ignoreCampus: true,
   }, {
     refetchOnMountOrArgChange: true,
   });
@@ -88,9 +96,10 @@ const ListUsers = () => {
       toast.success(t("User deleted successfully"));
       setShowModal(false);
       setSelectedUserId(null);
+      refetch();
     }
     if (user?.role === "admin") setUserRole("admin");
-  }, [error, deleteError, deleteSuccess, user, t]);
+  }, [error, deleteError, deleteSuccess, user, t, refetch]);
 
   // Refetch when requested from navigation state (e.g., after edit)
   useEffect(() => {
@@ -122,51 +131,52 @@ const ListUsers = () => {
     navigate(`/admin/user/${id}/details`);
   };
 
-  // Columns – Campus column removed as per request
   const columns = [
     {
       header: t("Name"),
-      accessor: "name",
+      accessor: "firstName", // ✅ FIX: accessor changed, actual render uses full name
       width: "20%",
       minWidth: "180px",
-      render: (value) => <TruncatedCell maxChars={30}>{value}</TruncatedCell>
+      render: (_, row) => (
+        <TruncatedCell maxChars={30}>{getFullName(row)}</TruncatedCell>
+      ),
     },
     {
       header: t("Email"),
       accessor: "email",
       width: "20%",
       minWidth: "200px",
-      render: (value) => <TruncatedCell maxChars={25}>{value}</TruncatedCell>
+      render: (value) => <TruncatedCell maxChars={25}>{value}</TruncatedCell>,
     },
     {
       header: t("Role"),
       accessor: "role",
       width: "15%",
       minWidth: "120px",
-      render: (value) => <AppBadge type="role" value={value} />
+      render: (value) => <AppBadge type="role" value={value} />,
     },
     {
       header: t("Gender"),
       accessor: "gender",
       width: "10%",
       minWidth: "100px",
-      render: (value) => <AppBadge type="gender" value={value} />
+      render: (value) => <AppBadge type="gender" value={value} />,
     },
     {
       header: t("Status"),
-      accessor: "status",
+      accessor: "accountStatus", // ✅ FIX: User model field is accountStatus, not status
       width: "10%",
       minWidth: "100px",
       render: (value) => {
-        const isActive = 
+        const isActive =
           value === true ||
           value === "active" ||
           value === "Active" ||
           value === "ACTIVE" ||
           value === 1;
-          return <AppBadge type="booleanStatus" active={isActive} />;
-      }
-    }
+        return <AppBadge type="booleanStatus" active={isActive} />;
+      },
+    },
   ];
 
   // Stats
@@ -177,30 +187,30 @@ const ListUsers = () => {
       label: t("Total Users"),
       value: counts.total,
       icon: "users",
-      color: "blue"
+      color: "blue",
     },
     {
       label: t("Active"),
       value: counts.active,
       icon: "check-circle",
-      color: "green"
+      color: "green",
     },
     {
       label: t("Deactive"),
       value: counts.deactive,
       icon: "times-circle",
-      color: "red"
+      color: "red",
     },
     {
       label: t("Total Pages"),
       value: data?.pagination?.totalPages || 1,
       icon: "file-alt",
-      color: "purple"
-    }
+      color: "purple",
+    },
   ];
 
   const addButton = userRole === "admin" ? (
-    <AppButton to="/admin/user/new" label={t("Add New User")} icon="plus" />
+    <AppButton to="/admin/register" label={t("Add New User")} icon="plus" />
   ) : null;
 
   const refreshButton = (
@@ -213,7 +223,6 @@ const ListUsers = () => {
     />
   );
 
-  // Filter dropdown (gender and status – same as students)
   const filters = (
     <FilterDropdown
       limit={limit}

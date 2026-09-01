@@ -15,6 +15,20 @@ const counselingSchema = new mongoose.Schema(
       }
     },
 
+    teacher: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      validate: {
+        validator: async function (teacherId) {
+          if (!teacherId) return true; // optional field
+          const user = await mongoose.model("User").findById(teacherId);
+          return user && user.role === "teacher";
+        },
+        message: "The involved person must be a teacher."
+      }
+    },
+
     reportedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -22,8 +36,8 @@ const counselingSchema = new mongoose.Schema(
     },
 
     reporterRole: {
-      type: String, 
-      required: true, 
+      type: String,
+      required: true,
     },
 
     issueType: {
@@ -36,16 +50,14 @@ const counselingSchema = new mongoose.Schema(
       required: [true, "Please provide details of the issue/complain"],
     },
 
-    // --- Timeline Dates ---
-    incidentDate: { 
-      type: Date, 
+    incidentDate: {
+      type: Date,
       default: Date.now,
-      required: [true, "Please specify when the incident happened"] 
+      required: [true, "Please specify when the incident happened"]
     },
-    resolvedAt: { type: Date }, // Jab status 'resolved' ho tab update hoga
-    closedAt: { type: Date },   // Jab status 'closed' ho tab update hoga
+    resolvedAt: { type: Date },
+    closedAt: { type: Date },
 
-    // --- Comments Sections ---
     teacherComment: {
       text: String,
       author: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -65,7 +77,7 @@ const counselingSchema = new mongoose.Schema(
     actionTaken: {
       type: String,
     },
-    
+
     status: {
       type: String,
       enum: ["pending", "under_review", "resolved", "closed"],
@@ -78,11 +90,12 @@ const counselingSchema = new mongoose.Schema(
       required: true,
     },
     year: {
-      type: Number,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AcademicYear",
       required: true,
     },
   },
-  { timestamps: true } // Is se 'createdAt' (Complain Date) automatic mil jayegi
+  { timestamps: true }
 );
 
 export default mongoose.model("Counseling", counselingSchema);

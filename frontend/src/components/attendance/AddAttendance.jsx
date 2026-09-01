@@ -38,7 +38,7 @@ const AddAttendance = () => {
 
       const yearFromCookie = document.cookie
         .split("; ")
-        .find((row) => row.startsWith("selectedYear="))
+        .find((row) => row.startsWith("academicYear="))
         ?.split("=")[1];
 
       setFormValues((prevFormValues) => ({

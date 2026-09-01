@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
-import { toast } from "react-hot-toast";
+import React, { useEffect, useState, useMemo } from "react";
+import toast from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
-
+import { useTranslation } from "react-i18next";
 
 import MetaData from "../layout/MetaData";
 import Loader from "../layout/Loader";
@@ -11,9 +11,24 @@ import {
   useGetTeacherLeaveDetailsQuery,
   useUpdateTeacherLeaveMutation,
 } from "../../redux/api/teacherLeaveApi";
+
+// Shared GUI Components
 import AdminLayout from "../layout/AdminLayout";
+import AppPageHeader from "../layout/AppPageHeader";
+import AppCard from "../GUI/AppCard";
+import AppInput from "../GUI/AppInput";
+import AppButton from "../GUI/AppButton";
+import SearchableDropdown from "../layout/SearchableDropdown";
+
+// Helper to get full name from user object (same as in other components)
+const getFullName = (user) => {
+  if (!user) return "";
+  const parts = [user.firstName, user.middleName, user.lastName].filter(Boolean);
+  return parts.join(" ");
+};
 
 const UpdateTeacherLeave = () => {
+  const { t } = useTranslation();
   const params = useParams();
   const navigate = useNavigate();
 
@@ -37,49 +52,68 @@ const UpdateTeacherLeave = () => {
     reason: "",
     status: "Pending",
   });
+
   const { teacherName, leaveType, startDate, endDate, totalDays, reason, status } =
     teacherLeave;
 
   const [showModal, setShowModal] = useState(false);
 
+  // Status options for dropdown
+  const statusOptions = [
+    { value: "Pending", label: t("Pending") },
+    { value: "Approved", label: t("Approved") },
+    { value: "Rejected", label: t("Rejected") },
+  ];
+
+  const [statusSearchTerm, setStatusSearchTerm] = useState("");
+
+  const filteredStatusOptions = useMemo(() => {
+    if (!statusSearchTerm.trim()) return statusOptions;
+    return statusOptions.filter((opt) =>
+      opt.label.toLowerCase().includes(statusSearchTerm.toLowerCase())
+    );
+  }, [statusOptions, statusSearchTerm]);
+
   // fetch leave data
   useEffect(() => {
     if (data) {
+      const leave = data.teacherLeave;
+      const teacherObj = leave.teacher;
       setTeacherLeave({
-        teacher: data.teacherLeave.teacher?._id || "",
-        teacherName: data.teacherLeave.teacher?.name || "",
-        leaveType: data.teacherLeave.leaveType || "",
-        startDate: data.teacherLeave.startDate?.split("T")[0] || "",
-        endDate: data.teacherLeave.endDate?.split("T")[0] || "",
-        totalDays: data.teacherLeave.totalDays || "",
-        reason: data.teacherLeave.reason || "",
-        status: data.teacherLeave.status || "Pending",
+        teacher: teacherObj?._id || "",
+        teacherName: getFullName(teacherObj) || teacherObj?.name || "",
+        leaveType: leave.leaveType || "",
+        startDate: leave.startDate?.split("T")[0] || "",
+        endDate: leave.endDate?.split("T")[0] || "",
+        totalDays: leave.totalDays || "",
+        reason: leave.reason || "",
+        status: leave.status || "Pending",
       });
     }
 
     if (leaveError) {
-      toast.error(leaveError?.data?.message || "Error loading leave details");
+      toast.error(leaveError?.data?.message || t("Error loading leave details"));
     }
 
     if (updateError) {
-      toast.error(updateError?.data?.message || "Error updating leave");
+      toast.error(updateError?.data?.message || t("Error updating leave"));
     }
 
     if (updateSuccess) {
-      toast.success("Teacher Leave updated successfully");
-      navigate("/admin/TeacherLeaves");
+      toast.success(t("Teacher leave updated successfully"));
+      navigate("/admin/teacher-leaves");
     }
-  }, [data, leaveError, updateError, updateSuccess, navigate]);
+  }, [data, leaveError, updateError, updateSuccess, navigate, t]);
 
   if (leaveLoading) {
     return <Loader />;
   }
 
-  // sirf status change ho sakta hai
-  const onChange = (e) => {
+  // only status change is allowed
+  const handleStatusChange = (value) => {
     setTeacherLeave((prevState) => ({
       ...prevState,
-      [e.target.name]: e.target.value,
+      status: value,
     }));
   };
 
@@ -95,23 +129,37 @@ const UpdateTeacherLeave = () => {
 
   return (
     <AdminLayout>
-      <MetaData title="Update Teacher Leave" />
-      <div className="flex justify-center items-center pt-5 pb-10">
-        <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">Update Teacher Leave</h2>
-          <form onSubmit={handleSubmitClick}>
+      <MetaData title={t("Update Teacher Leave")} />
+
+      <div className="max-w-4xl mx-auto">
+        <AppPageHeader
+          title={t("Update Teacher Leave")}
+          subtitle={t("Review and update leave status")}
+          backUrl="/admin/teacher-leaves"
+        />
+
+        <form onSubmit={handleSubmitClick}>
+          <AppCard
+            title={t("Leave Details")}
+            icon="fa-calendar-check"
+            footer={
+              <div className="flex justify-end gap-2">
+                <AppButton backUrl="/admin/teacher-leaves" />
+                <AppButton
+                  type="submit"
+                  label={t("Update Leave")}
+                  loadingLabel={t("Updating...")}
+                  isLoading={updateLoading}
+                  icon="fa-save"
+                />
+              </div>
+            }
+          >
             {/* Teacher (Read Only) */}
             <div className="mb-4">
-              <label
-                htmlFor="teacherName_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Teacher
-              </label>
-              <input
+              <AppInput
+                label={t("Teacher")}
                 type="text"
-                id="teacherName_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
                 value={teacherName}
                 readOnly
               />
@@ -119,120 +167,65 @@ const UpdateTeacherLeave = () => {
 
             {/* Leave Type (Read Only) */}
             <div className="mb-4">
-              <label
-                htmlFor="leaveType_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Leave Type
-              </label>
-              <input
+              <AppInput
+                label={t("Leave Type")}
                 type="text"
-                id="leaveType_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
                 value={leaveType}
                 readOnly
               />
             </div>
 
             {/* Dates (Read Only) */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="mb-4">
-                <label
-                  htmlFor="startDate_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Start Date
-                </label>
-                <input
-                  type="text"
-                  id="startDate_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
-                  value={startDate}
-                  readOnly
-                />
-              </div>
-
-              <div className="mb-4">
-                <label
-                  htmlFor="endDate_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  End Date
-                </label>
-                <input
-                  type="text"
-                  id="endDate_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
-                  value={endDate}
-                  readOnly
-                />
-              </div>
-              <div className="mb-4">
-                <label
-                  htmlFor="totalDays_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Total Days
-                </label>
-                <input
-                  type="text"
-                  id="totalDays_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
-                  value={totalDays}
-                  readOnly
-                />
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <AppInput
+                label={t("Start Date")}
+                type="text"
+                value={startDate}
+                readOnly
+              />
+              <AppInput
+                label={t("End Date")}
+                type="text"
+                value={endDate}
+                readOnly
+              />
+              <AppInput
+                label={t("Total Days")}
+                type="text"
+                value={totalDays}
+                readOnly
+              />
             </div>
 
             {/* Reason (Read Only) */}
             <div className="mb-4">
-              <label
-                htmlFor="reason_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Reason
-              </label>
-              <textarea
-                id="reason_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
+              <AppInput
+                label={t("Reason")}
+                type="textarea"
+                rows={4}
                 value={reason}
                 readOnly
-              ></textarea>
+              />
             </div>
 
             {/* Status (Editable) */}
             <div className="mb-4">
-              <label
-                htmlFor="status_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Status
-              </label>
-              <select
-                id="status_field"
-                name="status"
+              <SearchableDropdown
+                label={t("Status")}
+                placeholder={t("Select status")}
                 value={status}
-                onChange={onChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="Pending">Pending</option>
-                <option value="Approved">Approved</option>
-                <option value="Rejected">Rejected</option>
-              </select>
+                onChange={handleStatusChange}
+                onSearch={setStatusSearchTerm}
+                options={filteredStatusOptions}
+                isLoading={false}
+                hasMore={false}
+                emptyMessage={t("No status found")}
+                loadingMessage=""
+                required
+              />
             </div>
-
-            {/* Submit */}
-            <button
-              type="submit"
-              className={`w-full py-2 text-white font-semibold rounded-md ${
-                updateLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-              } focus:outline-none focus:ring focus:ring-blue-300`}
-              disabled={updateLoading}
-            >
-              {updateLoading ? "Updating..." : "Update"}
-            </button>
-          </form>
-        </div>
+          </AppCard>
+        </form>
       </div>
 
       {/* Confirmation Modal */}
@@ -241,7 +234,7 @@ const UpdateTeacherLeave = () => {
         setShowModal={setShowModal}
         confirmDelete={confirmUpdate}
         isDeleteLoading={updateLoading}
-        message="Do you want to update the status of this Teacher Leave?"
+        message={t("Do you want to update the status of this Teacher Leave?")}
       />
     </AdminLayout>
   );

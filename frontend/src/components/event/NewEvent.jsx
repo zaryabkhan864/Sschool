@@ -1,16 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { toast } from "react-hot-toast";
-
 import { useNavigate } from "react-router-dom";
 import {
   useCreateEventMutation,
   useGetEventsQuery,
 } from "../../redux/api/eventApi";
-
 import { useGetCampusQuery } from "../../redux/api/campusApi";
-
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
+import AppPageHeader from "../layout/AppPageHeader";
+import AppCard from "../GUI/AppCard";
+import AppInput from "../GUI/AppInput";
+import AppButton from "../GUI/AppButton";
 import { useTranslation } from "react-i18next";
 
 const NewEvent = () => {
@@ -18,7 +19,23 @@ const NewEvent = () => {
   const navigate = useNavigate();
   const { refetch } = useGetEventsQuery();
 
-  const { data: campusData, isLoading: campusLoading } = useGetCampusQuery({paginate: false});
+  // Campus search state
+  const [campusSearch, setCampusSearch] = useState("");
+
+  const { data: campusData, isFetching: campusLoading } = useGetCampusQuery(
+    { limit: 0, keyword: campusSearch, paginate: false },
+    { skip: campusSearch.length < 2 } // optional: only fetch when typing 2+ chars
+  );
+
+  const campusOptions = useMemo(
+    () =>
+      (campusData?.campuses || campusData?.campus || []).map((c) => ({
+        value: c._id,
+        label: c.name,
+        subtitle: c.address || "",
+      })),
+    [campusData]
+  );
 
   const [event, setEvent] = useState({
     eventName: "",
@@ -28,26 +45,24 @@ const NewEvent = () => {
     isPaid: false,
     amount: "",
     currency: "USD",
-    campus: ""
+    campus: "",
+    campusLabel: "", // to display the selected campus name
   });
 
-  const { eventName, description, date, venue, isPaid, amount, currency, campus } =
-    event;
+  const { eventName, description, date, venue, isPaid, amount, currency, campus, campusLabel } = event;
 
-  const [createEvent, { isLoading, error, isSuccess }] =
-    useCreateEventMutation();
+  const [createEvent, { isLoading, error, isSuccess }] = useCreateEventMutation();
 
   useEffect(() => {
     if (error) {
       toast.error(error?.data?.message);
     }
-
     if (isSuccess) {
-      toast.success("Event created");
+      toast.success(t("Event created"));
       navigate("/admin/events");
       refetch();
     }
-  }, [error, isSuccess, navigate, refetch]);
+  }, [error, isSuccess, navigate, refetch, t]);
 
   const onChange = (e) => {
     setEvent({ ...event, [e.target.name]: e.target.value });
@@ -55,179 +70,189 @@ const NewEvent = () => {
 
   const submitHandler = (e) => {
     e.preventDefault();
-    createEvent(event);
+    createEvent({
+      ...event,
+      campus: campus, // only send _id
+    });
+  };
+
+  // Campus selection
+  const selectCampus = (campusObj) => {
+    setEvent((prev) => ({
+      ...prev,
+      campus: campusObj.value,
+      campusLabel: campusObj.label,
+    }));
+    setCampusSearch(""); // clear search after selection
   };
 
   return (
     <AdminLayout>
-      <MetaData title={"Create New Grade"} />
-      <div className="flex justify-center items-center pt-5 pb-10">
-        <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">{t('New Event')}</h2>
-          <form onSubmit={submitHandler}>
-          <div className="mb-4">
-                <label
-                  htmlFor="campus_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Campus')}
-                </label>
-                <select
-                  type="text"
-                  id="campus_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="campus"
-                  value={campus}
-                  onChange={onChange}
-                  disabled={campusLoading}
-                >
-                  <option value="">
-                    Select {t('Campus')}                    
-                  </option>
-                  {campusData?.campus?.map(({ name, _id }) => (
-                    <option key={name} value={_id}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
+      <MetaData title={t("Create New Event")} />
+
+      <div className="max-w-6xl mx-auto">
+        <AppPageHeader
+          title={t("New Event")}
+          subtitle={t("Schedule a new event")}
+          backUrl="/admin/events"
+        />
+
+        <form onSubmit={submitHandler}>
+          <AppCard
+            title={t("Event Information")}
+            icon="fa-calendar-plus"
+            footer={
+              <div className="flex justify-end gap-2">
+                <AppButton backUrl="/admin/events" />
+                <AppButton
+                  type="submit"
+                  label={t("Create Event")}
+                  loadingLabel={t("Creating...")}
+                  isLoading={isLoading}
+                  icon="fa-check"
+                />
               </div>
+            }
+          >
+            {/* ----- Searchable Campus Dropdown ----- */}
             <div className="mb-4">
-              <label
-                htmlFor="eventName_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                {t('Event Name')}
+              <label className="text-[11px] font-semibold text-gray-500 uppercase">
+                {t("Campus")}
               </label>
+
+              {/* Show selected campus if any */}
+              {campusLabel && !campusSearch && (
+                <div className="flex items-center justify-between mt-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm">
+                  <span>{campusLabel}</span>
+                  <button
+                    type="button"
+                    onClick={() => setEvent((prev) => ({ ...prev, campus: "", campusLabel: "" }))}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <i className="fa fa-times"></i>
+                  </button>
+                </div>
+              )}
+
+              {/* Search input */}
               <input
                 type="text"
-                id="eventName_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder={t("Search for a campus...")}
+                value={campusSearch}
+                onChange={(e) => setCampusSearch(e.target.value)}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+
+              {/* Dropdown results */}
+              {campusSearch.length >= 2 && campusOptions.length > 0 && (
+                <ul className="mt-1 border border-gray-200 rounded-md max-h-40 overflow-y-auto shadow-sm">
+                  {campusOptions.map((c) => (
+                    <li
+                      key={c.value}
+                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center text-sm"
+                      onClick={() => selectCampus(c)}
+                    >
+                      <span>{c.label}</span>
+                      {c.subtitle && <span className="text-gray-400 text-xs">{c.subtitle}</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {campusLoading && (
+                <div className="mt-1 text-gray-400 text-xs">
+                  <i className="fa fa-spinner fa-spin mr-1"></i> {t("Loading...")}
+                </div>
+              )}
+            </div>
+            {/* ----- End Campus Dropdown ----- */}
+
+            {/* Basic Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <AppInput
+                label={t("Event Name")}
                 name="eventName"
                 value={eventName}
                 onChange={onChange}
+                required
+              />
+              <AppInput
+                label={t("Venue")}
+                name="venue"
+                value={venue}
+                onChange={onChange}
               />
             </div>
-            <div className="mb-4">
-              <label
-                htmlFor="description_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                {t('Description')}
-              </label>
-              <textarea
-                id="description_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="description"
-                rows="4"
-                value={description}
+
+            <AppInput
+              label={t("Description")}
+              name="description"
+              value={description}
+              onChange={onChange}
+              type="textarea"
+              rows={4}
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              <AppInput
+                label={t("Date")}
+                type="date"
+                name="date"
+                value={date}
                 onChange={onChange}
-              ></textarea>
-            </div>
-            <div className="grid grid-cols-5 gap-4">
-              <div className="mb-4">
-                <label
-                  htmlFor="date_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Date')}
-                </label>
-                <input
-                  type="date"
-                  id="date_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="date"
-                  value={date}
-                  onChange={onChange}
-                />
-              </div>
-              <div className="mb-4">
-                <label
-                  htmlFor="venue_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Venue')}
-                </label>
-                <input
-                  type="text"
-                  id="venue_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="venue"
-                  value={venue}
-                  onChange={onChange}
-                />
-              </div>
-              <div className="mb-4 flex justify-evenly items-center">
+                required
+              />
+
+              {/* Paid Checkbox */}
+              <div className="flex items-center gap-3 pt-6">
                 <label
                   htmlFor="isPaid_field"
-                  className="block text-sm font-medium text-gray-700 "
+                  className="text-[11px] font-semibold text-gray-500 uppercase cursor-pointer"
                 >
-                  {t('Paid')}
+                  {t("Paid Event")}
                 </label>
                 <input
                   type="checkbox"
                   id="isPaid_field"
-                  className="mt-1 block h-5 w-5 border items-center border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  checked={isPaid}
                   onChange={() => setEvent({ ...event, isPaid: !isPaid })}
+                  className="h-5 w-5 border-gray-300 rounded text-blue-600 focus:ring-blue-500"
                 />
               </div>
+
               {isPaid && (
-                <div className="mb-4">
-                  <label
-                    htmlFor="amount_field"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    {t('Amount')}
-                  </label>
-                  <input
+                <>
+                  <AppInput
+                    label={t("Amount")}
                     type="number"
-                    id="amount_field"
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     name="amount"
                     value={amount}
                     onChange={onChange}
+                    required
                   />
-                </div>
-              )}
-
-              {isPaid && (
-                <div className="mb-4">
-                  <label
-                    htmlFor="currency_field"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    {t('Currency')}
-                  </label>
-                  <select
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    id="currency_field"
-                    name="currency"
-                    value={currency}
-                    onChange={onChange}
-                  >
-                    <option value="" disabled>
-                      {t('Select Currency')}
-                    </option>
-                    <option value="USD">USD</option>
-                    <option value="CAD">CAD</option>
-                    <option value="AUD">AUD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="GPB">GPB</option>
-                    <option value="TRY">TRY</option>
-                  </select>
-                </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-gray-500 uppercase">
+                      {t("Currency")}
+                    </label>
+                    <select
+                      name="currency"
+                      value={currency}
+                      onChange={onChange}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="USD">USD</option>
+                      <option value="CAD">CAD</option>
+                      <option value="AUD">AUD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="GBP">GBP</option>
+                      <option value="TRY">TRY</option>
+                    </select>
+                  </div>
+                </>
               )}
             </div>
-            <button
-              type="submit"
-              className={`w-full py-2 text-white font-semibold rounded-md ${
-                isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-              } focus:outline-none focus:ring focus:ring-blue-300`}
-              disabled={isLoading}
-            >
-              {isLoading ? "Creating..." : "CREATE"}
-            </button>
-          </form>
-        </div>
+          </AppCard>
+        </form>
       </div>
     </AdminLayout>
   );

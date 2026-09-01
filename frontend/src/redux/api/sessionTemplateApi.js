@@ -2,14 +2,16 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export const sessionTemplateApi = createApi({
   reducerPath: "sessionTemplateApi",
-  baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" }),
+  baseQuery: fetchBaseQuery({
+    baseUrl: "/api/v1",
+    credentials: "include", 
+  }),
   tagTypes: ["SessionTemplate"],
   endpoints: (builder) => ({
-    // ✅ اب پیرامیٹرز (page, limit, keyword, year, campus, academicLevel) کو query string میں بھیجے گا
     getSessionTemplates: builder.query({
       query: (params) => ({
         url: "/session-template",
-        params,   // ✅ dropdown, limit, page sab yahan se jayenge
+        params, 
       }),
       providesTags: ["SessionTemplate"],
     }),

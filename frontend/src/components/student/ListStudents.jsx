@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import {
   useDeleteUserMutation,
   useGetUserByTypeQuery,
+  useGetClassGroupsQuery, // 🆕
 } from "../../redux/api/authApi";
 
 import AdminLayout from "../layout/AdminLayout";
@@ -27,6 +28,28 @@ const getFullName = (user) => {
   return `${firstName} ${middleName ? middleName + " " : ""}${lastName}`.trim();
 };
 
+// Grade is derived from the student's current active enrollment
+// (User.currentEnrollment → StudentEnrollment.classGroup → ClassGroup.grade),
+// which the backend now populates in getUsersByType for type === "student".
+// A student can be returned by this endpoint without an active enrollment
+// (e.g. the `enrolled` filter isn't always on), so every step is optional.
+const getGradeLabel = (row) => {
+  const classGroup = row?.currentEnrollment?.classGroup;
+  if (!classGroup) return null;
+  const gradeName = classGroup?.grade?.gradeName;
+  if (!gradeName) return null;
+  return classGroup?.section ? `${gradeName} (${classGroup.displayName || classGroup.section})` : gradeName;
+};
+
+// 🆕 Label for a class group option in the filter dropdown, e.g. "1 (1 A)"
+const getClassGroupLabel = (classGroup) => {
+  const gradeName = classGroup?.grade?.gradeName;
+  if (!gradeName) return classGroup?.displayName || classGroup?.section || "—";
+  return classGroup?.section
+    ? `${gradeName} (${classGroup.displayName || classGroup.section})`
+    : gradeName;
+};
+
 const ListStudents = () => {
   const { t } = useTranslation();
   const location = useLocation();
@@ -41,6 +64,7 @@ const ListStudents = () => {
   const [genderFilter, setGenderFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [campusFilter, setCampusFilter] = useState("");
+  const [classGroupFilter, setClassGroupFilter] = useState(""); // 🆕
 
   useEffect(() => {
     if (location.state?.showSuccessToast) {
@@ -56,6 +80,10 @@ const ListStudents = () => {
     }, 500);
     return () => clearTimeout(timer);
   }, [search]);
+
+  // 🆕 Class groups for the filter dropdown
+  const { data: classGroups = [], isLoading: isClassGroupsLoading } =
+    useGetClassGroupsQuery();
 
   // ✅ MODIFIED: added enrolled: true to query
   const {
@@ -73,6 +101,7 @@ const ListStudents = () => {
     gender: genderFilter || undefined,
     status: statusFilter || undefined,
     campus: campusFilter || undefined,
+    classGroup: classGroupFilter || undefined, // 🆕
   }, {
     refetchOnMountOrArgChange: true,
   });
@@ -148,7 +177,17 @@ const ListStudents = () => {
       accessor: "grade",
       width: "15%",
       minWidth: "100px",
-      render: () => <span className="text-gray-400">—</span>,
+      // 🔧 FIX: was a hardcoded "—" placeholder with no data wired up.
+      // Grade comes from the student's current active enrollment
+      // (currentEnrollment.classGroup.grade), populated by the backend.
+      render: (_, row) => {
+        const gradeLabel = getGradeLabel(row);
+        return gradeLabel ? (
+          <TruncatedCell maxChars={25}>{gradeLabel}</TruncatedCell>
+        ) : (
+          <span className="text-gray-400">—</span>
+        );
+      },
     },
     {
       header: t("Gender"),
@@ -159,7 +198,7 @@ const ListStudents = () => {
     },
     {
       header: t("Status"),
-      accessor: "status",
+      accessor: "accountStatus", // 🔧 FIX: was "status" — User model field is "accountStatus"
       width: "10%",
       minWidth: "100px",
       render: (value) => {
@@ -229,6 +268,7 @@ const ListStudents = () => {
         setSearchTerm("");
         setGenderFilter("");
         setStatusFilter("");
+        setClassGroupFilter(""); // 🆕
         setCurrentPage(1);
         setLimit(8);
       }}
@@ -267,6 +307,29 @@ const ListStudents = () => {
           <option value="">{t("All Status")}</option>
           <option value="active">{t("Active")}</option>
           <option value="inactive">{t("Deactive")}</option>
+        </select>
+      </div>
+
+      {/* 🆕 Class group filter */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {t("Class")}
+        </label>
+        <select
+          value={classGroupFilter}
+          onChange={(e) => {
+            setClassGroupFilter(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="w-full p-2 border border-gray-300 rounded-md"
+          disabled={isClassGroupsLoading}
+        >
+          <option value="">{t("All Classes")}</option>
+          {classGroups.map((cg) => (
+            <option key={cg._id} value={cg._id}>
+              {getClassGroupLabel(cg)}
+            </option>
+          ))}
         </select>
       </div>
     </FilterDropdown>

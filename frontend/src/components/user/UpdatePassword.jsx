@@ -5,6 +5,10 @@ import { useNavigate } from "react-router-dom";
 
 import MetaData from "../layout/MetaData";
 import UserLayout from "../GUI/UserLayout";
+import AppPageHeader from "../layout/AppPageHeader";
+import AppCard from "../GUI/AppCard";
+import AppInput from "../GUI/AppInput";
+import AppButton from "../GUI/AppButton";
 
 const UpdatePassword = () => {
   const [oldPassword, setOldPassword] = useState("");
@@ -21,76 +25,78 @@ const UpdatePassword = () => {
     }
 
     if (isSuccess) {
-      toast.success("Password Updated");
+      toast.success("Password Updated Successfully");
       navigate("/me/profile");
     }
-  }, [error, isSuccess]);
+  }, [error, isSuccess, navigate]);
+
+  const onChange = (e) => {
+    const { name, value } = e.target;
+    if (name === "oldPassword") setOldPassword(value);
+    if (name === "password") setPassword(value);
+  };
 
   const submitHandler = (e) => {
     e.preventDefault();
 
-    const userData = {
+    updatePassword({
       oldPassword,
       password,
-    };
-
-    updatePassword(userData);
+    });
   };
 
   return (
     <UserLayout>
       <MetaData title={"Update Password"} />
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="w-full max-w-md">
-          <form
-            className="p-6 bg-white shadow-md rounded-md"
-            onSubmit={submitHandler}
+
+      <div className="max-w-4xl mx-auto">
+        <AppPageHeader
+          title="Update Password"
+          subtitle="Change your account password"
+          backUrl="/me/profile"
+        />
+
+        <form onSubmit={submitHandler}>
+          <AppCard
+            title="Change Password"
+            icon="fa-lock"
+            footer={
+              <div className="flex justify-end gap-2">
+                <AppButton backUrl="/me/profile" />
+                <AppButton
+                  type="submit"
+                  label="Update Password"
+                  loadingLabel="Updating..."
+                  isLoading={isLoading}
+                  icon="fa-key"
+                />
+              </div>
+            }
           >
-            <h2 className="text-2xl font-bold mb-6 text-center">
-              Update Password
-            </h2>
-
-            <div className="mb-4">
-              <label
-                htmlFor="old_password_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Old Password
-              </label>
-              <input
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <AppInput
+                label="Old Password"
                 type="password"
-                id="old_password_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                name="oldPassword"
                 value={oldPassword}
-                onChange={(e) => setOldPassword(e.target.value)}
+                onChange={onChange}
+                required
+                placeholder="Enter current password"
               />
-            </div>
-
-            <div className="mb-4">
-              <label
-                htmlFor="new_password_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                New Password
-              </label>
-              <input
+              <AppInput
+                label="New Password"
                 type="password"
-                id="new_password_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                name="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={onChange}
+                required
+                placeholder="Enter new password"
+                minLength="6"
+                helperText="Minimum 6 characters"
               />
             </div>
-
-            <button
-              type="submit"
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              disabled={isLoading}
-            >
-              {isLoading ? "Updating..." : "Update Password"}
-            </button>
-          </form>
-        </div>
+          </AppCard>
+        </form>
       </div>
     </UserLayout>
   );

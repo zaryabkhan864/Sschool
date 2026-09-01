@@ -19,27 +19,29 @@ const FormActions = ({
 }) => {
   const { t } = useTranslation();
 
+  // ✅ "blue" now maps to the brand gradient (matches AppButton's primary
+  // variant) instead of a flat bootstrap-style blue.
   const getSubmitColorClass = () => {
-    switch(submitColor) {
-      case 'blue': return 'bg-blue-600 hover:bg-blue-700';
-      case 'green': return 'bg-green-600 hover:bg-green-700';
+    switch (submitColor) {
+      case 'blue': return 'bg-gradient-to-r from-brand-500 to-brand-600 hover:shadow-glow-brand';
+      case 'green': return 'bg-emerald-600 hover:bg-emerald-700';
       case 'red': return 'bg-red-600 hover:bg-red-700';
       case 'purple': return 'bg-purple-600 hover:bg-purple-700';
-      default: return 'bg-blue-600 hover:bg-blue-700';
+      default: return 'bg-gradient-to-r from-brand-500 to-brand-600 hover:shadow-glow-brand';
     }
   };
 
   const getCancelColorClass = () => {
-    switch(cancelColor) {
-      case 'gray': return 'bg-gray-100 hover:bg-gray-200 text-gray-600';
-      case 'white': return 'bg-white border border-gray-300 hover:bg-gray-50 text-gray-600';
-      case 'red': return 'bg-red-100 hover:bg-red-200 text-red-600';
-      default: return 'bg-gray-100 hover:bg-gray-200 text-gray-600';
+    switch (cancelColor) {
+      case 'gray': return 'bg-surface-100 hover:bg-surface-200 text-ink-600';
+      case 'white': return 'bg-white border border-surface-200 hover:bg-surface-50 text-ink-600';
+      case 'red': return 'bg-red-50 hover:bg-red-100 text-red-600';
+      default: return 'bg-surface-100 hover:bg-surface-200 text-ink-600';
     }
   };
 
   const getAlignClass = () => {
-    switch(align) {
+    switch (align) {
       case 'left': return 'justify-start';
       case 'center': return 'justify-center';
       case 'right': return 'justify-end';
@@ -51,23 +53,23 @@ const FormActions = ({
   return (
     <div className={`flex items-center gap-3 ${getAlignClass()} ${className}`}>
       {showCancel && onCancel && (
-        <button 
-          type="button" 
+        <button
+          type="button"
           onClick={onCancel}
           disabled={isLoading}
-          className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${getCancelColorClass()} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`px-4 py-2.5 text-xs-custom font-bold rounded-xl transition-all ${getCancelColorClass()} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           {cancelIcon && <i className={`fa fa-${cancelIcon} mr-2`}></i>}
           {cancelLabel || t('Cancel')}
         </button>
       )}
-      
+
       {showSubmit && onSubmit && (
         <button
           type="submit"
           onClick={onSubmit}
           disabled={disabled || isLoading}
-          className={`px-8 py-2 rounded-lg text-xs font-bold text-white transition-all shadow-md hover:shadow-lg active:scale-95 ${getSubmitColorClass()} ${disabled || isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={`px-8 py-2.5 rounded-xl text-xs-custom font-bold text-white transition-all shadow-button active:scale-95 ${getSubmitColorClass()} ${disabled || isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           {isLoading ? (
             <>

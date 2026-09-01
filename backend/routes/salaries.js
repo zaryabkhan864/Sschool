@@ -1,45 +1,51 @@
 import express from "express";
 import {
-    newSalary,
-    getSalaries,
-    getSalaryDetails,
-    updateSalary,
-    deleteSalary,
-    getSalariesByEmployee,
-    getUnpaidSalaries
+  newSalary,
+  getSalaries,
+  getSalaryDetails,
+  updateSalary,
+  deleteSalary,
+  getSalariesByEmployee,
+  getUnpaidSalaries,
+  getEmployeeSalarySummary,
+  markSalaryAsPaid,
 } from "../controllers/salariesControllers.js";
 import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 
-export const router = express.Router();
+const router = express.Router();
 
-// Create new salary entry
+// ========== Create ==========
 router
-    .route("/finance/salaries")
-    .post(isAuthenticatedUser, newSalary);
+  .route("/finance/salaries")
+  .post(isAuthenticatedUser, authorizeRoles("admin", "finance"), newSalary);
 
-// Get all salaries
+// ========== Read ==========
 router
-    .route("/finance/get/salaries")
-    .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getSalaries);
+  .route("/finance/salaries")
+  .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getSalaries);
 
-// Get single salary details
-router.route("/salaries/:id")
-    .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getSalaryDetails);
+router
+  .route("/finance/salaries/unpaid")
+  .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getUnpaidSalaries);
 
-// Update salary record
-router.route("/salaries/:id")
-    .put(isAuthenticatedUser, authorizeRoles("admin", "finance"), updateSalary);
+router
+  .route("/finance/salaries/employee/:id")
+  .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getSalariesByEmployee);
 
-// Delete salary record
-router.route("/salaries/:id")
-    .delete(isAuthenticatedUser, authorizeRoles("admin", "finance"), deleteSalary);
+router
+  .route("/finance/salaries/summary/:employeeId")
+  .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getEmployeeSalarySummary);
 
-// Get all salaries for a specific employee
-router.route("/salaries/employee/:id")
-    .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getSalariesByEmployee);
+// ========== Single record ==========
+router
+  .route("/finance/salaries/:id")
+  .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getSalaryDetails)
+  .put(isAuthenticatedUser, authorizeRoles("admin", "finance"), updateSalary)
+  .delete(isAuthenticatedUser, authorizeRoles("admin"), deleteSalary);
 
-// Get unpaid salaries
-router.route("/salaries/unpaid")
-    .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getUnpaidSalaries);
+// ========== Mark as paid ==========
+router
+  .route("/finance/salaries/:id/pay")
+  .patch(isAuthenticatedUser, authorizeRoles("admin", "finance"), markSalaryAsPaid);
 
 export default router;

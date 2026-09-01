@@ -1,4 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { authApi } from "./authApi";
+import { feesApi } from "./feesApi";
 
 export const studentEnrollmentApi = createApi({
   reducerPath: "studentEnrollmentApi",
@@ -8,11 +10,13 @@ export const studentEnrollmentApi = createApi({
     "StudentEnrollment",
     "UnenrolledStudents",
     "EnrolledStudents",
+    "StudentsNeedingEnrollment",
+    "ExpiringEnrollments",
     "AdminUser",
+    "AdminUsers",
   ],
 
   endpoints: (builder) => ({
-    // ================= GET ALL ENROLLMENTS =================
     getStudentEnrollments: builder.query({
       query: (params = {}) => {
         const queryParams = {
@@ -24,136 +28,289 @@ export const studentEnrollmentApi = createApi({
           academicYear: params?.academicYear,
           classGroup: params?.classGroup,
           campus: params?.campus,
-          startDate: params?.startDate, // ✅ ADDED
+          startDate: params?.startDate,
+          endDate: params?.endDate,
           paginate: params?.paginate,
+          gender: params?.gender,
+          countOnly: params?.countOnly,
         };
-
         Object.keys(queryParams).forEach(
           (key) => queryParams[key] === undefined && delete queryParams[key]
         );
-
-        return {
-          url: "/student-enrollments",
-          params: queryParams,
-        };
+        return { url: "/student-enrollments", params: queryParams };
       },
-
-      transformResponse: (response) => response,
-
       providesTags: (result) =>
         result?.enrollments
           ? [
-              ...result.enrollments.map(({ _id }) => ({
-                type: "StudentEnrollment",
-                id: _id,
-              })),
+              ...result.enrollments.map(({ _id }) => ({ type: "StudentEnrollment", id: _id })),
               { type: "StudentEnrollment", id: "LIST" },
             ]
           : [{ type: "StudentEnrollment", id: "LIST" }],
     }),
-
-    // ================= GET SINGLE =================
     getStudentEnrollmentDetails: builder.query({
       query: (id) => `/student-enrollments/${id}`,
-      providesTags: (result, error, id) => [
-        { type: "StudentEnrollment", id },
-      ],
+      providesTags: (result, error, id) => [{ type: "StudentEnrollment", id }],
     }),
 
-    // ================= UNENROLLED =================
-    getUnenrolledStudents: builder.query({
-      query: (params = {}) => {
-        const queryParams = {
-          academicYear: params?.academicYear,
-        };
-
-        Object.keys(queryParams).forEach(
-          (key) => queryParams[key] === undefined && delete queryParams[key]
-        );
-
+    getStudentEnrollmentHistory: builder.query({
+      query: ({ studentId, academicYear } = {}) => {
+        const params = {};
+        if (academicYear) params.academicYear = academicYear;
         return {
-          url: "/students/unenrolled",
-          params: queryParams,
+          url: `/student-enrollments/history/${studentId}`,
+          params,
         };
       },
+      providesTags: (result, error, { studentId }) => [
+        { type: "StudentEnrollment", id: `HISTORY-${studentId}` },
+      ],
+    }),
+    getExpiringEnrollments: builder.query({
+      query: (days = 30) => ({
+        url: "/student-enrollments/expiring-soon",
+        params: { days },
+      }),
+      providesTags: ["ExpiringEnrollments"],
+    }),
 
+    checkActiveEnrollmentOnDate: builder.query({
+      query: ({ studentId, campusId, date } = {}) => {
+        const params = { studentId, campusId };
+        if (date) params.date = date;
+        return { url: "/student-enrollments/check", params };
+      },
+    }),
+    getUnenrolledStudents: builder.query({
+      query: (params = {}) => {
+        const queryParams = {};
+        if (params?.academicYear) queryParams.academicYear = params.academicYear;
+        if (params?.campus) queryParams.campus = params.campus;
+        if (params?.page !== undefined) queryParams.page = params.page;
+        if (params?.limit !== undefined) queryParams.limit = params.limit;
+        if (params?.keyword) queryParams.keyword = params.keyword;
+        if (params?.gender) queryParams.gender = params.gender;
+        if (params?.countOnly) queryParams.countOnly = params.countOnly;
+        return {
+          url: "/students/unenrolled",
+          params: Object.keys(queryParams).length ? queryParams : undefined,
+        };
+      },
       providesTags: ["UnenrolledStudents"],
     }),
 
-    // ================= ENROLLED =================
     getEnrolledStudentsWithDetails: builder.query({
       query: () => "/students/enrolled",
       providesTags: ["EnrolledStudents"],
     }),
-
-    // ================= CREATE =================
+    getStudentsNeedingEnrollment: builder.query({
+      query: (params = {}) => {
+        const queryParams = {};
+        if (params?.campus) queryParams.campus = params.campus;
+        if (params?.academicYear) queryParams.academicYear = params.academicYear;
+        return {
+          url: "/students/needing-enrollment",
+          params: Object.keys(queryParams).length ? queryParams : undefined,
+        };
+      },
+      providesTags: ["StudentsNeedingEnrollment"],
+    }),
     createStudentEnrollment: builder.mutation({
       query: (body) => ({
         url: "/admin/student-enrollments",
         method: "POST",
         body,
       }),
-
       invalidatesTags: (result, error, body) => [
         { type: "AdminUser", id: body?.student },
         { type: "StudentEnrollment", id: "LIST" },
         "UnenrolledStudents",
         "EnrolledStudents",
+        "StudentsNeedingEnrollment",
+        "AdminUsers",
       ],
+      async onQueryStarted(body, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          const studentId =
+            data?.enrollment?.student?._id || data?.enrollment?.student || body?.student;
+          dispatch(
+            authApi.util.invalidateTags([
+              ...(studentId ? [{ type: "AdminUser", id: studentId }] : []),
+              "AdminUsers",
+            ])
+          );
+          dispatch(feesApi.util.invalidateTags(["Fees", "CurrencyFees"]));
+        } catch (e) {}
+      },
     }),
-
-    // ================= UPDATE =================
     updateStudentEnrollment: builder.mutation({
       query: ({ id, ...body }) => ({
         url: `/admin/student-enrollments/${id}`,
         method: "PUT",
         body,
       }),
-
       invalidatesTags: (result, error, { id }) => [
         { type: "StudentEnrollment", id },
         { type: "StudentEnrollment", id: "LIST" },
         "UnenrolledStudents",
         "EnrolledStudents",
+        "StudentsNeedingEnrollment",
+        "AdminUsers",
       ],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          const studentId =
+            data?.enrollment?.student?._id || data?.enrollment?.student;
+          dispatch(
+            authApi.util.invalidateTags([
+              ...(studentId ? [{ type: "AdminUser", id: studentId }] : []),
+              "AdminUsers",
+            ])
+          );
+        } catch (e) {}
+      },
     }),
-
-    // ================= DELETE =================
     deleteStudentEnrollment: builder.mutation({
       query: (id) => ({
         url: `/admin/student-enrollments/${id}`,
         method: "DELETE",
       }),
-
       invalidatesTags: [
         { type: "StudentEnrollment", id: "LIST" },
         "UnenrolledStudents",
         "EnrolledStudents",
+        "StudentsNeedingEnrollment",
+        "AdminUsers",
       ],
     }),
+    terminateEnrollment: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/admin/student-enrollments/${id}/terminate`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "StudentEnrollment", id },
+        { type: "StudentEnrollment", id: "LIST" },
+        "UnenrolledStudents",
+        "EnrolledStudents",
+        "StudentsNeedingEnrollment",
+        "AdminUsers",
+      ],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          const studentId =
+            data?.enrollment?.student?._id || data?.enrollment?.student;
+          dispatch(
+            authApi.util.invalidateTags([
+              ...(studentId ? [{ type: "AdminUser", id: studentId }] : []),
+              "AdminUsers",
+            ])
+          );
+        } catch (e) {}
+      },
+    }),
+    resignEnrollment: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/admin/student-enrollments/${id}/resign`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "StudentEnrollment", id },
+        { type: "StudentEnrollment", id: "LIST" },
+        "UnenrolledStudents",
+        "EnrolledStudents",
+        "StudentsNeedingEnrollment",
+        "AdminUsers",
+      ],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          const studentId =
+            data?.enrollment?.student?._id || data?.enrollment?.student;
+          dispatch(
+            authApi.util.invalidateTags([
+              ...(studentId ? [{ type: "AdminUser", id: studentId }] : []),
+              "AdminUsers",
+            ])
+          );
+        } catch (e) {}
+      },
+    }),
 
-    // 🔥 ================= TRANSFER (NEW) =================
+    approveReEnroll: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/admin/student-enrollments/${id}/re-enroll`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "StudentEnrollment", id },
+        { type: "StudentEnrollment", id: "LIST" },
+      ],
+    }),
+    markEnrollmentExpiryAlertSent: builder.mutation({
+      query: (id) => ({
+        url: `/admin/student-enrollments/${id}/alert-sent`,
+        method: "PATCH",
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: "StudentEnrollment", id },
+        "ExpiringEnrollments",
+      ],
+    }),
     transferStudent: builder.mutation({
       query: (body) => ({
         url: "/admin/student-enrollments/transfer",
         method: "POST",
         body,
       }),
-
       invalidatesTags: (result, error, body) => [
-        { type: "AdminUser", id: body?.studentId }, // user update
-        { type: "StudentEnrollment", id: "LIST" },  // list refresh
+        { type: "AdminUser", id: body?.studentId },
+        { type: "StudentEnrollment", id: "LIST" },
         "UnenrolledStudents",
         "EnrolledStudents",
+        "StudentsNeedingEnrollment",
+        "AdminUsers",
       ],
+      async onQueryStarted(body, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(
+            authApi.util.invalidateTags([
+              ...(body?.studentId ? [{ type: "AdminUser", id: body.studentId }] : []),
+              "AdminUsers",
+            ])
+          );
+        } catch (e) {}
+      },
     }),
-
-    // ================= USER =================
-    getUserById: builder.query({
-      query: (id) => `/users/${id}`,
-      providesTags: (result, error, id) => [
-        { type: "AdminUser", id },
+    expireOverdueEnrollments: builder.mutation({
+      query: () => ({
+        url: "/admin/student-enrollments/expire-overdue",
+        method: "POST",
+      }),
+      invalidatesTags: [
+        { type: "StudentEnrollment", id: "LIST" },
+        "EnrolledStudents",
+        "UnenrolledStudents",
+        "ExpiringEnrollments",
+        "StudentsNeedingEnrollment",
+        "AdminUsers",
       ],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(authApi.util.invalidateTags(["AdminUsers"]));
+        } catch (e) {}
+      },
+    }),
+    getUserById: builder.query({
+      query: (id) => `/admin/users/${id}`,
+      providesTags: (result, error, id) => [{ type: "AdminUser", id }],
     }),
   }),
 });
@@ -161,11 +318,20 @@ export const studentEnrollmentApi = createApi({
 export const {
   useGetStudentEnrollmentsQuery,
   useGetStudentEnrollmentDetailsQuery,
+  useGetStudentEnrollmentHistoryQuery,
+  useGetExpiringEnrollmentsQuery,
+  useCheckActiveEnrollmentOnDateQuery,
   useGetUnenrolledStudentsQuery,
   useGetEnrolledStudentsWithDetailsQuery,
+  useGetStudentsNeedingEnrollmentQuery,
   useCreateStudentEnrollmentMutation,
   useUpdateStudentEnrollmentMutation,
   useDeleteStudentEnrollmentMutation,
-  useTransferStudentMutation, // ✅ NEW HOOK
+  useTerminateEnrollmentMutation,
+  useResignEnrollmentMutation,
+  useApproveReEnrollMutation,
+  useMarkEnrollmentExpiryAlertSentMutation,
+  useTransferStudentMutation,
+  useExpireOverdueEnrollmentsMutation,
   useGetUserByIdQuery,
 } = studentEnrollmentApi;

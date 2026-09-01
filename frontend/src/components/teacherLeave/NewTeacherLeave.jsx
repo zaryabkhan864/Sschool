@@ -1,23 +1,38 @@
-import React, { useEffect, useState } from "react";
-import { toast } from "react-hot-toast";
-
+import React, { useEffect, useState, useMemo } from "react";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import AdminLayout from "../layout/AdminLayout";
-import MetaData from "../layout/MetaData";
+import { useTranslation } from "react-i18next";
 
-import { useGetUserByTypeQuery } from "../../redux/api/authApi";
-
+// Redux
 import {
   useCreateTeacherLeaveMutation,
   useGetTeacherLeavesQuery,
 } from "../../redux/api/teacherLeaveApi";
+import { useGetUserByTypeQuery } from "../../redux/api/authApi";
+
+// Shared GUI Components
+import AdminLayout from "../layout/AdminLayout";
+import MetaData from "../layout/MetaData";
+import AppPageHeader from "../layout/AppPageHeader";
+import AppCard from "../GUI/AppCard";
+import AppInput from "../GUI/AppInput";
+import AppButton from "../GUI/AppButton";
+import SearchableDropdown from "../layout/SearchableDropdown";
+
+const getFullName = (user) => {
+  if (!user) return "";
+  const parts = [user.firstName, user.middleName, user.lastName].filter(Boolean);
+  return parts.join(" ");
+};
 
 const NewTeacherLeave = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { refetch } = useGetTeacherLeavesQuery();
 
+  // ------------------ Form state ------------------
   const [teacherLeave, setTeacherLeave] = useState({
-    teacher: "", // Store teacher ID
+    teacher: "",
     leaveType: "",
     startDate: "",
     endDate: "",
@@ -28,24 +43,61 @@ const NewTeacherLeave = () => {
   const { teacher, leaveType, startDate, endDate, totalDays, reason } =
     teacherLeave;
 
+  // ------------------ Teacher dropdown state ------------------
+  const [teacherSearchTerm, setTeacherSearchTerm] = useState("");
+
+  const {
+    data: teachersData,
+    isFetching: teachersLoading,
+  } = useGetUserByTypeQuery(
+    {
+      type: "teacher",
+      status: "active",
+      limit: 0,
+      keyword: teacherSearchTerm,
+    },
+    { skip: false } // teacher is mandatory
+  );
+
+  const teacherOptions = useMemo(() => {
+    if (!teachersData?.users) return [];
+    return teachersData.users.map((user) => ({
+      value: user._id,
+      label: getFullName(user) || user.email,
+    }));
+  }, [teachersData]);
+
+  // ------------------ Leave type options ------------------
+  const leaveTypeOptions = [
+    { value: "Full Day", label: t("Full Day") },
+    { value: "Half Day", label: t("Half Day") },
+  ];
+
+  const [leaveTypeSearchTerm, setLeaveTypeSearchTerm] = useState("");
+
+  const filteredLeaveTypeOptions = useMemo(() => {
+    if (!leaveTypeSearchTerm.trim()) return leaveTypeOptions;
+    return leaveTypeOptions.filter((opt) =>
+      opt.label.toLowerCase().includes(leaveTypeSearchTerm.toLowerCase())
+    );
+  }, [leaveTypeOptions, leaveTypeSearchTerm]);
+
+  // ------------------ Create teacher leave mutation ------------------
   const [createTeacherLeave, { isLoading, error, isSuccess }] =
     useCreateTeacherLeaveMutation();
-  const { data: teachersData, isLoading: teacherLoading } =
-  useGetUserByTypeQuery('teacher');
-  const teachers = teachersData?.users || []; // Ensure it's an array
 
   useEffect(() => {
     if (error) {
-      toast.error(error?.data?.message);
+      toast.error(error?.data?.message || t("Error creating leave"));
     }
-
     if (isSuccess) {
-      toast.success("TeacherLeave created");
-      //   navigate("/admin/TeacherLeaves");
+      toast.success(t("Teacher leave created successfully"));
+      navigate("/admin/teacher-leaves");
       refetch();
     }
-  }, [error, isSuccess, navigate, refetch]);
+  }, [error, isSuccess, navigate, refetch, t]);
 
+  // ------------------ Handlers ------------------
   const calculateTotalDays = (start, end) => {
     if (start && end) {
       const startDateObj = new Date(start);
@@ -58,155 +110,166 @@ const NewTeacherLeave = () => {
   };
 
   const onChange = (e) => {
-    setTeacherLeave((prevState) => {
-      const updatedLeave = { ...prevState, [e.target.name]: e.target.value };
-      if (updatedLeave.startDate && updatedLeave.endDate) {
-        updatedLeave.totalDays = calculateTotalDays(
-          updatedLeave.startDate,
-          updatedLeave.endDate
+    const { name, value } = e.target;
+    setTeacherLeave((prev) => {
+      const updated = { ...prev, [name]: value };
+      if (name === "startDate" || name === "endDate") {
+        updated.totalDays = calculateTotalDays(
+          updated.startDate,
+          updated.endDate
         );
       }
-      return updatedLeave;
+      return updated;
     });
+  };
+
+  const handleTeacherChange = (value) => {
+    setTeacherLeave((prev) => ({ ...prev, teacher: value }));
+  };
+
+  const handleLeaveTypeChange = (value) => {
+    setTeacherLeave((prev) => ({ ...prev, leaveType: value }));
   };
 
   const submitHandler = (e) => {
     e.preventDefault();
-    console.log("what is data before sending", teacherLeave);
+
+    if (!teacher) {
+      toast.error(t("Please select a teacher"));
+      return;
+    }
+    if (!leaveType) {
+      toast.error(t("Please select a leave type"));
+      return;
+    }
+    if (!startDate) {
+      toast.error(t("Please select a start date"));
+      return;
+    }
+    if (!endDate) {
+      toast.error(t("Please select an end date"));
+      return;
+    }
+    if (new Date(endDate) < new Date(startDate)) {
+      toast.error(t("End date cannot be before start date"));
+      return;
+    }
+    if (!reason || reason.trim() === "") {
+      toast.error(t("Please provide a reason"));
+      return;
+    }
+
     createTeacherLeave(teacherLeave);
   };
 
   return (
     <AdminLayout>
-      <MetaData title={"Create New Teacher Leave"} />
-      <div className="flex justify-center items-center pt-5 pb-10">
-        <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">New Teacher Leave</h2>
-          <form onSubmit={submitHandler}>
-            <div className="mb-4">
-              <label
-                htmlFor="teacherId_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Teacher
-              </label>
-              <select
-                id="teacherId_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="teacher"
-                value={teacher}
-                onChange={onChange}
-              >
-                <option value="" disabled>
-                  Select Teacher
-                </option>
-                {!teacherLoading &&
-                  teachers?.map((t) => (
-                    <option key={t._id} value={t._id}>
-                      {t.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-            <div className="mb-4">
-              <label
-                htmlFor="leaveType_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Leave Type
-              </label>
-              <select
-                id="leaveType_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                name="leaveType"
-                value={leaveType}
-                onChange={onChange}
-              >
-                <option value="" disabled>
-                  Select leave Type
-                </option>
-                <option value="Full Day">Full Day</option>
-                <option value="Half Day">Half Day</option>
-              </select>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="mb-4">
-                <label
-                  htmlFor="startDate_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  id="startDate_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="startDate"
-                  value={startDate}
-                  onChange={onChange}
-                />
-              </div>
+      <MetaData title={t("New Teacher Leave")} />
 
-              <div className="mb-4">
-                <label
-                  htmlFor="endDate_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  id="endDate_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="endDate"
-                  value={endDate}
-                  onChange={onChange}
+      <div className="max-w-4xl mx-auto">
+        <AppPageHeader
+          title={t("New Teacher Leave")}
+          subtitle={t("Create a leave record for a teacher")}
+          backUrl="/admin/teacher-leaves"
+        />
+
+        <form onSubmit={submitHandler}>
+          <AppCard
+            title={t("Leave Details")}
+            icon="fa-calendar-alt"
+            footer={
+              <div className="flex justify-end gap-2">
+                <AppButton backUrl="/admin/teacher-leaves" />
+                <AppButton
+                  type="submit"
+                  label={t("Create Leave")}
+                  loadingLabel={t("Creating...")}
+                  isLoading={isLoading}
+                  icon="fa-save"
                 />
               </div>
-              <div className="mb-4">
-                <label
-                  htmlFor="totalDays-field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Total Days
-                </label>
-                <input
-                  type="text"
-                  id="totalDays-field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={totalDays}
-                  readOnly
-                />
-              </div>
-            </div>
+            }
+          >
+            {/* Teacher */}
             <div className="mb-4">
-              <label
-                htmlFor="reason_field"
-                className="block text-sm font-medium text-gray-700"
-              >
-                reason
-              </label>
-              <textarea
-                id="reason_field"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <SearchableDropdown
+                label={t("Teacher")}
+                placeholder={t("Search and select teacher")}
+                value={teacher}
+                onChange={handleTeacherChange}
+                onSearch={setTeacherSearchTerm}
+                options={teacherOptions}
+                isLoading={teachersLoading}
+                hasMore={false}
+                emptyMessage={t("No teachers found")}
+                loadingMessage={t("Loading...")}
+                required
+              />
+            </div>
+
+            {/* Leave Type */}
+            <div className="mb-4">
+              <SearchableDropdown
+                label={t("Leave Type")}
+                placeholder={t("Select leave type")}
+                value={leaveType}
+                onChange={handleLeaveTypeChange}
+                onSearch={setLeaveTypeSearchTerm}
+                options={filteredLeaveTypeOptions}
+                isLoading={false}
+                hasMore={false}
+                emptyMessage={t("No leave type found")}
+                loadingMessage=""
+                required
+              />
+            </div>
+
+            {/* Start Date & End Date */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <AppInput
+                label={t("Start Date")}
+                type="date"
+                name="startDate"
+                value={startDate}
+                onChange={onChange}
+                required
+              />
+              <AppInput
+                label={t("End Date")}
+                type="date"
+                name="endDate"
+                value={endDate}
+                onChange={onChange}
+                required
+              />
+            </div>
+
+            {/* Total Days (read-only) */}
+            <div className="mb-4">
+              <AppInput
+                label={t("Total Days")}
+                type="text"
+                name="totalDays"
+                value={totalDays}
+                readOnly
+                helperText={t("Calculated automatically")}
+              />
+            </div>
+
+            {/* Reason */}
+            <div className="mb-4">
+              <AppInput
+                label={t("Reason")}
                 name="reason"
-                rows="4"
                 value={reason}
                 onChange={onChange}
-              ></textarea>
+                type="textarea"
+                rows={4}
+                required
+              />
             </div>
-
-            <button
-              type="submit"
-              className={`w-full py-2 text-white font-semibold rounded-md ${
-                isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-              } focus:outline-none focus:ring focus:ring-blue-300`}
-              disabled={isLoading}
-            >
-              {isLoading ? "Creating..." : "CREATE"}
-            </button>
-          </form>
-        </div>
+          </AppCard>
+        </form>
       </div>
     </AdminLayout>
   );

@@ -6,10 +6,17 @@ import { toast } from "react-hot-toast";
 
 import MetaData from "../layout/MetaData";
 import UserLayout from "../GUI/UserLayout";
+import AppPageHeader from "../layout/AppPageHeader";
+import AppCard from "../GUI/AppCard";
+import AppInput from "../GUI/AppInput";
+import AppButton from "../GUI/AppButton";
+import AvatarUpload from "../GUI/AvatarUpload";
 
 const UpdateProfile = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [avatar, setAvatar] = useState("");
+  const [avatarPreview, setAvatarPreview] = useState("");
 
   const navigate = useNavigate();
 
@@ -20,8 +27,10 @@ const UpdateProfile = () => {
 
   useEffect(() => {
     if (user) {
-      setName(user?.name);
-      setEmail(user?.email);
+      setName(user?.name || "");
+      setEmail(user?.email || "");
+      setAvatar(user?.avatar?.url || "");
+      setAvatarPreview(user?.avatar?.url || "");
     }
 
     if (error) {
@@ -29,10 +38,29 @@ const UpdateProfile = () => {
     }
 
     if (isSuccess) {
-      toast.success("User Updated");
+      toast.success("Profile Updated Successfully");
       navigate("/me/profile");
     }
-  }, [user, error, isSuccess]);
+  }, [user, error, isSuccess, navigate]);
+
+  const onChange = (e) => {
+    const { name, value, type, files } = e.target;
+    if (name === "avatar") {
+      const file = files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (reader.readyState === 2) {
+          setAvatarPreview(reader.result);
+          setAvatar(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    } else {
+      if (name === "name") setName(value);
+      if (name === "email") setEmail(value);
+    }
+  };
 
   const submitHandler = (e) => {
     e.preventDefault();
@@ -40,6 +68,7 @@ const UpdateProfile = () => {
     const userData = {
       name,
       email,
+      avatar: avatar || undefined, // only send if changed
     };
 
     updateProfile(userData);
@@ -48,48 +77,59 @@ const UpdateProfile = () => {
   return (
     <UserLayout>
       <MetaData title={"Update Profile"} />
-      <div className="flex justify-center items-center min-h-screen bg-gray-100">
-        <div className="w-full max-w-md bg-white p-6 rounded-lg shadow-md">
-          <form onSubmit={submitHandler}>
-            <h2 className="text-2xl font-bold mb-4 text-center">Update Profile</h2>
 
-            <div className="mb-4">
-              <label htmlFor="name_field" className="block text-sm font-medium text-gray-700">
-                Name
-              </label>
-              <input
-                type="text"
-                id="name_field"
-                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+      <div className="max-w-4xl mx-auto">
+        <AppPageHeader
+          title="Update Profile"
+          subtitle="Edit your personal information"
+          backUrl="/me/profile"
+        />
+
+        <form onSubmit={submitHandler}>
+          <AppCard
+            title="Edit Details"
+            icon="fa-user-edit"
+            footer={
+              <div className="flex justify-end gap-2">
+                <AppButton backUrl="/me/profile" />
+                <AppButton
+                  type="submit"
+                  label="Update"
+                  loadingLabel="Updating..."
+                  isLoading={isLoading}
+                  icon="fa-save"
+                />
+              </div>
+            }
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <AppInput
+                label="Full Name"
                 name="name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={onChange}
+                required
               />
-            </div>
-
-            <div className="mb-4">
-              <label htmlFor="email_field" className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <input
+              <AppInput
+                label="Email Address"
                 type="email"
-                id="email_field"
-                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 name="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={onChange}
+                required
               />
             </div>
 
-            <button
-              type="submit"
-              className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${isLoading ? "bg-gray-400" : "bg-indigo-600 hover:bg-indigo-700"}`}
-              disabled={isLoading}
-            >
-              {isLoading ? "Updating..." : "Update"}
-            </button>
-          </form>
-        </div>
+            <div className="mt-6">
+              <AvatarUpload
+                preview={avatarPreview}
+                onChange={onChange}
+                title="Profile Picture"
+                subtitle="Max size 2MB"
+              />
+            </div>
+          </AppCard>
+        </form>
       </div>
     </UserLayout>
   );

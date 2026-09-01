@@ -2,10 +2,10 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
-const TableRowActions = ({ 
-  itemId, 
-  viewPath = "", 
-  editPath = "", 
+const TableRowActions = ({
+  itemId,
+  viewPath = "",
+  editPath = "",
   onDelete,
   onView,
   onEdit,
@@ -15,6 +15,14 @@ const TableRowActions = ({
   showView = true,
   showEdit = true,
   showDelete = true,
+  // ✅ customActions now take a single literal `className` covering
+  // bg/hover/text together (e.g. "bg-purple-50 hover:bg-purple-100
+  // text-purple-700") instead of separate bgColor/hoverColor/textColor
+  // pieces. The old version built `hover:${action.hoverColor}` at
+  // runtime — Tailwind's build-time scanner only picks up classes that
+  // appear as complete literal strings in source, so that hover class
+  // was never generated and customActions never actually changed color
+  // on hover, regardless of what was passed in.
   customActions = []
 }) => {
   const { t } = useTranslation();
@@ -40,24 +48,22 @@ const TableRowActions = ({
   const canEditDelete = !requiredRole || userRole === requiredRole;
 
   return (
-    <div className="flex justify-end items-center gap-1">
+    <div className="flex justify-end items-center gap-1.5">
       {/* View Action */}
       {showView && (
         viewPath ? (
           <Link
             to={viewPath.replace(':id', itemId)}
-            className="p-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg flex items-center justify-center transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
             title={t("View Details")}
-            style={{ width: "36px", height: "36px" }}
           >
             <i className="fa fa-eye text-sm"></i>
           </Link>
         ) : (
           <button
             onClick={handleView}
-            className="p-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg flex items-center justify-center transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
             title={t("View Details")}
-            style={{ width: "36px", height: "36px" }}
           >
             <i className="fa fa-eye text-sm"></i>
           </button>
@@ -69,18 +75,16 @@ const TableRowActions = ({
         editPath ? (
           <Link
             to={editPath.replace(':id', itemId)}
-            className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg flex items-center justify-center transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors"
             title={t("Edit")}
-            style={{ width: "36px", height: "36px" }}
           >
             <i className="fa fa-edit text-sm"></i>
           </Link>
         ) : (
           <button
             onClick={handleEdit}
-            className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg flex items-center justify-center transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors"
             title={t("Edit")}
-            style={{ width: "36px", height: "36px" }}
           >
             <i className="fa fa-edit text-sm"></i>
           </button>
@@ -92,11 +96,10 @@ const TableRowActions = ({
         <button
           onClick={handleDelete}
           disabled={isDeleteLoading}
-          className="p-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50"
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50"
           title={t("Delete")}
-          style={{ width: "36px", height: "36px" }}
         >
-          <i className="fa fa-trash text-sm"></i>
+          <i className={`fa ${isDeleteLoading ? 'fa-spinner fa-spin' : 'fa-trash'} text-sm`}></i>
         </button>
       )}
 
@@ -105,9 +108,8 @@ const TableRowActions = ({
         <button
           key={index}
           onClick={() => action.onClick(itemId)}
-          className={`p-2 ${action.bgColor || 'bg-gray-50'} hover:${action.hoverColor || 'bg-gray-100'} ${action.textColor || 'text-gray-700'} rounded-lg flex items-center justify-center transition-colors`}
+          className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${action.className || 'bg-surface-100 hover:bg-surface-200 text-ink-600'}`}
           title={action.title}
-          style={{ width: "36px", height: "36px" }}
         >
           <i className={`fa fa-${action.icon} text-sm`}></i>
         </button>

@@ -1,7 +1,7 @@
 import React from "react";
 import {
-  BarChart,
-  Bar,
+  AreaChart,
+  Area,
   PieChart,
   Pie,
   Cell,
@@ -11,15 +11,19 @@ import {
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
-  LineChart,
-  Line,
-  AreaChart,
-  Area
 } from "recharts";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 import { useGetRevenueVsExpensesQuery } from "../../redux/api/revenueApi";
-import { useGetFeesByCurrencyQuery } from "../../redux/api/feesApi";
+import {
+  useGetFeesByCurrencyQuery,
+  useGetUpcomingFeeDuesQuery,
+} from "../../redux/api/feesApi";
+import { useGetUnpaidSalariesQuery } from "../../redux/api/salaryApi";
+import {
+  useGetRecentFinanceActivityQuery,
+  useGetPayrollOverviewQuery,
+} from "../../redux/api/financeDashboardApi";
 import { useTranslation } from "react-i18next";
 import {
   CurrencyDollarIcon,
@@ -30,18 +34,41 @@ import {
   CreditCardIcon,
   ReceiptPercentIcon,
   WalletIcon,
-  ArrowsRightLeftIcon,
-  GlobeAltIcon
+  GlobeAltIcon,
+  ClockIcon,
+  UserGroupIcon,
+  BriefcaseIcon,
 } from "@heroicons/react/24/outline";
+
+const MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
 
 const FinanceDashboard = () => {
   const { t } = useTranslation();
+
+  // Monthly revenue/expenses/profit series — real, from Revenue + Fees + Salary + Expense
   const { data, isLoading, error } = useGetRevenueVsExpensesQuery();
-  const {
-    data: currencyData,
-    isLoading: currencyLoading,
-    error: currencyError,
-  } = useGetFeesByCurrencyQuery();
+
+  // Currency breakdown — real (layout stays "dummy" per design, data is live)
+  const { data: currencyData, isLoading: currencyLoading } = useGetFeesByCurrencyQuery();
+
+  // NEW: fee installments due soon (real, already existed on the backend, just wasn't wired up)
+  const { data: upcomingDuesData, isLoading: upcomingLoading } = useGetUpcomingFeeDuesQuery(7);
+
+  // NEW: staff/teachers whose salary hasn't been paid yet
+  // NOTE: backend returns a 404 when the list is empty (by design, same as getOverdueFees),
+  // so we treat an error here as "nothing pending" rather than a real failure.
+  const { data: unpaidSalariesData, isLoading: unpaidSalariesLoading } = useGetUnpaidSalariesQuery();
+
+  // NEW: merged Fees/Expenses/Salaries feed powering "Recent Transactions"
+  const { data: recentActivityData, isLoading: recentActivityLoading } = useGetRecentFinanceActivityQuery(8);
+
+  // NEW: projected/committed monthly payroll, sourced from active EmployeeContract.salary
+  // (this is what finance is committed to pay, decided when each contract was created —
+  // different from the Salary collection, which tracks what's already been paid out)
+  const { data: payrollData, isLoading: payrollLoading } = useGetPayrollOverviewQuery();
 
   if (isLoading || currencyLoading) {
     return (
@@ -55,48 +82,42 @@ const FinanceDashboard = () => {
 
   if (error) return <p className="text-red-500 p-8">Error loading financial data.</p>;
 
-  // Default values agar data na ho
-  const financialData = data?.data?.[0] || {
-    totalRevenue: 0,
-    totalExpenses: 0,
-    netProfit: 0,
-    previousMonthRevenue: 0,
-    previousMonthExpenses: 0
+  // ── Real monthly series, sorted ascending (year, month) ──────────────
+  const monthlySeries = [...(data?.data || [])].sort((a, b) => {
+    if (a.year !== b.year) return a.year - b.year;
+    return a.month - b.month;
+  });
+
+  const monthlyData = monthlySeries.map((m) => ({
+    month: MONTH_NAMES[(m.month || 1) - 1] || m.month,
+    revenue: m.totalRevenue || 0,
+    expenses: m.totalExpenses || 0,
+    profit: m.netProfit || 0,
+  }));
+
+  // Current month = latest entry in the series, previous = the one before it
+  const currentMonth = monthlySeries[monthlySeries.length - 1];
+  const previousMonth = monthlySeries[monthlySeries.length - 2];
+
+  const financialData = {
+    totalRevenue: currentMonth?.totalRevenue || 0,
+    totalExpenses: currentMonth?.totalExpenses || 0,
+    netProfit: currentMonth?.netProfit || 0,
+    previousMonthRevenue: previousMonth?.totalRevenue || 0,
+    previousMonthExpenses: previousMonth?.totalExpenses || 0,
   };
 
-  // Calculate percentages for growth
-  const revenueGrowth = financialData.previousMonthRevenue 
-    ? ((financialData.totalRevenue - financialData.previousMonthRevenue) / financialData.previousMonthRevenue * 100).toFixed(1)
+  const revenueGrowth = financialData.previousMonthRevenue
+    ? (((financialData.totalRevenue - financialData.previousMonthRevenue) / financialData.previousMonthRevenue) * 100).toFixed(1)
     : 0;
 
   const expensesGrowth = financialData.previousMonthExpenses
-    ? ((financialData.totalExpenses - financialData.previousMonthExpenses) / financialData.previousMonthExpenses * 100).toFixed(1)
+    ? (((financialData.totalExpenses - financialData.previousMonthExpenses) / financialData.previousMonthExpenses) * 100).toFixed(1)
     : 0;
 
-  // Monthly Data for Charts
-  const monthlyData = [
-    { month: "Jan", revenue: 42000, expenses: 32000, profit: 10000 },
-    { month: "Feb", revenue: 48000, expenses: 35000, profit: 13000 },
-    { month: "Mar", revenue: 52000, expenses: 38000, profit: 14000 },
-    { month: "Apr", revenue: 58000, expenses: 42000, profit: 16000 },
-    { month: "May", revenue: 62000, expenses: 45000, profit: 17000 },
-    { month: "Jun", revenue: 65000, expenses: 48000, profit: 17000 },
-    { month: "Jul", revenue: 68000, expenses: 50000, profit: 18000 },
-    { month: "Aug", revenue: 72000, expenses: 52000, profit: 20000 },
-    { month: "Sep", revenue: 75000, expenses: 54000, profit: 21000 },
-    { month: "Oct", revenue: 78000, expenses: 56000, profit: 22000 },
-    { month: "Nov", revenue: 82000, expenses: 58000, profit: 24000 },
-    { month: "Dec", revenue: 85000, expenses: 60000, profit: 25000 },
-  ];
-
-  const barChartData = [
-    {
-      name: t("Current Month"),
-      revenue: financialData.totalRevenue,
-      expenses: financialData.totalExpenses,
-      profit: financialData.netProfit
-    },
-  ];
+  const profitMargin = financialData.totalRevenue
+    ? ((financialData.netProfit / financialData.totalRevenue) * 100).toFixed(1)
+    : "0.0";
 
   const pieChartData = [
     { name: t("Revenue"), value: financialData.totalRevenue, color: "#4CAF50" },
@@ -104,7 +125,7 @@ const FinanceDashboard = () => {
     { name: t("Net Profit"), value: financialData.netProfit, color: "#2196F3" },
   ];
 
-  // Available currencies with colors
+  // ── Currency cards: layout stays as-is, data is live ─────────────────
   const availableCurrencies = [
     { code: "USD", name: "US Dollar", color: "from-green-600 to-emerald-400" },
     { code: "EUR", name: "Euro", color: "from-blue-600 to-cyan-400" },
@@ -115,74 +136,73 @@ const FinanceDashboard = () => {
     { code: "AED", name: "UAE Dirham", color: "from-rose-600 to-pink-400" },
   ];
 
-  // Currency data handle karna
   const currencyStats = currencyData?.currencyStats || [];
-  
+
   const feesData = availableCurrencies.map((currency) => {
     const currencyInfo = currencyStats.find((stat) => stat._id === currency.code);
     return {
       ...currency,
       totalAmount: currencyInfo ? currencyInfo.totalAmount : 0,
       totalFees: currencyInfo ? currencyInfo.totalFees : 0,
-      percentage: currencyInfo ? (currencyInfo.totalAmount / financialData.totalRevenue * 100).toFixed(1) : 0
+      percentage:
+        currencyInfo && financialData.totalRevenue
+          ? ((currencyInfo.totalAmount / financialData.totalRevenue) * 100).toFixed(1)
+          : "0.0",
     };
   });
 
-  // Stats Cards Data
+  // ── NEW data sources ──────────────────────────────────────────────────
+  const upcomingDues = upcomingDuesData?.dues || [];
+  const unpaidSalaries = unpaidSalariesData?.unpaidSalaries || [];
+  const transactions = recentActivityData?.transactions || [];
+  const payrollByCurrency = payrollData?.payrollByCurrency || [];
+  const totalActiveContracts = payrollData?.totalActiveContracts || 0;
+
   const stats = [
-    { 
-      label: t("Total Revenue"), 
-      value: `$${financialData.totalRevenue.toLocaleString()}`, 
-      icon: <CurrencyDollarIcon className="w-8 h-8" />, 
+    {
+      label: t("Total Revenue"),
+      value: `$${financialData.totalRevenue.toLocaleString()}`,
+      icon: <CurrencyDollarIcon className="w-8 h-8" />,
       color: "from-emerald-600 to-green-400",
       shadow: "shadow-emerald-200",
       growth: revenueGrowth,
-      trend: revenueGrowth >= 0 ? "up" : "down"
+      trend: revenueGrowth >= 0 ? "up" : "down",
     },
-    { 
-      label: t("Total Expenses"), 
-      value: `$${financialData.totalExpenses.toLocaleString()}`, 
-      icon: <ReceiptPercentIcon className="w-8 h-8" />, 
+    {
+      label: t("Total Expenses"),
+      value: `$${financialData.totalExpenses.toLocaleString()}`,
+      icon: <ReceiptPercentIcon className="w-8 h-8" />,
       color: "from-rose-600 to-red-400",
       shadow: "shadow-rose-200",
       growth: expensesGrowth,
-      trend: expensesGrowth >= 0 ? "up" : "down"
+      trend: expensesGrowth >= 0 ? "up" : "down",
     },
-    { 
-      label: t("Net Profit"), 
-      value: `$${financialData.netProfit.toLocaleString()}`, 
-      icon: <ArrowTrendingUpIcon className="w-8 h-8" />, 
+    {
+      label: t("Net Profit"),
+      value: `$${financialData.netProfit.toLocaleString()}`,
+      icon: <ArrowTrendingUpIcon className="w-8 h-8" />,
       color: "from-blue-600 to-cyan-400",
       shadow: "shadow-blue-200",
-      growth: ((financialData.netProfit / financialData.totalRevenue) * 100).toFixed(1),
-      trend: financialData.netProfit >= 0 ? "up" : "down"
+      growth: profitMargin,
+      trend: financialData.netProfit >= 0 ? "up" : "down",
     },
-    { 
-      label: t("Profit Margin"), 
-      value: `${((financialData.netProfit / financialData.totalRevenue) * 100).toFixed(1)}%`, 
-      icon: <ChartBarIcon className="w-8 h-8" />, 
+    {
+      label: t("Profit Margin"),
+      value: `${profitMargin}%`,
+      icon: <ChartBarIcon className="w-8 h-8" />,
       color: "from-violet-600 to-purple-400",
       shadow: "shadow-violet-200",
-      growth: "2.5%",
-      trend: "up"
+      growth: profitMargin,
+      trend: financialData.netProfit >= 0 ? "up" : "down",
     },
-  ];
-
-  // Recent Transactions
-  const transactions = [
-    { id: 1, description: "Tuition Fee - John Smith", amount: 1200, currency: "USD", date: "2024-01-15", status: "completed", type: "revenue" },
-    { id: 2, description: "Staff Salary - January", amount: 45000, currency: "USD", date: "2024-01-10", status: "completed", type: "expense" },
-    { id: 3, description: "Infrastructure Maintenance", amount: 8500, currency: "USD", date: "2024-01-05", status: "pending", type: "expense" },
-    { id: 4, description: "Library Books Purchase", amount: 3200, currency: "USD", date: "2024-01-03", status: "completed", type: "expense" },
-    { id: 5, description: "Sports Equipment", amount: 5600, currency: "USD", date: "2024-01-02", status: "completed", type: "expense" },
   ];
 
   return (
     <AdminLayout>
       <MetaData title="Finance Dashboard" />
-      
+
       <div className="p-4 md:p-8 bg-gray-50/50 min-h-screen">
-        {/* Header Welcome Section */}
+        {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-black text-gray-800 tracking-tight">
             {t("Financial Overview")}
@@ -195,8 +215,8 @@ const FinanceDashboard = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {stats.map((stat, index) => (
-            <div 
-              key={index} 
+            <div
+              key={index}
               className="relative overflow-hidden bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
             >
               <div className="flex items-start justify-between">
@@ -204,26 +224,25 @@ const FinanceDashboard = () => {
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
                     {stat.label}
                   </p>
-                  <h3 className="text-2xl font-black text-gray-800 mb-2">
-                    {stat.value}
-                  </h3>
+                  <h3 className="text-2xl font-black text-gray-800 mb-2">{stat.value}</h3>
                   <div className="flex items-center gap-2">
                     {stat.trend === "up" ? (
                       <ArrowTrendingUpIcon className="w-4 h-4 text-emerald-500" />
                     ) : (
                       <ArrowTrendingDownIcon className="w-4 h-4 text-rose-500" />
                     )}
-                    <span className={`text-sm font-bold ${stat.trend === "up" ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    <span className={`text-sm font-bold ${stat.trend === "up" ? "text-emerald-600" : "text-rose-600"}`}>
                       {stat.growth}%
                     </span>
                     <span className="text-xs text-gray-500">from last month</span>
                   </div>
                 </div>
-                <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} text-white shadow-lg ${stat.shadow} group-hover:scale-110 transition-transform`}>
+                <div
+                  className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} text-white shadow-lg ${stat.shadow} group-hover:scale-110 transition-transform`}
+                >
                   {stat.icon}
                 </div>
               </div>
-              {/* Decorative background element */}
               <div className="absolute -bottom-2 -right-2 w-16 h-16 bg-gray-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
             </div>
           ))}
@@ -231,82 +250,48 @@ const FinanceDashboard = () => {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          {/* Left Column - Charts */}
+          {/* Left Column */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Revenue vs Expenses Chart */}
+            {/* Revenue vs Expenses Chart — real monthly series */}
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-lg font-bold text-gray-800">
-                    {t("Monthly Financial Performance")}
-                  </h2>
-                  <p className="text-sm text-gray-500">Revenue, Expenses & Profit Trends</p>
-                </div>
-                <div className="flex gap-2">
-                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
-                    Monthly
-                  </button>
-                  <button className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">
-                    Quarterly
-                  </button>
-                  <button className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">
-                    Yearly
-                  </button>
-                </div>
+              <div className="mb-6">
+                <h2 className="text-lg font-bold text-gray-800">
+                  {t("Monthly Financial Performance")}
+                </h2>
+                <p className="text-sm text-gray-500">Revenue, Expenses & Profit Trends</p>
               </div>
               <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={monthlyData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="month" stroke="#666" />
-                    <YAxis stroke="#666" />
-                    <Tooltip 
-                      contentStyle={{ 
-                        borderRadius: '8px',
-                        border: '1px solid #e5e7eb',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                      }}
-                    />
-                    <Legend />
-                    <Area 
-                      type="monotone" 
-                      dataKey="revenue" 
-                      stackId="1"
-                      stroke="#10b981" 
-                      fill="#10b981" 
-                      fillOpacity={0.2}
-                      name="Revenue"
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="expenses" 
-                      stackId="1"
-                      stroke="#ef4444" 
-                      fill="#ef4444" 
-                      fillOpacity={0.2}
-                      name="Expenses"
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="profit" 
-                      stackId="1"
-                      stroke="#3b82f6" 
-                      fill="#3b82f6" 
-                      fillOpacity={0.2}
-                      name="Net Profit"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                {monthlyData.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+                    {t("No financial records for this campus/year yet.")}
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={monthlyData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="month" stroke="#666" />
+                      <YAxis stroke="#666" />
+                      <Tooltip
+                        contentStyle={{
+                          borderRadius: "8px",
+                          border: "1px solid #e5e7eb",
+                          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                        }}
+                      />
+                      <Legend />
+                      <Area type="monotone" dataKey="revenue" stackId="1" stroke="#10b981" fill="#10b981" fillOpacity={0.2} name="Revenue" />
+                      <Area type="monotone" dataKey="expenses" stackId="1" stroke="#ef4444" fill="#ef4444" fillOpacity={0.2} name="Expenses" />
+                      <Area type="monotone" dataKey="profit" stackId="1" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} name="Net Profit" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
 
-            {/* Pie Chart Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Financial Breakdown Pie Chart */}
+              {/* Financial Breakdown Pie */}
               <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-                <h2 className="text-lg font-bold text-gray-800 mb-6">
-                  {t("Financial Breakdown")}
-                </h2>
+                <h2 className="text-lg font-bold text-gray-800 mb-6">{t("Financial Breakdown")}</h2>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -324,12 +309,9 @@ const FinanceDashboard = () => {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip 
-                        formatter={(value) => [`$${value.toLocaleString()}`, 'Amount']}
-                        contentStyle={{ 
-                          borderRadius: '8px',
-                          border: '1px solid #e5e7eb'
-                        }}
+                      <Tooltip
+                        formatter={(value) => [`$${value.toLocaleString()}`, "Amount"]}
+                        contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
                       />
                       <Legend />
                     </PieChart>
@@ -337,13 +319,11 @@ const FinanceDashboard = () => {
                 </div>
               </div>
 
-              {/* Currency Distribution */}
+              {/* Currency Distribution — dummy layout, real data */}
               <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h2 className="text-lg font-bold text-gray-800">
-                      {t("Fees by Currency")}
-                    </h2>
+                    <h2 className="text-lg font-bold text-gray-800">{t("Fees by Currency")}</h2>
                     <p className="text-sm text-gray-500">Distribution across currencies</p>
                   </div>
                   <GlobeAltIcon className="w-6 h-6 text-gray-400" />
@@ -367,58 +347,187 @@ const FinanceDashboard = () => {
                     </div>
                   ))}
                 </div>
-                <button className="w-full mt-4 py-3 text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors">
-                  View All Currencies
-                </button>
+              </div>
+            </div>
+
+            {/* NEW: Upcoming Fee Dues */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ClockIcon className="w-5 h-5 text-amber-500" />
+                  <h2 className="text-lg font-bold text-gray-800">{t("Upcoming Fee Dues")}</h2>
+                </div>
+                <span className="px-2 py-1 bg-amber-50 text-amber-600 text-[10px] font-black uppercase rounded">
+                  {t("Next 7 days")}
+                </span>
+              </div>
+              <div className="p-6">
+                {upcomingLoading ? (
+                  <p className="text-sm text-gray-400">{t("Loading...")}</p>
+                ) : upcomingDues.length === 0 ? (
+                  <p className="text-sm text-gray-400">{t("No fee installments due in this window.")}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {upcomingDues.slice(0, 6).map((due) => (
+                      <div key={due._id} className="flex items-center justify-between p-4 bg-amber-50/50 rounded-xl">
+                        <div>
+                          <p className="font-medium text-gray-800 text-sm">
+                            {[due.student?.firstName, due.student?.lastName].filter(Boolean).join(" ") || t("Student")}
+                            <span className="text-gray-400 font-normal"> — {due.feeType}</span>
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {t("Due")}: {due.dueDate ? new Date(due.dueDate).toLocaleDateString() : "-"}
+                          </p>
+                        </div>
+                        <p className="font-bold text-amber-600">
+                          {due.currency} {due.amount?.toLocaleString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* NEW: Payroll Overview (from active EmployeeContract.salary) */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BriefcaseIcon className="w-5 h-5 text-indigo-500" />
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-800">{t("Payroll Overview")}</h2>
+                    <p className="text-xs text-gray-500">{t("Committed monthly payroll from active contracts")}</p>
+                  </div>
+                </div>
+                <span className="px-2 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase rounded">
+                  {totalActiveContracts} {t("active")}
+                </span>
+              </div>
+              <div className="p-6">
+                {payrollLoading ? (
+                  <p className="text-sm text-gray-400">{t("Loading...")}</p>
+                ) : payrollByCurrency.length === 0 ? (
+                  <p className="text-sm text-gray-400">{t("No active employee contracts found.")}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {payrollByCurrency.map((row) => (
+                      <div key={row.currency} className="flex items-center justify-between p-4 bg-indigo-50/50 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-blue-400 flex items-center justify-center text-white font-bold text-xs">
+                            {row.currency}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-800 text-sm">{row.staffCount} {t("staff on contract")}</p>
+                            <p className="text-xs text-gray-500">{t("Estimated monthly total")}</p>
+                          </div>
+                        </div>
+                        <p className="font-bold text-indigo-600">
+                          {row.currency} {row.estimatedMonthlyPayroll.toLocaleString()}
+                        </p>
+                      </div>
+                    ))}
+                    <p className="text-[11px] text-gray-400 pt-1">
+                      {t("Hourly/daily-paid contracts are estimated using a standard full-time assumption — treat as approximate.")}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Right Column - Recent Transactions & Quick Stats */}
+          {/* Right Column */}
           <div className="space-y-8">
-            {/* Recent Transactions */}
+            {/* Recent Transactions — real, merged feed */}
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="p-6 border-b border-gray-50 flex items-center justify-between">
                 <h2 className="text-lg font-bold text-gray-800">{t("Recent Transactions")}</h2>
                 <span className="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-black uppercase rounded">
-                  Last 30 days
+                  {t("Latest")}
                 </span>
               </div>
               <div className="p-6">
-                <div className="space-y-4">
-                  {transactions.map((transaction) => (
-                    <div key={transaction.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${transaction.type === 'revenue' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
-                          {transaction.type === 'revenue' ? (
-                            <ArrowTrendingUpIcon className="w-5 h-5" />
-                          ) : (
-                            <ArrowTrendingDownIcon className="w-5 h-5" />
-                          )}
+                {recentActivityLoading ? (
+                  <p className="text-sm text-gray-400">{t("Loading...")}</p>
+                ) : transactions.length === 0 ? (
+                  <p className="text-sm text-gray-400">{t("No recent transactions found.")}</p>
+                ) : (
+                  <div className="space-y-4">
+                    {transactions.map((transaction) => (
+                      <div
+                        key={transaction.id}
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`p-2 rounded-lg ${
+                              transaction.type === "revenue" ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"
+                            }`}
+                          >
+                            {transaction.type === "revenue" ? (
+                              <ArrowTrendingUpIcon className="w-5 h-5" />
+                            ) : (
+                              <ArrowTrendingDownIcon className="w-5 h-5" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-800 text-sm">{transaction.description}</p>
+                            <p className="text-xs text-gray-500">
+                              {transaction.date ? new Date(transaction.date).toLocaleDateString() : "-"}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-800 text-sm">{transaction.description}</p>
-                          <p className="text-xs text-gray-500">{transaction.date}</p>
+                        <div className="text-right">
+                          <p className={`font-bold ${transaction.type === "revenue" ? "text-emerald-600" : "text-rose-600"}`}>
+                            {transaction.type === "revenue" ? "+" : "-"}
+                            {transaction.currency || "$"} {transaction.amount?.toLocaleString()}
+                          </p>
+                          <span className="text-xs font-bold px-2 py-1 rounded-full bg-emerald-100 text-emerald-600">
+                            {transaction.status}
+                          </span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className={`font-bold ${transaction.type === 'revenue' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {transaction.type === 'revenue' ? '+' : '-'}${transaction.amount.toLocaleString()}
-                        </p>
-                        <span className={`text-xs font-bold px-2 py-1 rounded-full ${transaction.status === 'completed' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-                          {transaction.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <button className="w-full mt-6 py-3 bg-gray-50 hover:bg-gray-100 text-gray-600 text-sm font-bold rounded-xl transition-colors">
-                  {t("View All Transactions")}
-                </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Quick Financial Stats */}
+            {/* NEW: Unpaid Salaries */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <UserGroupIcon className="w-5 h-5 text-rose-500" />
+                  <h2 className="text-lg font-bold text-gray-800">{t("Unpaid Salaries")}</h2>
+                </div>
+                <span className="px-2 py-1 bg-rose-50 text-rose-600 text-[10px] font-black uppercase rounded">
+                  {unpaidSalaries.length}
+                </span>
+              </div>
+              <div className="p-6">
+                {unpaidSalariesLoading ? (
+                  <p className="text-sm text-gray-400">{t("Loading...")}</p>
+                ) : unpaidSalaries.length === 0 ? (
+                  <p className="text-sm text-gray-400">{t("All salaries are paid.")}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {unpaidSalaries.slice(0, 6).map((salary) => (
+                      <div key={salary._id} className="flex items-center justify-between p-3 bg-rose-50/50 rounded-xl">
+                        <div>
+                          <p className="font-medium text-gray-800 text-sm">
+                            {[salary.employeeId?.firstName, salary.employeeId?.lastName].filter(Boolean).join(" ") || t("Employee")}
+                          </p>
+                          <p className="text-xs text-gray-500">{salary.month}</p>
+                        </div>
+                        <p className="font-bold text-rose-600">
+                          ${(salary.netSalary || salary.amount || 0).toLocaleString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Financial Health */}
             <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl shadow-lg p-6 text-white">
               <h2 className="text-lg font-bold mb-6">{t("Financial Health")}</h2>
               <div className="space-y-4">
@@ -429,10 +538,10 @@ const FinanceDashboard = () => {
                     </div>
                     <div>
                       <p className="text-sm font-medium">Cash Flow</p>
-                      <p className="text-xs opacity-80">Monthly average</p>
+                      <p className="text-xs opacity-80">Current month</p>
                     </div>
                   </div>
-                  <span className="text-lg font-bold">${(financialData.totalRevenue / 12).toFixed(0)}</span>
+                  <span className="text-lg font-bold">${financialData.netProfit.toLocaleString()}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -445,7 +554,10 @@ const FinanceDashboard = () => {
                     </div>
                   </div>
                   <span className="text-lg font-bold">
-                    {((financialData.totalExpenses / financialData.totalRevenue) * 100).toFixed(1)}%
+                    {financialData.totalRevenue
+                      ? ((financialData.totalExpenses / financialData.totalRevenue) * 100).toFixed(1)
+                      : "0.0"}
+                    %
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -454,36 +566,15 @@ const FinanceDashboard = () => {
                       <BanknotesIcon className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium">Collection Rate</p>
-                      <p className="text-xs opacity-80">Fees collected</p>
+                      <p className="text-sm font-medium">Pending Salaries</p>
+                      <p className="text-xs opacity-80">Not yet paid</p>
                     </div>
                   </div>
-                  <span className="text-lg font-bold">94.5%</span>
+                  <span className="text-lg font-bold">{unpaidSalaries.length}</span>
                 </div>
               </div>
-              <button className="w-full mt-6 py-3 bg-white/20 hover:bg-white/30 text-white text-sm font-bold rounded-xl transition-colors backdrop-blur-sm">
-                {t("Generate Report")}
-              </button>
             </div>
           </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Generate Invoice', icon: <ReceiptPercentIcon className="w-5 h-5" />, color: 'bg-blue-50 text-blue-600 border-blue-100' },
-            { label: 'Fee Collection', icon: <BanknotesIcon className="w-5 h-5" />, color: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
-            { label: 'Expense Report', icon: <ArrowTrendingDownIcon className="w-5 h-5" />, color: 'bg-rose-50 text-rose-600 border-rose-100' },
-            { label: 'Budget Planning', icon: <ChartBarIcon className="w-5 h-5" />, color: 'bg-violet-50 text-violet-600 border-violet-100' },
-          ].map((action, index) => (
-            <button
-              key={index}
-              className={`p-4 border rounded-2xl text-sm font-bold hover:shadow-md transition-all flex items-center justify-center gap-2 ${action.color}`}
-            >
-              {action.icon}
-              {action.label}
-            </button>
-          ))}
         </div>
       </div>
     </AdminLayout>

@@ -7,9 +7,9 @@ const financeRoutes = () => {
     return (
         <>
             <Route
-                path="/counsellor/dashboard"
+                path="/counselor/dashboard"
                 element={
-                    <ProtectedRoute counsellor={true}>
+                    <ProtectedRoute counselor={true}>
                         <CounsellorDashboard/>
                     </ProtectedRoute>
                 }

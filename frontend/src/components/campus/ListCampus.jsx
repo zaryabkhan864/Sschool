@@ -53,7 +53,6 @@ const ListCampus = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // API query – status ko bhejna hai sirf jab active ya inactive ho, "all" pe nahi
   const {
     data,
     isLoading,
@@ -65,7 +64,7 @@ const ListCampus = () => {
       page: currentPage,
       limit,
       keyword: searchTerm,
-      status: statusFilter || undefined,   // agar empty hua to undefined bhejenge
+      status: statusFilter || undefined,
     },
     { refetchOnMountOrArgChange: true }
   );
@@ -78,7 +77,6 @@ const ListCampus = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedCampusId, setSelectedCampusId] = useState(null);
 
-  // Global error / success handling
   useEffect(() => {
     if (error) toast.error(error?.data?.message || t("Something went wrong"));
     if (deleteError)
@@ -91,7 +89,6 @@ const ListCampus = () => {
     if (user?.role === "admin") setUserRole("admin");
   }, [error, deleteError, deleteSuccess, user, t]);
 
-  // Refetch when requested from navigation state (e.g., after edit)
   useEffect(() => {
     if (location.state?.shouldRefetch) {
       refetch();
@@ -121,7 +118,6 @@ const ListCampus = () => {
     navigate(`/admin/campus/${id}/details`);
   };
 
-  // Columns (status column removed as requested)
   const columns = [
     {
       header: t("Campus Name"),
@@ -156,7 +152,6 @@ const ListCampus = () => {
     },
   ];
 
-  // ✅ Stats ab backend se aane wale overall counts se aayenge
   const counts = data?.pagination?.counts || data?.counts || {
     total: 0,
     active: 0,
@@ -205,7 +200,6 @@ const ListCampus = () => {
     />
   );
 
-  // ✅ Filter dropdown – status select ab sahi values bhejega
   const filters = (
     <FilterDropdown
       limit={limit}
@@ -216,7 +210,7 @@ const ListCampus = () => {
       onReset={() => {
         setSearch("");
         setSearchTerm("");
-        setStatusFilter("active"); // reset to default
+        setStatusFilter("active");
         setCurrentPage(1);
         setLimit(8);
       }}

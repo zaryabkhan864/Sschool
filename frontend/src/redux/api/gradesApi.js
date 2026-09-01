@@ -4,17 +4,17 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 export const gradeApi = createApi({
   reducerPath: "gradeApi",
   baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" }),
-  tagTypes: ["Grades", "Grade", "AdminGrades"],
+  tagTypes: ["Grades", "Grade", "AdminGrades", "GradeCourses"], // ✅ naya tag
   endpoints: (builder) => ({
     // GET all grades (with filters & pagination)
     getGrades: builder.query({
       query: ({ page = 1, limit = 10, keyword = "", status } = {}) => ({
         url: "/grades",
-        params: { 
-          page, 
-          limit, 
+        params: {
+          page,
+          limit,
           keyword,
-          ...(status && { status })
+          ...(status && { status }),
         },
       }),
       providesTags: (result) =>
@@ -26,10 +26,18 @@ export const gradeApi = createApi({
           : [{ type: "Grades", id: "LIST" }],
     }),
 
-    // GET single grade details
+    // GET single grade details (full data)
     getGradeDetails: builder.query({
       query: (id) => `/grades/${id}`,
       providesTags: (result, error, id) => [{ type: "Grade", id }],
+    }),
+
+    // ✅ NAYA ENDPOINT: Sirf courses count aur names
+    getGradeCourses: builder.query({
+      query: (gradeId) => `/grades/${gradeId}/courses`,
+      providesTags: (result, error, gradeId) => [
+        { type: "GradeCourses", id: gradeId },
+      ],
     }),
 
     // CREATE new grade (Admin only)
@@ -43,7 +51,7 @@ export const gradeApi = createApi({
       },
       invalidatesTags: [
         { type: "Grades", id: "LIST" },
-        { type: "AdminGrades" }
+        { type: "AdminGrades" },
       ],
     }),
 
@@ -59,7 +67,7 @@ export const gradeApi = createApi({
       invalidatesTags: (result, error, { id }) => [
         { type: "Grades", id },
         { type: "Grade", id },
-        { type: "AdminGrades" }
+        { type: "AdminGrades" },
       ],
     }),
 
@@ -73,13 +81,15 @@ export const gradeApi = createApi({
       },
       invalidatesTags: [
         { type: "Grades", id: "LIST" },
-        { type: "AdminGrades" }
+        { type: "AdminGrades" },
       ],
     }),
 
     getGradesByAcademicLevel: builder.query({
       query: (academicLevelId) => `/grades/by-academic-level/${academicLevelId}`,
-      providesTags: (result, error, id) => [{ type: "Grades", id: `academicLevel-${id}` }],
+      providesTags: (result, error, id) => [
+        { type: "Grades", id: `academicLevel-${id}` },
+      ],
     }),
   }),
 });
@@ -89,6 +99,7 @@ export const {
   useGetGradesQuery,
   useLazyGetGradesQuery,
   useGetGradeDetailsQuery,
+  useGetGradeCoursesQuery, // ✅ naya hook export
   useCreateGradeMutation,
   useUpdateGradeMutation,
   useDeleteGradeMutation,

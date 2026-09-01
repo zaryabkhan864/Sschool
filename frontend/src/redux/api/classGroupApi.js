@@ -2,67 +2,70 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export const classGroupApi = createApi({
   reducerPath: "classGroupApi",
-  baseQuery: fetchBaseQuery({ 
+  baseQuery: fetchBaseQuery({
     baseUrl: "/api/v1",
     prepareHeaders: (headers, { getState }) => {
       // Auth token handle karne ke liye
       const token = getState()?.auth?.token;
       if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
+        headers.set("Authorization", `Bearer ${token}`);
       }
       return headers;
-    }
+    },
   }),
-  tagTypes: ["ClassGroup"],
+  tagTypes: ["ClassGroup", "ClassGroupStudents"],
   endpoints: (builder) => ({
     // Get class groups with pagination and filters
     getClassGroups: builder.query({
-      query: ({ 
-        page = 1, 
-        limit = 10, 
-        keyword = "", 
+      query: ({
+        page = 1,
+        limit = 10,
+        keyword = "",
         status,
         campus,
         grade,
-        academicLevel,  
-        paginate = true 
+        academicLevel,
+        paginate = true,
       } = {}) => {
         const params = new URLSearchParams();
-        
-        params.append('paginate', paginate.toString());
-    
+
+        params.append("paginate", paginate.toString());
+
         if (paginate === true) {
-          if (page) params.append('page', page);
-          if (limit) params.append('limit', limit);
+          if (page) params.append("page", page);
+          if (limit) params.append("limit", limit);
         }
-        
-        if (keyword) params.append('keyword', keyword);
-        if (status) params.append('status', status);
-        if (campus) params.append('campus', campus);
-        if (grade) params.append('grade', grade);
-        if (academicLevel) params.append('academicLevel', academicLevel); 
-        
+
+        if (keyword) params.append("keyword", keyword);
+        if (status) params.append("status", status);
+        if (campus) params.append("campus", campus);
+        if (grade) params.append("grade", grade);
+        if (academicLevel) params.append("academicLevel", academicLevel);
+
         return {
           url: `/class-groups?${params.toString()}`,
         };
       },
-      
+
       transformResponse: (response) => ({
         success: response.success || false,
         classGroups: response.classGroups || [],
         pagination: response.pagination || null,
-        counts: response.counts || response.pagination?.counts || {
-          total: 0,
-          active: 0,
-          deactive: 0
-        }
+        counts: response.counts ||
+          response.pagination?.counts || {
+            total: 0,
+            active: 0,
+            deactive: 0,
+          },
       }),
-      
+
       providesTags: (result) => {
         if (!result) return [{ type: "ClassGroup", id: "LIST" }];
         const tags = [{ type: "ClassGroup", id: "LIST" }];
         if (result.classGroups) {
-          result.classGroups.forEach(group => tags.push({ type: "ClassGroup", id: group._id }));
+          result.classGroups.forEach((group) =>
+            tags.push({ type: "ClassGroup", id: group._id })
+          );
         }
         return tags;
       },
@@ -73,20 +76,31 @@ export const classGroupApi = createApi({
     getClassGroupDetails: builder.query({
       query: (id) => `/class-groups/${id}`,
       transformResponse: (response) => response.classGroup || response,
+      providesTags: (result, error, id) => [{ type: "ClassGroup", id }],
+    }),
+
+    // ✅ NEW: Get all students enrolled in a class group
+    getClassGroupStudents: builder.query({
+      query: (id) => `/class-groups/${id}/students`,
+      transformResponse: (response) => ({
+        classGroup: response.classGroup || null,
+        students: response.students || [],
+      }),
       providesTags: (result, error, id) => [
-        { type: "ClassGroup", id }
+        { type: "ClassGroupStudents", id },
       ],
+      keepUnusedDataFor: 60,
     }),
 
     // Get class groups for dropdowns (No pagination)
     getClassGroupsForDropdown: builder.query({
       query: ({ campus, status = "active", grade, academicLevel } = {}) => {
         const params = new URLSearchParams();
-        params.append('paginate', 'false');
-        if (campus) params.append('campus', campus);
-        if (status) params.append('status', status);
-        if (grade) params.append('grade', grade);
-        if (academicLevel) params.append('academicLevel', academicLevel);
+        params.append("paginate", "false");
+        if (campus) params.append("campus", campus);
+        if (status) params.append("status", status);
+        if (grade) params.append("grade", grade);
+        if (academicLevel) params.append("academicLevel", academicLevel);
         return {
           url: `/class-groups?${params.toString()}`,
         };
@@ -98,13 +112,13 @@ export const classGroupApi = createApi({
     // Create Class Group (Admin only)
     createClassGroup: builder.mutation({
       query: (body) => ({
-        url: '/admin/class-groups',
-        method: 'POST',
+        url: "/admin/class-groups",
+        method: "POST",
         body,
       }),
       invalidatesTags: [
         { type: "ClassGroup", id: "LIST" },
-        { type: "ClassGroup", id: "DROPDOWN" }
+        { type: "ClassGroup", id: "DROPDOWN" },
       ],
     }),
 
@@ -112,13 +126,13 @@ export const classGroupApi = createApi({
     updateClassGroup: builder.mutation({
       query: ({ id, ...body }) => ({
         url: `/admin/class-groups/${id}`,
-        method: 'PUT',
+        method: "PUT",
         body,
       }),
       invalidatesTags: (result, error, { id }) => [
         { type: "ClassGroup", id },
         { type: "ClassGroup", id: "LIST" },
-        { type: "ClassGroup", id: "DROPDOWN" }
+        { type: "ClassGroup", id: "DROPDOWN" },
       ],
     }),
 
@@ -126,12 +140,12 @@ export const classGroupApi = createApi({
     deleteClassGroup: builder.mutation({
       query: (id) => ({
         url: `/admin/class-groups/${id}`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
       invalidatesTags: (result, error, id) => [
         { type: "ClassGroup", id },
         { type: "ClassGroup", id: "LIST" },
-        { type: "ClassGroup", id: "DROPDOWN" }
+        { type: "ClassGroup", id: "DROPDOWN" },
       ],
     }),
   }),
@@ -142,6 +156,7 @@ export const {
   useGetClassGroupsQuery,
   useLazyGetClassGroupsQuery,
   useGetClassGroupDetailsQuery,
+  useGetClassGroupStudentsQuery,
   useGetClassGroupsForDropdownQuery,
   useCreateClassGroupMutation,
   useUpdateClassGroupMutation,

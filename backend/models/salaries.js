@@ -1,17 +1,49 @@
 import mongoose from "mongoose";
 
-export const SalarySchema = new mongoose.Schema({
+const salarySchema = new mongoose.Schema(
+  {
     employeeId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "Employee reference is required"],
     },
-    amount: { type: Number, required: true },
-    month: { type: String, required: true }, // e.g., "January 2024"
-    status: { type: String, enum: ["Paid", "Unpaid"], default: "Unpaid" },
-    paymentDate: { type: Date },
-    deductions: { type: Number, default: 0 },
-    netSalary: { type: Number } // amount - deductions
-});
+    campus: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Campus",
+    },
+    year: {
+      type: Number,
+    },
+    amount: {
+      type: Number,
+      required: [true, "Amount is required"],
+      min: [0, "Amount cannot be negative"],
+    },
+    month: {
+      type: String,
+      required: [true, "Month is required"],
+    },
+    status: {
+      type: String,
+      enum: {
+        values: ["Paid", "Unpaid"],
+        message: "status must be either Paid or Unpaid",
+      },
+      default: "Unpaid",
+    },
+    paymentDate: {
+      type: Date,
+    },
+    deductions: {
+      type: Number,
+      default: 0,
+      min: [0, "Deductions cannot be negative"],
+    },
+    netSalary: {
+      type: Number,
+    },
+  },
+  { timestamps: true }
+);
 
-export default mongoose.model("Salary", SalarySchema);
+export default mongoose.model("Salary", salarySchema);

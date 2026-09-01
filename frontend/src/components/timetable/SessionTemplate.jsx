@@ -16,33 +16,14 @@ import ConfirmationModal from "../GUI/ConfirmationModal";
 import { DataTableContainer } from "../GUI/DataTableContainer";
 import AppButton from "../GUI/AppButton";
 import AdminLayout from "../layout/AdminLayout";
-import WarningBanner from "../GUI/WarningBanner";
-import InfoBanner from "../GUI/InfoBanner";
 import StatsCards from "../GUI/StatsCards";
 import TableRowActions from "../GUI/TableRowActions";
 
-// New components
 import SessionFilters from "../GUI/SessionFilters";
 import SessionFormModal from "../GUI/SessionFormModal";
 
-
-// Cookie helper
-const getCookie = (name) => {
-  const cookieString = document.cookie;
-  const cookies = cookieString.split('; ');
-  for (let cookie of cookies) {
-    const [cookieName, cookieValue] = cookie.split('=');
-    if (cookieName === name) return decodeURIComponent(cookieValue);
-  }
-  return null;
-};
-
 const SessionTemplate = () => {
   const { t } = useTranslation();
-
-  // Cookies se campus aur year
-  const [currentCampus, setCurrentCampus] = useState(null);
-  const [currentYear, setCurrentYear] = useState(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -60,73 +41,69 @@ const SessionTemplate = () => {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState(null);
+
+  // Filter & pagination state
   const [filterAcademicLevel, setFilterAcademicLevel] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10); // you can adjust default page size
 
-  // Cookies load
-  useEffect(() => {
-    const campus = getCookie('campus');
-    const year = getCookie('selectedYear');
-    setCurrentCampus(campus);
-    setCurrentYear(year ? parseInt(year) : new Date().getFullYear());
-  }, []);
-
-  // Academic levels (campus ke hisaab se)
+  // Academic levels
   const {
     data: academicLevelsData,
     isLoading: levelsLoading,
-  } = useGetAcademicLevelsQuery({
-    paginate: false,
-    campus: currentCampus,
-  }, {
-    skip: !currentCampus,
-    refetchOnMountOrArgChange: true,
-  });
+  } = useGetAcademicLevelsQuery(
+    { paginate: false },
+    { refetchOnMountOrArgChange: true }
+  );
 
-  // Session templates – without pagination (limit = 1000)
+  // Session templates query with pagination and filters
   const {
     data: sessionTemplatesData,
     isLoading,
     isFetching,
     isError,
-    refetch
-  } = useGetSessionTemplatesQuery({
-    limit: 1000,
-    year: currentYear,
-    campus: currentCampus,
-    academicLevel: filterAcademicLevel || undefined,
-  }, {
-    skip: !currentCampus || !currentYear,
-    refetchOnMountOrArgChange: true,
-  });
+    refetch,
+  } = useGetSessionTemplatesQuery(
+    {
+      page,
+      limit,
+      keyword: keyword || undefined,
+      academicLevel: filterAcademicLevel || undefined,
+    },
+    {
+      refetchOnMountOrArgChange: true,
+    }
+  );
 
-  const [createSessionTemplate, { isLoading: isCreating }] = useCreateSessionTemplateMutation();
-  const [updateSessionTemplate, { isLoading: isUpdating }] = useUpdateSessionTemplateMutation();
-  const [deleteSessionTemplate, { isLoading: isDeleting }] = useDeleteSessionTemplateMutation();
+  const [createSessionTemplate, { isLoading: isCreating }] =
+    useCreateSessionTemplateMutation();
+  const [updateSessionTemplate, { isLoading: isUpdating }] =
+    useUpdateSessionTemplateMutation();
+  const [deleteSessionTemplate, { isLoading: isDeleting }] =
+    useDeleteSessionTemplateMutation();
 
-  // Academic level options (filter dropdown ke liye)
+  // Academic level options
   const academicLevelOptions = useMemo(() => {
     if (!academicLevelsData?.levels) return [];
-    return academicLevelsData.levels.map(l => ({
+    return academicLevelsData.levels.map((l) => ({
       value: l._id,
-      label: `${l.name} (${l.code || ''})`
+      label: `${l.name} (${l.code || ""})`,
     }));
   }, [academicLevelsData]);
 
-  // Academic level name (table display ke liye)
   const getAcademicLevelName = (levelId) => {
     if (!levelId) return t("Not Set");
-    const level = academicLevelsData?.levels?.find(l => l._id === (levelId._id || levelId));
-    return level ? `${level.name} (${level.code || ''})` : levelId;
+    const level = academicLevelsData?.levels?.find(
+      (l) => l._id === (levelId._id || levelId)
+    );
+    return level ? `${level.name} (${level.code || ""})` : levelId;
   };
 
-  // Sessions array extract
-  const getSessionsArray = () => {
-    if (!sessionTemplatesData) return [];
-    if (Array.isArray(sessionTemplatesData)) return sessionTemplatesData;
-    if (sessionTemplatesData.sessions && Array.isArray(sessionTemplatesData.sessions)) return sessionTemplatesData.sessions;
-    if (sessionTemplatesData.data && Array.isArray(sessionTemplatesData.data)) return sessionTemplatesData.data;
-    return [];
-  };
+  // Extract sessions and pagination from API response
+  const sessionsArray = sessionTemplatesData?.sessions || [];
+  const pagination = sessionTemplatesData?.pagination || null;
+  const totalSessions = sessionTemplatesData?.count || sessionsArray.length;
 
   // Error handling
   useEffect(() => {
@@ -197,7 +174,6 @@ const SessionTemplate = () => {
     }
   };
 
-  // Submit handler – payload mein year NAHI bhej rahe
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -205,7 +181,6 @@ const SessionTemplate = () => {
     if (!formData.order || formData.order < 1) return toast.error(t("Valid order number is required"));
     if (!formData.startTime || !formData.endTime) return toast.error(t("Start and end times are required"));
     if (!formData.academicLevel) return toast.error(t("Academic level is required"));
-    if (!currentCampus || !currentYear) return toast.error(t("Campus/Year not selected in header"));
 
     const payload = {
       name: formData.name,
@@ -228,7 +203,7 @@ const SessionTemplate = () => {
       refetch();
       resetForm();
     } catch (error) {
-      toast.error(error?.data?.message || t(`Failed to ${editMode ? 'update' : 'create'} session template`));
+      toast.error(error?.data?.message || t(`Failed to ${editMode ? "update" : "create"} session template`));
     }
   };
 
@@ -248,17 +223,20 @@ const SessionTemplate = () => {
 
   const getTypeBadge = (type) => {
     switch (type) {
-      case "CLASS": return "bg-blue-100 text-blue-800";
-      case "BREAK": return "bg-green-100 text-green-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "CLASS":
+        return "bg-blue-100 text-blue-800";
+      case "BREAK":
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const calculateDuration = (startTime, endTime) => {
     try {
-      const [startHour, startMin] = startTime.split(':').map(Number);
-      const [endHour, endMin] = endTime.split(':').map(Number);
-      const duration = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+      const [startHour, startMin] = startTime.split(":").map(Number);
+      const [endHour, endMin] = endTime.split(":").map(Number);
+      const duration = endHour * 60 + endMin - (startHour * 60 + startMin);
       return `${duration} mins`;
     } catch {
       return "N/A";
@@ -281,7 +259,7 @@ const SessionTemplate = () => {
           </div>
           <p className="text-xs text-gray-500 mt-0.5">Year: {row.year}</p>
         </div>
-      )
+      ),
     },
     {
       header: t("Order"),
@@ -291,7 +269,7 @@ const SessionTemplate = () => {
         <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
           <span className="text-xs font-bold text-blue-600">{val}</span>
         </div>
-      )
+      ),
     },
     {
       header: t("Time"),
@@ -309,18 +287,16 @@ const SessionTemplate = () => {
             Duration: {calculateDuration(value, row.endTime)}
           </p>
         </div>
-      )
+      ),
     },
     {
       header: t("Academic Level"),
       accessor: "academicLevel",
       width: "25%",
       render: (val) => (
-        <p className="text-sm text-gray-700">
-          {getAcademicLevelName(val?._id || val)}
-        </p>
-      )
-    }
+        <p className="text-sm text-gray-700">{getAcademicLevelName(val?._id || val)}</p>
+      ),
+    },
   ];
 
   const renderRowActions = (row) => (
@@ -337,13 +313,20 @@ const SessionTemplate = () => {
     />
   );
 
-  const sessionsArray = getSessionsArray();
+  // Stats (use totalSessions for accurate counts)
+  const classCount = useMemo(() => {
+    // if you want count from current page only, use sessionsArray.
+    // For overall total, you might need separate API or count from server.
+    // Here we show total sessions and count from current page for type.
+    return sessionsArray.filter((s) => s.type === "CLASS").length;
+  }, [sessionsArray]);
 
-  // Stats
+  const breakCount = sessionsArray.filter((s) => s.type === "BREAK").length;
+
   const stats = [
-    { label: t("Total Sessions"), value: sessionsArray.length || 0, icon: "clock", color: "blue" },
-    { label: t("Class Sessions"), value: sessionsArray.filter(s => s.type === 'CLASS').length || 0, icon: "chalkboard-teacher", color: "green" },
-    { label: t("Break Sessions"), value: sessionsArray.filter(s => s.type === 'BREAK').length || 0, icon: "coffee", color: "orange" },
+    { label: t("Total Sessions"), value: totalSessions || 0, icon: "clock", color: "blue" },
+    { label: t("Class Sessions"), value: classCount, icon: "chalkboard-teacher", color: "green" },
+    { label: t("Break Sessions"), value: breakCount, icon: "coffee", color: "orange" },
   ];
 
   // Filters component
@@ -352,17 +335,29 @@ const SessionTemplate = () => {
       filterAcademicLevel={filterAcademicLevel}
       setFilterAcademicLevel={setFilterAcademicLevel}
       academicLevelOptions={academicLevelOptions}
+      keyword={keyword}
+      setKeyword={setKeyword}
     />
   );
 
   const addButton = (
-    <button
+    <AppButton
+      label="New Session Template"
+      icon="plus"
+      variant="primary"
       onClick={handleCreateNew}
-      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-md flex items-center gap-2"
-    >
-      <i className="fa fa-plus"></i>
-      {t("New Session Template")}
-    </button>
+      type="button"
+    />
+  );
+
+  const refreshButton = (
+    <AppButton
+      icon="refresh"
+      variant="secondary"
+      onClick={refetch}
+      disabled={isFetching}
+      type="button"
+    />
   );
 
   const emptyState = (
@@ -379,36 +374,11 @@ const SessionTemplate = () => {
     </div>
   );
 
-  // Agar cookies na hon to warning
-  if (!currentCampus || !currentYear) {
-    return (
-      <AdminLayout>
-        <MetaData title={t("Session Templates")} />
-        <div className="max-w-6xl mx-auto py-4 px-4">
-          <WarningBanner
-            title={t("Campus or Year not selected")}
-            message={t("Please select campus and year from the header first.")}
-            type="warning"
-          />
-        </div>
-      </AdminLayout>
-    );
-  }
-
   if (isLoading || levelsLoading) return <Loader />;
 
   return (
     <AdminLayout>
       <MetaData title={t("Session Templates")} />
-      
-      <div className="mb-6">
-        <InfoBanner
-          title={t("Current Session")}
-          message={`Year: ${currentYear} | Campus: ${currentCampus}`}
-          type="info"
-          icon="calendar-alt"
-        />
-      </div>
 
       <StatsCards stats={stats} columns={3} className="mb-6" />
 
@@ -420,7 +390,7 @@ const SessionTemplate = () => {
         isLoading={isLoading}
         isFetching={isFetching}
         onRefresh={refetch}
-        refreshButton={<AppButton onClick={refetch} disabled={isFetching} />}
+        refreshButton={refreshButton}
         addButton={addButton}
         emptyState={emptyState}
         filters={filters}
@@ -432,16 +402,30 @@ const SessionTemplate = () => {
             {t("Session templates define the timing for classes and breaks")}
           </p>
         )}
-        showSearch={false}
+        showSearch={true} // Enable search (keyword input)
+        searchValue={keyword}
+        onSearchChange={(e) => {
+          setKeyword(e.target.value);
+          setPage(1); // reset to first page on search
+        }}
         showStats={false}
-        showPagination={false}
+        showPagination={true} // Enable pagination
+        pagination={pagination}
+        onPageChange={(newPage) => setPage(newPage)}
+        onLimitChange={(newLimit) => {
+          setLimit(newLimit);
+          setPage(1);
+        }}
         className="session-templates-table"
       />
 
       {/* Form Modal */}
       <SessionFormModal
         isOpen={showModal}
-        onClose={() => { setShowModal(false); resetForm(); }}
+        onClose={() => {
+          setShowModal(false);
+          resetForm();
+        }}
         editMode={editMode}
         formData={formData}
         handleInputChange={handleInputChange}
@@ -456,7 +440,9 @@ const SessionTemplate = () => {
         setShowModal={setShowDeleteModal}
         confirmDelete={confirmDelete}
         isDeleteLoading={isDeleting}
-        message={t("Are you sure you want to delete this session template? This action cannot be undone.")}
+        message={t(
+          "Are you sure you want to delete this session template? This action cannot be undone."
+        )}
         title={t("Delete Session Template")}
         confirmText={t("Delete")}
         cancelText={t("Cancel")}

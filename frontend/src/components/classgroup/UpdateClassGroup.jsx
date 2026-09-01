@@ -1,12 +1,16 @@
+// Updated Class Group //
 import React, { useEffect, useState, useMemo } from "react";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Select from "react-select";
 import makeAnimated from "react-select/animated";
+import { useNavigate, useParams } from "react-router-dom";
 
 // Redux API
-import { useCreateClassGroupMutation } from "../../redux/api/classGroupApi";
+import {
+  useGetClassGroupDetailsQuery,
+  useUpdateClassGroupMutation,
+} from "../../redux/api/classGroupApi";
 import { useGetAcademicLevelsQuery } from "../../redux/api/academicLevelApi";
 import { useGetGradesByAcademicLevelQuery } from "../../redux/api/gradesApi";
 import { useGetCoursesQuery } from "../../redux/api/courseApi";
@@ -21,6 +25,7 @@ import AppCheckbox from "../GUI/AppCheckbox";
 import AppButton from "../GUI/AppButton";
 import SearchableDropdown from "../layout/SearchableDropdown";
 import AppInfoBox from "../layout/AppInfoBox";
+import Loader from "../layout/Loader";
 
 const animatedComponents = makeAnimated();
 
@@ -62,9 +67,10 @@ const customSelectStyles = {
   }),
 };
 
-const NewClassGroup = () => {
+const UpdateClassGroup = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { id } = useParams();
 
   // Local state
   const [classGroup, setClassGroup] = useState({
@@ -81,7 +87,14 @@ const NewClassGroup = () => {
   const { academicLevel, grade, section, displayName, courses, status } =
     classGroup;
 
-  // Queries
+  // Fetch class group details
+  const {
+    data: groupData,
+    isLoading: detailsLoading,
+    error: detailsError,
+  } = useGetClassGroupDetailsQuery(id);
+
+  // Queries for dropdowns
   const { data: academicLevelsData, isLoading: levelsLoading } =
     useGetAcademicLevelsQuery({ paginate: false });
 
@@ -98,21 +111,43 @@ const NewClassGroup = () => {
     });
 
   // Mutation
-  const [createClassGroup, { isLoading: isCreating, error, isSuccess }] =
-    useCreateClassGroupMutation();
+  const [updateClassGroup, { isLoading: isUpdating, error, isSuccess }] =
+    useUpdateClassGroupMutation();
+
+  // Populate form with fetched data
+  useEffect(() => {
+    if (groupData) {
+      const group = groupData;
+      setClassGroup({
+        academicLevel: group.academicLevel?._id || group.academicLevel || "",
+        grade: group.grade?._id || group.grade || "",
+        section: group.section || "",
+        displayName: group.displayName || "",
+        courses: group.courses?.map((c) => c._id || c) || [],
+        status: group.status ?? true,
+      });
+    }
+  }, [groupData]);
 
   // Handle side effects
   useEffect(() => {
+    if (detailsError) {
+      toast.error(detailsError?.data?.message || t("Failed to load class group"));
+      navigate("/admin/class-groups");
+    }
+  }, [detailsError, navigate, t]);
+
+  useEffect(() => {
     if (error) {
-      toast.error(error?.data?.message || t("Error creating class group"));
+      toast.error(error?.data?.message || t("Error updating class group"));
     }
     if (isSuccess) {
-      toast.success(t("Class group created successfully"));
+      toast.success(t("Class group updated successfully"));
       navigate("/admin/class-groups");
     }
   }, [error, isSuccess, navigate, t]);
 
-  // Auto‑generate display name
+  // Auto-generate display name
   useEffect(() => {
     if (grade && section && gradesData?.grades?.length) {
       const selectedGrade = gradesData.grades.find((g) => g._id === grade);
@@ -127,20 +162,21 @@ const NewClassGroup = () => {
     }
   }, [grade, section, gradesData]);
 
-  // Update selected course options when courses change
+  // Update selected course options when courses or coursesData change
   useEffect(() => {
     if (courses.length && coursesData?.courses?.length) {
       const options = courses
         .map((id) => {
           const course = coursesData.courses.find((c) => c._id === id);
-          return course
-            ? {
-                value: course._id,
-                label: `${course.courseName} (${course.code || t("No code")}) – ${
-                  course.teacher?.name || t("No teacher")
-                }`,
-              }
-            : null;
+          if (!course) return null;
+          // ✅ FIX 2: course.teacher?.name doesn't exist — use firstName
+          const teacherFirst = course.teacher?.firstName || null;
+          return {
+            value: course._id,
+            label: `${course.courseName} (${course.code || t("No code")})${
+              teacherFirst ? ` – ${teacherFirst}` : ""
+            }`,
+          };
         })
         .filter(Boolean);
       setSelectedCourseOptions(options);
@@ -148,12 +184,6 @@ const NewClassGroup = () => {
       setSelectedCourseOptions([]);
     }
   }, [courses, coursesData, t]);
-
-  // Reset courses when grade changes (optional, can be removed if not needed)
-  useEffect(() => {
-    setClassGroup((prev) => ({ ...prev, courses: [] }));
-    setSelectedCourseOptions([]);
-  }, [grade]);
 
   // Handlers
   const onChange = (e) => {
@@ -166,13 +196,10 @@ const NewClassGroup = () => {
 
   const submitHandler = (e) => {
     e.preventDefault();
-
-    // Basic validation
     if (!academicLevel || !grade || !section) {
       return toast.error(t("Please fill all required fields"));
     }
-
-    createClassGroup(classGroup);
+    updateClassGroup({ id, ...classGroup });
   };
 
   const handleCourseChange = (selected) => {
@@ -191,50 +218,67 @@ const NewClassGroup = () => {
     [academicLevelsData]
   );
 
+  // ✅ FIX 1: was `${g.gradeName} (Year: ${g.year})` — g.year is undefined
+  // after model update. Now shows just gradeName.
   const gradeOptions = useMemo(
     () =>
-      gradesData?.grades?.map((grade) => ({
-        value: grade._id,
-        label: `${grade.gradeName} (${t("Year")}: ${grade.year})`,
+      gradesData?.grades?.map((g) => ({
+        value: g._id,
+        label: g.gradeName || g.name || `Grade ${g.order || ""}`,
       })) || [],
     [gradesData]
   );
 
+  // ✅ FIX 2: course.teacher?.name doesn't exist on User model — use firstName
   const courseOptions = useMemo(
     () =>
-      coursesData?.courses?.map((course) => ({
-        value: course._id,
-        label: `${course.courseName} (${course.code || t("No code")}) – ${
-          course.teacher?.name || t("No teacher")
-        }`,
-      })) || [],
+      coursesData?.courses?.map((course) => {
+        const teacherFirst = course.teacher?.firstName || null;
+        return {
+          value: course._id,
+          label: `${course.courseName} (${course.code || t("No code")})${
+            teacherFirst ? ` – ${teacherFirst}` : ""
+          }`,
+        };
+      }) || [],
     [coursesData, t]
   );
 
+  const isLoading = detailsLoading || levelsLoading || gradesLoading || coursesLoading;
+
+  if (isLoading) {
+    return (
+      <AdminLayout>
+        <MetaData title={t("Edit Class Group")} />
+        <Loader />
+      </AdminLayout>
+    );
+  }
+
   return (
     <AdminLayout>
-      <MetaData title={t("New Class Group")} />
+      <MetaData title={t("Edit Class Group")} />
 
       <div className="max-w-6xl mx-auto">
         <AppPageHeader
-          title={t("New Class Group")}
-          subtitle={t("Create a new class group and assign courses")}
+          title={t("Edit Class Group")}
+          subtitle={t("Update class group information")}
           backUrl="/admin/class-groups"
         />
 
         <form onSubmit={submitHandler} className="space-y-6">
           <AppCard
             title={t("Class Group Information")}
-            icon="fa-users"
+            icon="fa-edit"
             footer={
               <div className="flex justify-end gap-3">
                 <AppButton backUrl="/admin/class-groups" />
                 <AppButton
                   type="submit"
-                  label={t("Create Class Group")}
-                  loadingLabel={t("Creating...")}
-                  isLoading={isCreating}
-                  icon="fa-plus-circle"
+                  label={t("Update Class Group")}
+                  loadingLabel={t("Updating...")}
+                  isLoading={isUpdating}
+                  icon="fa-save"
                 />
               </div>
             }
@@ -244,23 +288,33 @@ const NewClassGroup = () => {
               <SearchableDropdown
                 label={t("Academic Level")}
                 value={academicLevel}
-                onChange={(val) =>
-                  setClassGroup((prev) => ({ ...prev, academicLevel: val }))
-                }
+                onChange={(val) => {
+                  setClassGroup((prev) => ({
+                    ...prev,
+                    academicLevel: val,
+                    grade: "",
+                    courses: [],
+                  }));
+                  setSelectedCourseOptions([]);
+                }}
                 options={academicLevelOptions}
                 placeholder={t("Select Academic Level")}
                 required
                 isLoading={levelsLoading}
-                showSelected={true}
               />
 
               {/* Grade */}
               <SearchableDropdown
                 label={t("Grade")}
                 value={grade}
-                onChange={(val) =>
-                  setClassGroup((prev) => ({ ...prev, grade: val }))
-                }
+                onChange={(val) => {
+                  setClassGroup((prev) => ({
+                    ...prev,
+                    grade: val,
+                    courses: [],
+                  }));
+                  setSelectedCourseOptions([]);
+                }}
                 options={gradeOptions}
                 placeholder={
                   !academicLevel
@@ -272,7 +326,6 @@ const NewClassGroup = () => {
                 required
                 disabled={!academicLevel || !gradesData?.grades?.length}
                 isLoading={gradesLoading}
-                showSelected={true}
               />
 
               {/* Section */}
@@ -285,13 +338,13 @@ const NewClassGroup = () => {
                 required
               />
 
-              {/* Display Name (auto‑generated, read‑only) */}
+              {/* Display Name (auto-generated, read-only) */}
               <AppInput
                 name="displayName"
                 value={displayName}
                 label={t("Display Name")}
                 readOnly
-                helperText={t("Auto‑generated from grade and section")}
+                helperText={t("Auto-generated from grade and section")}
               />
 
               {/* Status */}
@@ -304,7 +357,7 @@ const NewClassGroup = () => {
                 />
               </div>
 
-              {/* Courses Multi‑Select */}
+              {/* Courses Multi-Select */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t("Courses")}
@@ -340,7 +393,7 @@ const NewClassGroup = () => {
             <AppInfoBox icon="fa-info-circle">
               <strong>{t("Note")}:</strong>{" "}
               {t(
-                "The class group will be linked to the selected grade. Only active courses are shown."
+                "The class group will be updated for the current session. Only active courses are shown."
               )}
             </AppInfoBox>
           </AppCard>
@@ -350,4 +403,4 @@ const NewClassGroup = () => {
   );
 };
 
-export default NewClassGroup;
+export default UpdateClassGroup;

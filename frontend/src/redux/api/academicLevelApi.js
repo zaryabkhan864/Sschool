@@ -4,51 +4,68 @@ export const academicLevelApi = createApi({
   reducerPath: "academicLevelApi",
   baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" }),
   tagTypes: ["AcademicLevel"],
+
   endpoints: (builder) => ({
-    //   Get list – pass academicYear and campus explicitly
+    // GET ALL
     getAcademicLevels: builder.query({
       query: (params) => ({
         url: "/academic-level",
         params: {
           page: params?.page,
+          // ✅ FIX: limit was missing — backend was always using default resPerPage=10
+          // Now passes limit so backend pagination respects frontend page size
+          limit: params?.limit,
           keyword: params?.keyword,
           paginate: params?.paginate,
-          academicYear: params?.academicYear,   // new
-          campus: params?.campus,               // new
+          academicYear: params?.academicYear,
+          campus: params?.campus,
         },
       }),
-      providesTags: ["AcademicLevel"],
+      providesTags: (result) =>
+        result?.levels
+          ? [
+              ...result.levels.map(({ _id }) => ({ type: "AcademicLevel", id: _id })),
+              { type: "AcademicLevel", id: "LIST" },
+            ]
+          : [{ type: "AcademicLevel", id: "LIST" }],
     }),
 
+    // GET ONE
     getAcademicLevelDetails: builder.query({
       query: (id) => `/academic-level/${id}`,
-      providesTags: ["AcademicLevel"],
+      providesTags: (result, error, id) => [{ type: "AcademicLevel", id }],
     }),
 
+    // CREATE
     createAcademicLevel: builder.mutation({
       query: (body) => ({
         url: "/admin/academic-level",
         method: "POST",
         body,
       }),
-      invalidatesTags: ["AcademicLevel"],
+      invalidatesTags: [{ type: "AcademicLevel", id: "LIST" }],
     }),
 
+    // UPDATE
     updateAcademicLevel: builder.mutation({
       query: ({ id, body }) => ({
         url: `/admin/academic-level/${id}`,
         method: "PUT",
         body,
       }),
-      invalidatesTags: ["AcademicLevel"],
+      invalidatesTags: (result, error, { id }) => [
+        { type: "AcademicLevel", id },
+        { type: "AcademicLevel", id: "LIST" },
+      ],
     }),
 
+    // DELETE
     deleteAcademicLevel: builder.mutation({
       query: (id) => ({
         url: `/admin/academic-level/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["AcademicLevel"],
+      invalidatesTags: [{ type: "AcademicLevel", id: "LIST" }],
     }),
   }),
 });

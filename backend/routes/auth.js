@@ -1,40 +1,45 @@
 import express from "express";
 import {
-  allUsers,
-  deleteUser,
-  forgotPassword,
-  getUserDetails,
-  getUserProfile,
+  registerUser,
   loginUser,
   logout,
-  registerUser,
+  forgotPassword,
   resetPassword,
-  updatePassword,
+  getUserProfile,
   updateProfile,
-  updateUser,
+  updatePassword,
   uploadAvatar,
+  allUsers,
+  getUserDetails,
+  updateUser,
+  deleteUser,
   getUsersByType,
-  getUsersByTypeForEnrollment
+  getUsersByTypeForEnrollment,
+  getYearlyCampusWiseCounts,
+  getClassGroups,           // 🆕
+  bulkRegisterTeachers, 
+  bulkRegisterStudents 
 } from "../controllers/authControllers.js";
-import {
-  getStudentDetails
-} from "../controllers/studentController.js";
-const router = express.Router();
-
 import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 
+const router = express.Router();
+
+// ========== Auth ==========
 router.route("/register").post(registerUser);
 router.route("/login").post(loginUser);
 router.route("/logout").get(logout);
 
+// ========== Password ==========
 router.route("/password/forgot").post(forgotPassword);
 router.route("/password/reset/:token").put(resetPassword);
+router.route("/password/update").put(isAuthenticatedUser, updatePassword);
 
+// ========== Current user ==========
 router.route("/me").get(isAuthenticatedUser, getUserProfile);
 router.route("/me/update").put(isAuthenticatedUser, updateProfile);
-router.route("/password/update").put(isAuthenticatedUser, updatePassword);
 router.route("/me/upload_avatar").put(isAuthenticatedUser, uploadAvatar);
 
+// ========== Admin: Users ==========
 router
   .route("/admin/users")
   .get(isAuthenticatedUser, authorizeRoles("admin"), allUsers);
@@ -45,18 +50,24 @@ router
   .put(isAuthenticatedUser, authorizeRoles("admin"), updateUser)
   .delete(isAuthenticatedUser, authorizeRoles("admin"), deleteUser);
 
+// ========== Users by type ==========
+router.route("/users/:type").get(getUsersByType);
+router.route("/users/enrollment/:type").get(getUsersByTypeForEnrollment);
+
+// ========== Class groups (for filter dropdowns) ==========
+// 🆕 If you already have a class-group route defined elsewhere in your app,
+// remove this block to avoid a duplicate route and just keep the frontend
+// pointed at your existing endpoint.
+router.route("/class-groups").get(isAuthenticatedUser, getClassGroups);
+
+// ========== Naya stats route ==========
 router
-  .route("/users/:type")
-  .get(getUsersByType)
-
-router
-.route("/users/enrollment/:type")
-  .get(getUsersByTypeForEnrollment)
+  .route("/stats/yearly-campus-counts")
+  .get(isAuthenticatedUser, authorizeRoles("admin"), getYearlyCampusWiseCounts);
 
 
-  router
-  .route("/admin/student/:id")
-  .get(isAuthenticatedUser, authorizeRoles("admin"), getStudentDetails)
 
+  router.post("/admin/users/bulk", bulkRegisterTeachers);
+  router.post("/admin/users/bulkRegisterStudents", bulkRegisterStudents);
 
 export default router;

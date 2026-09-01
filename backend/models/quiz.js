@@ -1,106 +1,134 @@
+// models/quiz.js
 import mongoose from "mongoose";
+
+const quizMarkSchema = new mongoose.Schema(
+  {
+    student: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      validate: {
+        validator: async function (studentId) {
+          const user = await mongoose.model("User").findById(studentId);
+          return user && user.role === "student";
+        },
+        message: "The referenced user must be a student.",
+      },
+    },
+    // One entry per question — length must equal the quiz's
+    // totalQuestions, each value capped at marksPerQuestion. Checked in
+    // the parent's pre-validate hook below since a subdocument validator
+    // can't see its parent's fields.
+    answers: {
+      type: [Number],
+      default: [],
+    },
+  },
+  { _id: false }
+);
 
 const quizSchema = new mongoose.Schema(
   {
-    semester: {
-      type: Number,
-      required: [true, "Please specify the semester"],
-      enum: [1, 2], // 1 year = 2 semesters
-    },
-    quarter: {
-      type: Number,
-      required: [true, "Please specify the quarter"],
-      enum: [1, 2], // Each semester has 2 quarters
+    title: {
+      type: String,
+      required: [true, "Please enter a title for the quiz"],
+      trim: true,
+      maxLength: [150, "Title cannot exceed 150 characters"],
     },
     quizNumber: {
       type: Number,
       required: [true, "Please specify the quiz number"],
-      enum: [1, 2], // Each quarter has 2 quizzes
+      min: [1, "Quiz number must be at least 1"],
     },
+    // ✅ NEW — the date the quiz was actually conducted
+    date: {
+      type: Date,
+      required: [true, "Please enter the date the quiz was conducted"],
+    },
+
     course: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Course",
       required: [true, "Please specify the associated course"],
     },
-    grade: {
+    classGroup: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Grade",
-      required: [true, "Please specify the associated grade"],
+      ref: "ClassGroup",
+      required: [true, "Please specify the associated class group"],
     },
-    user: {
+    teacher: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: [true, "Please specify the teacher responsible for this quiz"],
       validate: {
         validator: async function (teacherId) {
-            const user = await mongoose.model("User").findById(teacherId);
-            return user && user.role === "teacher";
+          const user = await mongoose.model("User").findById(teacherId);
+          return user && user.role === "teacher";
         },
-        message: "The referenced user must be a teacher."
-    }
+        message: "The referenced user must be a teacher.",
+      },
     },
-    campus:{
+    campus: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Campus",
-      required: false,
+      required: [true, "Campus is required"],
     },
-    year: {
+    academicYear: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AcademicYear",
+      required: [true, "Academic year is required"],
+    },
+
+    // ✅ FIX: previously hardcoded to exactly 5 questions worth 2 marks
+    // each (question1..question5 fields). Now fully teacher-configurable
+    // per quiz — one quiz can have 5 questions, another 10 or 20, each
+    // worth however many marks the teacher decides.
+    totalQuestions: {
       type: Number,
-      required: [true, "Please enter course year"],
+      required: [true, "Please specify how many questions this quiz has"],
+      min: [1, "A quiz must have at least 1 question"],
+      max: [100, "A quiz cannot exceed 100 questions"],
     },
-    marks: [
-      {
-        student: {
-          type: mongoose.Schema.Types.ObjectId,
-          required: true,
-          ref: "User",
-          validate: {
-            validator: async function (studentId) {
-                const user = await mongoose.model("User").findById(studentId);
-                return user && user.role === "student";
-            },
-            message: "The referenced user must be a student."
-        }
-        },
-        question1: {
-          type: Number,
-          required: true,
-          default: 0,
-          min: [0, "Marks cannot be less than 0"],
-          max: [2, "Marks cannot exceed 2"], // Each question is worth 2 marks
-        },
-        question2: {
-          type: Number,
-          required: true,
-          default: 0,
-          min: [0, "Marks cannot be less than 0"],
-          max: [2, "Marks cannot exceed 2"],
-        },
-        question3: {
-          type: Number,
-          required: true,
-          default: 0,
-          min: [0, "Marks cannot be less than 0"],
-          max: [2, "Marks cannot exceed 2"],
-        },
-        question4: {
-          type: Number,
-          required: true,
-          default: 0,
-          min: [0, "Marks cannot be less than 0"],
-          max: [2, "Marks cannot exceed 2"],
-        },
-        question5: {
-          type: Number,
-          required: true,
-          default: 0,
-          min: [0, "Marks cannot be less than 0"],
-          max: [2, "Marks cannot exceed 2"],
-        },
-      },
-    ],
+    marksPerQuestion: {
+      type: Number,
+      required: [true, "Please specify how many marks each question is worth"],
+      min: [1, "Each question must be worth at least 1 mark"],
+    },
+
+    marks: [quizMarkSchema],
   },
   { timestamps: true }
 );
+
+quizSchema.virtual("totalMarks").get(function () {
+  return this.totalQuestions * this.marksPerQuestion;
+});
+quizSchema.set("toJSON", { virtuals: true });
+quizSchema.set("toObject", { virtuals: true });
+
+// One quiz-number per class group + course + academic year — stops the
+// same "Quiz 1" from silently being created twice for the same class/course/year.
+quizSchema.index({ classGroup: 1, course: 1, quizNumber: 1, academicYear: 1 }, { unique: true });
+quizSchema.index({ teacher: 1, campus: 1, academicYear: 1 });
+
+// Every student's answers array must match totalQuestions, and no single
+// answer can exceed marksPerQuestion.
+quizSchema.pre("validate", function (next) {
+  for (const mark of this.marks) {
+    if (mark.answers.length !== this.totalQuestions) {
+      return next(
+        new Error(
+          `Each student's answers must have exactly ${this.totalQuestions} entries (this quiz has ${this.totalQuestions} questions)`
+        )
+      );
+    }
+    for (const a of mark.answers) {
+      if (a < 0 || a > this.marksPerQuestion) {
+        return next(new Error(`Each answer must be between 0 and ${this.marksPerQuestion} marks`));
+      }
+    }
+  }
+  next();
+});
 
 export default mongoose.model("Quiz", quizSchema);

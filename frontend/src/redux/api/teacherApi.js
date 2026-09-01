@@ -48,10 +48,10 @@ export const teacherApi = createApi({
 });
 
 export const {
-  useGetTeachersQuery,
-  useGetTeacherDetailsQuery,
-  useCreateTeacherMutation,
-  useUpdateTeacherMutation,
-  useDeleteTeacherMutation,
-  useGetGradeByTeacherQuery,
+  // useGetTeachersQuery,
+  // useGetTeacherDetailsQuery,
+  // useCreateTeacherMutation,
+  // useUpdateTeacherMutation,
+  // useDeleteTeacherMutation,
+  // useGetGradeByTeacherQuery,
 } = teacherApi;

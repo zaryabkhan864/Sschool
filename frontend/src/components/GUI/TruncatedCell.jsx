@@ -11,20 +11,20 @@ const TruncatedCell = ({ children, words, maxChars = 10, className = '' }) => {
 
   // Agar aapne 'words' prop bheja hai to purana logic chalega
   // Lekin "Mustufa Ce..." achieve karne ke liye hum characters use karenge
-  const displayedText = words 
+  const displayedText = words
     ? children.split(/\s+/).slice(0, words).join(' ') + (children.split(/\s+/).length > words ? '...' : '')
     : truncateByChars(children, maxChars);
 
   return (
     <div className={className}>
       <p
-        className="text-sm text-gray-800"
+        className="text-sm-custom text-ink-900"
         title={children} // Hover karne par poora naam dikhega
-        style={{ 
-          whiteSpace: 'nowrap', 
-          overflow: 'hidden', 
+        style={{
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
           textOverflow: 'ellipsis',
-          maxWidth: '100%' 
+          maxWidth: '100%'
         }}
       >
         {displayedText}

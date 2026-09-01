@@ -34,7 +34,6 @@ const ListStudentCounselings = () => {
   const [limit, setLimit] = useState(8);
   const [statusFilter, setStatusFilter] = useState("");
 
-  // Toast from navigation (e.g., after creating a counseling)
   useEffect(() => {
     if (location.state?.showSuccessToast) {
       toast.success(t("Counseling created successfully!"));
@@ -42,7 +41,6 @@ const ListStudentCounselings = () => {
     }
   }, [location.state, navigate, t]);
 
-  // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchTerm(search);
@@ -51,7 +49,6 @@ const ListStudentCounselings = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // API query
   const {
     data,
     isLoading,
@@ -75,7 +72,6 @@ const ListStudentCounselings = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedCounselingId, setSelectedCounselingId] = useState(null);
 
-  // Global error / success handling
   useEffect(() => {
     if (error) toast.error(error?.data?.message || t("Something went wrong"));
     if (deleteError) toast.error(deleteError?.data?.message || t("Failed to delete counseling"));
@@ -87,7 +83,6 @@ const ListStudentCounselings = () => {
     if (user?.role === "admin") setUserRole("admin");
   }, [error, deleteError, deleteSuccess, user, t]);
 
-  // Refetch when requested from navigation state (e.g., after edit)
   useEffect(() => {
     if (location.state?.shouldRefetch) {
       refetch();
@@ -117,7 +112,6 @@ const ListStudentCounselings = () => {
     navigate(`/admin/counseling/${id}/details`);
   };
 
-  // Status normalization for AppBadge
   const getStatusValue = (value) => {
     const validStatuses = ["pending", "under_review", "resolved", "closed"];
     if (!value) return "pending";
@@ -125,17 +119,20 @@ const ListStudentCounselings = () => {
     return validStatuses.includes(normalized) ? normalized : "pending";
   };
 
-  // Columns using AppBadge
   const columns = [
     {
       header: t("Student Name"),
-      accessor: "student.name",
+      accessor: "student.firstName",
       width: "30%",
       minWidth: "200px",
       render: (_, row) => {
-        const name = row?.student?.name;
-        return name ? (
-          <TruncatedCell maxChars={25}>{name}</TruncatedCell>
+        const student = row?.student;
+        if (!student) return <span className="text-gray-400">—</span>;
+        const fullName = [student.firstName, student.middleName, student.lastName]
+          .filter(Boolean)
+          .join(" ");
+        return fullName ? (
+          <TruncatedCell maxChars={25}>{fullName}</TruncatedCell>
         ) : (
           <span className="text-gray-400">—</span>
         );
@@ -177,7 +174,6 @@ const ListStudentCounselings = () => {
     }
   ];
 
-  // Stats
   const counts = data?.pagination?.counts || data?.counts || { 
     total: 0, pending: 0, under_review: 0, resolved: 0, closed: 0 
   };
@@ -198,7 +194,7 @@ const ListStudentCounselings = () => {
     {
       label: t("Under Review"),
       value: counts.under_review || 0,
-      icon: "search",        // or "eye"
+      icon: "search",
       color: "orange"
     },
     {
@@ -210,7 +206,7 @@ const ListStudentCounselings = () => {
     {
       label: t("Closed"),
       value: counts.closed || 0,
-      icon: "archive",       // or "times-circle"
+      icon: "archive",
       color: "gray"
     },
     {
@@ -235,7 +231,6 @@ const ListStudentCounselings = () => {
     />
   );
 
-  // Filter dropdown using shared component
   const filters = (
     <FilterDropdown
       limit={limit}

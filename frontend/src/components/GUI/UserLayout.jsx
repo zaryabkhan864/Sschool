@@ -1,47 +1,31 @@
 import React from "react";
+import { useSelector } from "react-redux";
 import SideMenu from "../layout/SideMenu";
 
 const UserLayout = ({ children }) => {
+  const { user } = useSelector((state) => state.auth);
+
   const menuItems = [
-    {
-      name: "Profile",
-      url: "/me/profile",
-      icon: "fas fa-user",
-    },
-    {
-      name: "Update Profile",
-      url: "/me/update_profile",
-      icon: "fas fa-user",
-    },
-    {
-      name: "Upload Avatar",
-      url: "/me/upload_avatar",
-      icon: "fas fa-user-circle",
-    },
-    {
-      name: "Update Password",
-      url: "/me/update_password",
-      icon: "fas fa-lock",
-    },
+    { name: "Profile", url: "/me/profile", icon: "fas fa-user", group: "settings" },
+    { name: "Update Profile", url: "/me/update_profile", icon: "fas fa-user-edit", group: "settings" },
+    { name: "Upload Avatar", url: "/me/upload_avatar", icon: "fas fa-user-circle", group: "settings" },
+    { name: "Update Password", url: "/me/update_password", icon: "fas fa-lock", group: "settings" },
   ];
 
   return (
-    <React.Fragment>
-      <div className="flex flex-col md:flex-row justify-between p-5 relative">
-        {/* No additional toggle button here */}
-        <div className="md:w-2/12 self-end sm:self-auto">
-          <SideMenu menuItems={menuItems} />
-        </div>
+    <div className="flex min-h-screen bg-surface-50">
+      {/* Koi fixed-width wrapper nahi — SideMenu khud apni width control karta hai (w-72 / w-20 / drawer) */}
+      <SideMenu menuItems={menuItems} user={user} />
 
-        <div className="w-full md:w-9/12 bg-gray-50 shadow-md p-4 rounded-md">
-          <div className="text-center">
-            <h2 className="font-bold text-xl md:text-2xl">User Setting</h2>
+      {/* Main Content */}
+      <main className="flex-1 min-w-0 overflow-auto">
+        <div className="p-4 md:p-8">
+          <div className="bg-white rounded-2xl shadow-soft p-6 border border-surface-100 min-h-[calc(100vh-4rem)]">
+            {children}
           </div>
-          {children}
         </div>
-      </div>
-    </React.Fragment>
-
+      </main>
+    </div>
   );
 };
 

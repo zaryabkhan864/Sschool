@@ -1,20 +1,16 @@
-// src/redux/api/authApi.js
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { setIsAuthenticated, setLoading, setUser } from "../features/userSlice";
 
 export const authApi = createApi({
   reducerPath: "authApi",
   baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" }),
-  tagTypes: ["User", "AdminUsers", "AdminUser"],
+  tagTypes: ["User", "AdminUsers", "AdminUser", "AcademicYears", "ClassGroups"],
+
   endpoints: (builder) => ({
-    // ========== Auth endpoints ==========
+    // ========== Auth ==========
     register: builder.mutation({
       query(body) {
-        return {
-          url: "/register",
-          method: "POST",
-          body,
-        };
+        return { url: "/register", method: "POST", body };
       },
       async onQueryStarted(args, { dispatch, queryFulfilled }) {
         try {
@@ -25,13 +21,10 @@ export const authApi = createApi({
         }
       },
     }),
+
     login: builder.mutation({
       query(body) {
-        return {
-          url: "/login",
-          method: "POST",
-          body,
-        };
+        return { url: "/login", method: "POST", body };
       },
       async onQueryStarted(args, { dispatch, queryFulfilled }) {
         try {
@@ -42,11 +35,12 @@ export const authApi = createApi({
         }
       },
     }),
+
     logout: builder.query({
       query: () => "/logout",
     }),
 
-    // ========== User endpoints ==========
+    // ========== Current User ==========
     getMe: builder.query({
       query: () => `/me`,
       transformResponse: (result) => result.user,
@@ -63,68 +57,53 @@ export const authApi = createApi({
       },
       providesTags: ["User"],
     }),
+
     updateProfile: builder.mutation({
       query(body) {
-        return {
-          url: "/me/update",
-          method: "PUT",
-          body,
-        };
+        return { url: "/me/update", method: "PUT", body };
       },
       invalidatesTags: ["User"],
     }),
+
     uploadAvatar: builder.mutation({
       query(body) {
-        return {
-          url: "/me/upload_avatar",
-          method: "PUT",
-          body,
-        };
+        return { url: "/me/upload_avatar", method: "PUT", body };
       },
       invalidatesTags: ["User"],
     }),
+
     updatePassword: builder.mutation({
       query(body) {
-        return {
-          url: "/password/update",
-          method: "PUT",
-          body,
-        };
+        return { url: "/password/update", method: "PUT", body };
       },
     }),
+
     forgotPassword: builder.mutation({
       query(body) {
-        return {
-          url: "/password/forgot",
-          method: "POST",
-          body,
-        };
+        return { url: "/password/forgot", method: "POST", body };
       },
     }),
+
     resetPassword: builder.mutation({
       query({ token, body }) {
-        return {
-          url: `/password/reset/${token}`,
-          method: "PUT",
-          body,
-        };
+        return { url: `/password/reset/${token}`, method: "PUT", body };
       },
     }),
+
+    // ========== Admin: Users ==========
     getAdminUsers: builder.query({
       query: () => `/admin/users`,
       providesTags: ["AdminUsers"],
     }),
+
     getUserDetails: builder.query({
       query: (id) => `/admin/users/${id}`,
       providesTags: (result, error, id) => [{ type: "AdminUser", id }],
     }),
+
     updateUser: builder.mutation({
       query({ id, body }) {
-        return {
-          url: `/admin/users/${id}`,
-          method: "PUT",
-          body,
-        };
+        return { url: `/admin/users/${id}`, method: "PUT", body };
       },
       invalidatesTags: (result, error, { id }) => [
         { type: "AdminUser", id },
@@ -132,16 +111,15 @@ export const authApi = createApi({
         "UnenrolledStudents",
       ],
     }),
+
     deleteUser: builder.mutation({
       query(id) {
-        return {
-          url: `/admin/users/${id}`,
-          method: "DELETE",
-        };
+        return { url: `/admin/users/${id}`, method: "DELETE" };
       },
       invalidatesTags: ["AdminUsers"],
     }),
 
+    // ========== Users by type ==========
     getUserByType: builder.query({
       query: ({
         type,
@@ -152,25 +130,31 @@ export const authApi = createApi({
         status,
         dropdown = false,
         enrolled,
+        contracted,
+        campus,
+        academicYear,
+        classGroup,
+        ignoreAcademicYear, // ✅ new flag
+        ignoreCampus,       // ✅ new flag (optional)
       }) => {
         const params = new URLSearchParams();
-        params.append('page', page);
-        if (keyword) params.append('keyword', keyword);
-        if (limit !== undefined && limit !== null && limit !== '') {
-          params.append('limit', limit);
+        params.append("page", page);
+        if (keyword) params.append("keyword", keyword);
+        if (limit !== undefined && limit !== null && limit !== "") {
+          params.append("limit", limit);
         }
-        if (dropdown) {
-          params.append('dropdown', 'true');
-        }
-        if (gender) params.append('gender', gender);
-        if (status) params.append('status', status);
-        if (enrolled !== undefined) {
-          params.append('enrolled', enrolled);
-        }
-        return {
-          url: `/users/${type}?${params.toString()}`,
-          method: "GET",
-        };
+        if (dropdown) params.append("dropdown", "true");
+        if (gender) params.append("gender", gender);
+        if (status) params.append("accountStatus", status);
+        if (enrolled !== undefined) params.append("enrolled", enrolled);
+        if (contracted !== undefined) params.append("contracted", contracted);
+        if (campus) params.append("campus", campus);
+        if (academicYear) params.append("academicYear", academicYear);
+        if (classGroup) params.append("classGroup", classGroup);
+        if (ignoreAcademicYear) params.append("ignoreAcademicYear", "true"); // ✅
+        if (ignoreCampus) params.append("ignoreCampus", "true");           // ✅
+
+        return { url: `/users/${type}?${params.toString()}`, method: "GET" };
       },
       providesTags: ["AdminUsers"],
     }),
@@ -187,19 +171,15 @@ export const authApi = createApi({
         enrolled,
       }) => {
         const params = new URLSearchParams();
-        params.append('page', page);
-        if (keyword) params.append('keyword', keyword);
-        if (limit !== undefined && limit !== null && limit !== '') {
-          params.append('limit', limit);
+        params.append("page", page);
+        if (keyword) params.append("keyword", keyword);
+        if (limit !== undefined && limit !== null && limit !== "") {
+          params.append("limit", limit);
         }
-        if (dropdown) {
-          params.append('dropdown', 'true');
-        }
-        if (gender) params.append('gender', gender);
-        if (status) params.append('status', status);
-        if (enrolled !== undefined) {
-          params.append('enrolled', enrolled);
-        }
+        if (dropdown) params.append("dropdown", "true");
+        if (gender) params.append("gender", gender);
+        if (status) params.append("accountStatus", status);
+        if (enrolled !== undefined) params.append("enrolled", enrolled);
         return {
           url: `/users/enrollment/${type}?${params.toString()}`,
           method: "GET",
@@ -208,6 +188,7 @@ export const authApi = createApi({
       providesTags: ["AdminUsers"],
     }),
 
+    // ========== Student helpers ==========
     createStudentEnrollment: builder.mutation({
       query: (body) => ({
         url: "/admin/student-enrollments",
@@ -222,21 +203,16 @@ export const authApi = createApi({
       ],
     }),
 
-    // ✅ UPDATED: Accept params (academicYear, campus)
     getUnenrolledStudents: builder.query({
       query: (params = {}) => {
         const queryParams = {
           academicYear: params?.academicYear,
           campus: params?.campus,
         };
-        // Remove undefined keys
         Object.keys(queryParams).forEach(
           (key) => queryParams[key] === undefined && delete queryParams[key]
         );
-        return {
-          url: "/students/unenrolled",
-          params: queryParams,
-        };
+        return { url: "/students/unenrolled", params: queryParams };
       },
       providesTags: ["UnenrolledStudents"],
     }),
@@ -244,6 +220,33 @@ export const authApi = createApi({
     getEnrolledStudentsWithDetails: builder.query({
       query: () => "/students/enrolled",
       providesTags: ["EnrolledStudents"],
+    }),
+
+    getYearlyCampusCounts: builder.query({
+      query: (params = {}) => {
+        const { academicYear, campus } = params;
+        const queryParams = new URLSearchParams();
+        if (academicYear) queryParams.append("academicYear", academicYear);
+        if (campus) queryParams.append("campus", campus);
+        return {
+          url: `/stats/yearly-campus-counts?${queryParams.toString()}`,
+        };
+      },
+      providesTags: ["YearlyCounts"],
+    }),
+
+    // ✅ Fetch all academic years
+    getAcademicYears: builder.query({
+      query: () => "/academic-years",
+      providesTags: ["AcademicYears"],
+      transformResponse: (response) => response.years,
+    }),
+
+    // 🆕 Fetch all class groups (used for the "Class" filter on Student Management)
+    getClassGroups: builder.query({
+      query: () => "/class-groups",
+      providesTags: ["ClassGroups"],
+      transformResponse: (response) => response.classGroups,
     }),
   }),
 });
@@ -264,7 +267,10 @@ export const {
   useDeleteUserMutation,
   useGetUserByTypeQuery,
   useGetUsersByTypeForEnrollmentQuery,
+  useCreateStudentEnrollmentMutation,
   useGetUnenrolledStudentsQuery,
   useGetEnrolledStudentsWithDetailsQuery,
-  useCreateStudentEnrollmentMutation,
+  useGetYearlyCampusCountsQuery,
+  useGetAcademicYearsQuery,
+  useGetClassGroupsQuery,
 } = authApi;

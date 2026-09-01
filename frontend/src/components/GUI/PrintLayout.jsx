@@ -73,17 +73,23 @@ const PrintLayout = ({
       {/* Header - hidden when printing */}
       <div className="flex justify-between items-center mb-6 print:hidden">
         <div>
-          <h1 className="text-xl-custom font-bold text-gray-800">{title}</h1>
-          {subtitle && <p className="text-xs-custom text-gray-500 mt-0.5">{subtitle}</p>}
+          <h1 className="text-xl-custom font-bold text-ink-900">{title}</h1>
+          {subtitle && <p className="text-xs-custom text-ink-400 mt-0.5">{subtitle}</p>}
         </div>
+        {/* ✅ FIX: each button previously carried a manual `className` with
+            its own gradient (plain blue/gray/red/green) that fought with
+            AppButton's own variant classes for the same properties — same
+            element ending up with two different `bg-*` utilities depending
+            on class order. Removed the overrides; AppButton's variants
+            (already updated to the brand palette) now drive all of these
+            consistently. */}
         <div className="flex gap-2 items-center">
           {/* Back button */}
           {backUrl && (
             <AppButton
               label="Back"
               icon="arrow-left"
-              variant="ghost"
-              className="border border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-lg px-4 py-2 transition-all duration-200"
+              variant="secondary"
               onClick={() => navigate(backUrl)}
             />
           )}
@@ -94,7 +100,6 @@ const PrintLayout = ({
               label="Edit"
               icon="edit"
               variant="primary"
-              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md hover:shadow-lg rounded-lg px-4 py-2 transition-all duration-200"
               to={editUrl}
             />
           )}
@@ -104,7 +109,6 @@ const PrintLayout = ({
             label="Print"
             icon="print"
             variant="secondary"
-            className="bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-md hover:shadow-lg rounded-lg px-4 py-2 transition-all duration-200"
             onClick={printDocument}
           />
 
@@ -113,7 +117,6 @@ const PrintLayout = ({
             label="PDF"
             icon="file-pdf"
             variant="danger"
-            className="bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md hover:shadow-lg rounded-lg px-4 py-2 transition-all duration-200"
             onClick={downloadPDF}
           />
 
@@ -122,7 +125,6 @@ const PrintLayout = ({
             label="PNG"
             icon="file-image"
             variant="success"
-            className="bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md hover:shadow-lg rounded-lg px-4 py-2 transition-all duration-200"
             onClick={downloadPNG}
           />
         </div>

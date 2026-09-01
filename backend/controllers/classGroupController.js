@@ -3,6 +3,7 @@ import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import ClassGroup from "../models/classGroup.js";
 import Course from "../models/course.js";
 import User from "../models/user.js";
+import StudentEnrollment from "../models/studentEnrollment.js"; // ✅ Added import
 import APIFilters from "../utils/apiFilters.js";
 import ErrorHandler from "../utils/errorHandler.js";
 
@@ -423,5 +424,54 @@ export const updateClassGroupCourses = catchAsyncErrors(async (req, res, next) =
     success: true,
     message: "Class group courses updated successfully",
     classGroup: await ClassGroup.findById(classGroupId).populate("courses"),
+  });
+});
+
+// ✅ Get students enrolled in a class group
+export const getClassGroupStudents = catchAsyncErrors(async (req, res, next) => {
+  const classGroupId = req.params.id || req.params.classGroupId;
+
+  if (!classGroupId) {
+    return next(new ErrorHandler("Class group id is missing in the request", 400));
+  }
+
+  const classGroup = await ClassGroup.findById(classGroupId).select(
+    "displayName section year grade academicLevel campus"
+  );
+
+  if (!classGroup) {
+    return next(new ErrorHandler("Class group not found", 404));
+  }
+
+  // Sirf "active" enrollments uthao jo isi class group se linked hain.
+  const enrollments = await StudentEnrollment.find({
+    classGroup: classGroup._id,
+    status: "active",
+  })
+    .populate({
+      path: "student",
+      select:
+        "firstName middleName lastName userId email gender dateOfBirth accountStatus lifecycleStatus",
+    })
+    .sort({ createdAt: 1 });
+
+  // 🔍 Debug log (remove in production)
+  console.log(
+    `[getClassGroupStudents] classGroup=${classGroup._id} → ${enrollments.length} active enrollment(s) mile`
+  );
+
+  const students = enrollments
+    .filter((e) => e.student) // deleted/null student guard
+    .map((e) => ({
+      ...e.student.toObject(),
+      enrollmentId: e._id,
+      startDate: e.startDate,
+    }));
+
+  res.status(200).json({
+    success: true,
+    classGroup,
+    students,
+    total: students.length,
   });
 });
