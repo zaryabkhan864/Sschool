@@ -12,6 +12,7 @@ import {
     getFeesStats,
     getRevenueVsExpenses,
     getFeesByCurrency,   // 👈 yeh import add karo
+    getFeesByFeeType,     // 👈 NEW: was missing — this is the actual fix
     getUpcomingFeeDues,   // 👈 finance reminder list
     markFeeReminderSent,  // 👈 finance: mark reminder as sent
     getPendingDuesByStudent, // 👈 NEW: ListFees screen (one row per student)
@@ -103,6 +104,14 @@ router.route("/fees/statistics")
 // 👇 New Route: Get fees grouped by currency
 router.route("/fees/statistics/currency")
     .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getFeesByCurrency);
+
+// 👇 NEW: Get fees grouped by fee type (Admission/Tuition/Exam/Transport/
+// Hostel) — this route was missing entirely, which is why the "Fees by
+// Type" boxes on the Finance Dashboard always showed 0: the frontend's
+// request to this URL matched no route at all (404), so it silently
+// fell back to empty collected/due for every type.
+router.route("/fees/statistics/by-type")
+    .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getFeesByFeeType);
 
 // Get revenue vs expenses
 router.route("/revenue/expenses")

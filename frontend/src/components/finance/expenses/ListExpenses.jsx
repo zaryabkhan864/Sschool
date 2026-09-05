@@ -1,172 +1,299 @@
-import { Pagination, Table } from "flowbite-react";
+// src/components/finance/expenses/ListExpenses.jsx
+//
+// Full expense list — filterable by category and date range, with
+// per-category totals as stat cards. Edit/Delete follow the same
+// ActionButtons + ConfirmationModal pattern as ListStudents. "Added by"
+// / "Edited by" come from the audit trail on each record.
 import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { useSelector } from "react-redux";
-import { Link, useNavigate } from "react-router-dom";
-import {
-    useDeleteExpenseMutation,
-    useGetExpensesQuery,
-} from "../../../redux/api/expensesApi";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
+import AdminLayout from "../../layout/AdminLayout";
 import Loader from "../../layout/Loader";
 import MetaData from "../../layout/MetaData";
-import { useTranslation } from "react-i18next";
-import AdminLayout from "../../layout/AdminLayout";
+import ConfirmationModal from "../../GUI/ConfirmationModal";
+import { DataTableContainer } from "../../GUI/DataTableContainer";
+import AppButton from "../../GUI/AppButton";
+import AppInput from "../../GUI/AppInput";
+import ActionButtons from "../../GUI/ActionButtons";
+import FilterDropdown from "../../GUI/FilterDropdown";
+import EmptyState from "../../GUI/EmptyState";
+import TruncatedCell from "../../GUI/TruncatedCell";
+import SelectField from "../../GUI/SelectField";
+
+import {
+  useGetExpensesQuery,
+  useGetExpenseStatsQuery,
+  useDeleteExpenseMutation,
+} from "../../../redux/api/expensesApi";
+import { EXPENSE_CATEGORIES } from "../../../constants/expenseConstants";
+
+const formatDate = (d) => (d ? new Date(d).toLocaleDateString() : "-");
+
+const CATEGORY_ICONS = {
+  Electricity: "bolt",
+  Maintenance: "tools",
+  Books: "book",
+  Furniture: "couch",
+  Events: "calendar-star",
+};
 
 const ListExpenses = () => {
-    const { t } = useTranslation();
-    const navigate = useNavigate();
-    const { data, isLoading, error, refetch } = useGetExpensesQuery();
-    const { isAuthenticated, user } = useSelector((state) => state.auth);
-    const [userRole, setUserRole] = useState("");
+  const { t } = useTranslation();
+  const navigate = useNavigate();
 
-    const [
-        deleteExpense,
-        { isLoading: isDeleteLoading, error: deleteError, isSuccess },
-    ] = useDeleteExpenseMutation();
+  const [search, setSearch] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit, setLimit] = useState(8);
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
-    const [searchTerm, setSearchTerm] = useState("");
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedExpenseId, setSelectedExpenseId] = useState(null);
 
-    useEffect(() => {
-        if (error) {
-            toast.error(error?.data?.message);
-        }
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(search);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-        if (deleteError) {
-            toast.error(deleteError?.data?.message);
-        }
+  useEffect(() => setCurrentPage(1), [categoryFilter, dateFrom, dateTo]);
 
-        if (isSuccess) {
-            toast.success("Expense record deleted successfully");
-            refetch();
-        }
-        if (user?.role === "admin") setUserRole(user?.role);
-    }, [error, deleteError, isSuccess, navigate, refetch, user]);
+  const { data: statsData, isFetching: statsLoading } = useGetExpenseStatsQuery(
+    { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined },
+    { refetchOnMountOrArgChange: true }
+  );
 
-    const deleteExpenseHandler = (id) => {
-        deleteExpense(id);
-    };
+  const { data, isLoading, isFetching, error, refetch } = useGetExpensesQuery(
+    {
+      page: currentPage,
+      limit,
+      keyword: searchTerm || undefined,
+      category: categoryFilter || undefined,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+    },
+    { refetchOnMountOrArgChange: true }
+  );
 
-    // Filter and paginate the expenses
-    const filteredExpenses = data?.expenses?.filter((expense) =>
-        expense?.category?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const [deleteExpense, { isLoading: isDeleteLoading, error: deleteError, isSuccess: deleteSuccess }] =
+    useDeleteExpenseMutation();
 
-    const totalPages = Math.ceil((filteredExpenses?.length || 0) / itemsPerPage);
-    const paginatedExpenses = filteredExpenses?.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    );
+  useEffect(() => {
+    if (error) toast.error(error?.data?.message || t("Something went wrong"));
+    if (deleteError) toast.error(deleteError?.data?.message || t("Failed to delete expense"));
+    if (deleteSuccess) {
+      toast.success(t("Expense deleted successfully"));
+      setShowModal(false);
+      setSelectedExpenseId(null);
+      refetch();
+    }
+  }, [error, deleteError, deleteSuccess, t, refetch]);
 
-    if (isLoading) return <Loader />;
+  const rows = data?.expenses || [];
+  const paginationMeta = data?.pagination || {
+    total: data?.total ?? rows.length,
+    page: currentPage,
+    limit,
+    totalPages: Math.max(Math.ceil((data?.total ?? rows.length) / limit), 1),
+  };
 
-    return (
-        <AdminLayout>
-            <MetaData title={"All Expenses Records"} />
-            <div className="flex justify-center items-center pt-5 pb-10">
-                <div className="w-full max-w-7xl">
-                    <h2 className="text-2xl font-semibold mb-6">
-                        {data?.expenses?.length} {t('Expenses Records')}
-                    </h2>
+  const byCategory = statsData?.stats?.byCategory || [];
+  const topCategory = byCategory[0];
 
-                    {/* Controls Section */}
-                    <div className="flex flex-col md:flex-row justify-between items-center mb-4">
-                        {/* Search Bar */}
-                        <input
-                            type="text"
-                            placeholder="Search..."
-                            className="block w-full md:w-1/3 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+  const stats = [
+    { label: t("Total Expenses"), value: statsData?.stats?.totalCount ?? 0, icon: "receipt", color: "blue" },
+    {
+      label: t("Total Spent"),
+      value: (statsData?.stats?.grandTotal ?? 0).toFixed(2),
+      icon: "coins",
+      color: "red",
+    },
+    {
+      label: t("Top Category"),
+      value: topCategory ? t(topCategory._id) : "-",
+      icon: "chart-pie",
+      color: "purple",
+    },
+  ];
 
-                        {/* Records per Page Dropdown */}
-                        <div className="flex items-center mt-2 md:mt-0">
-                            <label htmlFor="itemsPerPage" className="mr-2 text-sm font-medium">
-                                {t('entriesPerPage')}:
-                            </label>
-                            <select
-                                id="itemsPerPage"
-                                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                value={itemsPerPage}
-                                onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                            >
-                                <option value={5}>5</option>
-                                <option value={10}>10</option>
-                                <option value={15}>15</option>
-                                <option value={20}>20</option>
-                            </select>
-                        </div>
-                    </div>
+  const handleDeleteClick = (id) => {
+    setSelectedExpenseId(id);
+    setShowModal(true);
+  };
 
-                    {/* Expenses Table */}
-                    <Table hoverable={true} className="w-full">
-                        <Table.Head>
-                            <Table.HeadCell>{t('Category')}</Table.HeadCell>
-                            <Table.HeadCell>{t('Amount')}</Table.HeadCell>
-                            <Table.HeadCell>{t('Campus')}</Table.HeadCell>
-                            <Table.HeadCell>{t('Date')}</Table.HeadCell>
-                            <Table.HeadCell>{t('Description')}</Table.HeadCell>
-                            <Table.HeadCell>{t('Vendor')}</Table.HeadCell>
-                            <Table.HeadCell>{t('Actions')}</Table.HeadCell>
-                        </Table.Head>
-                        <Table.Body>
-                            {paginatedExpenses?.map((expense) => (
-                                <Table.Row key={expense?._id} className="bg-white dark:bg-gray-800">
-                                    <Table.Cell>{expense?.category}</Table.Cell>
-                                    <Table.Cell>{expense?.amount}</Table.Cell>
-                                    <Table.Cell>{expense?.campus?.name || 'N/A'}</Table.Cell>
-                                    <Table.Cell>{new Date(expense?.date).toLocaleDateString()}</Table.Cell>
-                                    <Table.Cell>{expense?.description}</Table.Cell>
-                                    <Table.Cell>{expense?.vendor}</Table.Cell>
-                                    <Table.Cell>
-                                        <div className="flex space-x-2">
-                                            {userRole === "admin" && (
-                                                <Link
-                                                    to={`/admin/expenses/${expense?._id}`}
-                                                    className="px-3 py-2 text-blue-600 border border-blue-600 rounded hover:bg-blue-600 hover:text-white focus:outline-none"
-                                                >
-                                                    <i className="fa fa-pencil"></i>
-                                                </Link>
-                                            )}
-                                            <Link
-                                                to={`/admin/expense/${expense?._id}/details`}
-                                                className="px-3 py-2 text-green-600 border border-green-600 rounded hover:bg-green-600 hover:text-white focus:outline-none"
-                                            >
-                                                <i className="fa fa-eye"></i>
-                                            </Link>
-                                            {userRole === "admin" && (
-                                                <button
-                                                    className="px-3 py-2 text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white focus:outline-none"
-                                                    onClick={() => deleteExpenseHandler(expense?._id)}
-                                                    disabled={isDeleteLoading}
-                                                >
-                                                    <i className="fa fa-trash"></i>
-                                                </button>
-                                            )}
-                                        </div>
-                                    </Table.Cell>
-                                </Table.Row>
-                            ))}
-                        </Table.Body>
-                    </Table>
+  const confirmDelete = () => {
+    if (selectedExpenseId) deleteExpense(selectedExpenseId);
+  };
 
-                    {/* Pagination */}
-                    <div className="flex justify-center mt-4">
-                        <Pagination
-                            currentPage={currentPage}
-                            layout="navigation"
-                            onPageChange={(page) => setCurrentPage(page)}
-                            showIcons={true}
-                            totalPages={totalPages}
-                        />
-                    </div>
-                </div>
-            </div>
-        </AdminLayout>
-    );
+  const handleEdit = (id) => {
+    navigate(`/finance/expenses?id=${id}`);
+  };
+
+  const columns = [
+    {
+      header: t("Category"),
+      width: "13%",
+      minWidth: "120px",
+      render: (_, row) => (
+        <span className="inline-flex items-center gap-2 text-sm-custom">
+          <i className={`fa fa-${CATEGORY_ICONS[row.category] || "tag"} text-gray-400`}></i>
+          {t(row.category)}
+        </span>
+      ),
+    },
+    {
+      header: t("Vendor"),
+      width: "16%",
+      minWidth: "150px",
+      render: (_, row) => <TruncatedCell maxChars={30}>{row.vendor || "-"}</TruncatedCell>,
+    },
+    {
+      header: t("Description"),
+      width: "20%",
+      minWidth: "180px",
+      render: (_, row) => <TruncatedCell maxChars={40}>{row.description || "-"}</TruncatedCell>,
+    },
+    {
+      header: t("Amount"),
+      width: "10%",
+      minWidth: "110px",
+      render: (_, row) => <span className="font-medium text-red-600">{Number(row.amount).toFixed(2)}</span>,
+    },
+    { header: t("Payment Method"), width: "12%", minWidth: "130px", render: (_, row) => t(row.paymentMethod) },
+    { header: t("Date"), width: "10%", minWidth: "110px", render: (_, row) => formatDate(row.date) },
+    {
+      header: t("Added By"),
+      width: "12%",
+      minWidth: "140px",
+      render: (_, row) => (
+        <TruncatedCell maxChars={25}>
+          {row.audit?.createdBy?.fullName || "-"}
+        </TruncatedCell>
+      ),
+    },
+    {
+      header: t("Action"),
+      width: "7%",
+      minWidth: "100px",
+      render: (_, row) => (
+        <ActionButtons id={row._id} onDelete={handleDeleteClick} isDeleteLoading={isDeleteLoading} onEdit={handleEdit} />
+      ),
+    },
+  ];
+
+  const filters = (
+    <FilterDropdown
+      limit={limit}
+      onLimitChange={(newLimit) => {
+        setLimit(newLimit);
+        setCurrentPage(1);
+      }}
+      onReset={() => {
+        setSearch("");
+        setSearchTerm("");
+        setCategoryFilter("");
+        setDateFrom("");
+        setDateTo("");
+        setCurrentPage(1);
+        setLimit(8);
+      }}
+    >
+      <SelectField
+        label={t("Category")}
+        value={categoryFilter}
+        onChange={setCategoryFilter}
+        placeholder={t("All Categories")}
+        options={EXPENSE_CATEGORIES}
+        optionLabel={(c) => t(c)}
+      />
+      <AppInput label={t("From")} type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+      <AppInput label={t("To")} type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+    </FilterDropdown>
+  );
+
+  const emptyState = (
+    <EmptyState
+      icon="file-invoice"
+      title={searchTerm || categoryFilter ? t("No expenses found matching your search") : t("No expenses recorded yet")}
+      message={t("Record your first expense to see it here.")}
+    />
+  );
+
+  const refreshButton = (
+    <AppButton
+      onClick={() => {
+        refetch();
+        toast.success(t("Refreshed"));
+      }}
+      text={t("Refresh")}
+      icon="sync-alt"
+      disabled={isFetching || statsLoading}
+      className="ml-2"
+    />
+  );
+
+  const addButton = (
+    <AppButton onClick={() => navigate("/finance/expenses")} label={t("New Expense")} icon="plus" />
+  );
+
+  if (isLoading) return <Loader />;
+
+  return (
+    <AdminLayout>
+      <MetaData title={t("Expenses")} />
+
+      <div className="max-w-6xl mx-auto">
+        <DataTableContainer
+          title={t("Expense Records")}
+          subtitle={t("Utilities, maintenance, supplies, and other one-off school expenses")}
+          data={rows}
+          columns={columns}
+          isLoading={isLoading}
+          isFetching={isFetching}
+          pagination={paginationMeta}
+          currentPage={paginationMeta.page}
+          setCurrentPage={setCurrentPage}
+          limit={limit}
+          setLimit={setLimit}
+          search={search}
+          setSearch={setSearch}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          searchPlaceholder={t("Search by vendor or description...")}
+          onRefresh={refetch}
+          refreshButton={refreshButton}
+          addButton={addButton}
+          emptyState={emptyState}
+          filters={filters}
+          stats={stats}
+          renderHeaderInfo={() => (
+            <p className="text-sm-custom text-dark-light mt-1">
+              <i className="fa fa-info-circle mr-2"></i>
+              {t("Showing")}: {rows.length} {t("of")} {paginationMeta.total} {t("expenses")}
+            </p>
+          )}
+          showSearch={true}
+          showStats={true}
+          showPagination={true}
+        />
+      </div>
+
+      <ConfirmationModal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        confirmDelete={confirmDelete}
+        isDeleteLoading={isDeleteLoading}
+        message={t("Are you sure you want to delete this expense record?")}
+        title={t("Confirm Delete")}
+      />
+    </AdminLayout>
+  );
 };
 
 export default ListExpenses;

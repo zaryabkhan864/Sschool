@@ -20,8 +20,19 @@ const TimetableGrid = ({
               {t("Day")}
             </th>
             {sessions.map((session) => (
-              <th key={session._id} className="p-2 border-r last:border-r-0 text-left min-w-[180px]">
-                <div className="text-[11px] font-bold text-gray-700">{session.name}</div>
+              <th
+                key={session._id}
+                className={`p-2 border-r last:border-r-0 text-left min-w-[180px] ${
+                  session.type === "BREAK" ? "bg-orange-50/50" : ""
+                }`}
+              >
+                <div
+                  className={`text-[11px] font-bold ${
+                    session.type === "BREAK" ? "text-orange-600" : "text-gray-700"
+                  }`}
+                >
+                  {session.name}
+                </div>
                 <div className="text-[9px] text-gray-400 mt-0.5 whitespace-nowrap font-normal normal-case tracking-normal">
                   {session.startTime}-{session.endTime}
                 </div>
@@ -41,15 +52,29 @@ const TimetableGrid = ({
                 </div>
               </td>
               {sessions.map((session) => (
-                <td key={session._id} className="p-2 border-r last:border-r-0 align-top">
-                  <SlotCell
-                    dayId={day._id}
-                    sessionId={session._id}
-                    classGroupId={classGroupId}
-                    selectedCourseId={grid[day._id]?.[session._id]?.course || ""}
-                    slotId={grid[day._id]?.[session._id]?.slotId}
-                    onCourseChange={onCourseChange}
-                  />
+                <td
+                  key={session._id}
+                  className={`p-2 border-r last:border-r-0 align-top ${
+                    session.type === "BREAK" ? "bg-orange-50/30" : ""
+                  }`}
+                >
+                  {session.type === "BREAK" ? (
+                    // Break sessions aren't teachable slots — no course/teacher
+                    // dropdown, just a static, non-interactive indicator.
+                    <div className="flex items-center justify-center h-9 rounded-lg bg-orange-100/60 text-orange-500 text-[11px] font-bold italic uppercase tracking-wide">
+                      <i className="fa fa-coffee mr-1.5 text-[10px]"></i>
+                      {t("Break")}
+                    </div>
+                  ) : (
+                    <SlotCell
+                      dayId={day._id}
+                      sessionId={session._id}
+                      classGroupId={classGroupId}
+                      selectedCourseId={grid[day._id]?.[session._id]?.course || ""}
+                      slotId={grid[day._id]?.[session._id]?.slotId}
+                      onCourseChange={onCourseChange}
+                    />
+                  )}
                 </td>
               ))}
             </tr>

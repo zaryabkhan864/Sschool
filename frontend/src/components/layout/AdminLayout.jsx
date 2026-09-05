@@ -84,8 +84,12 @@ const AdminLayout = ({ children }) => {
 
     { name: "Emp Salary", url: "/finance/employee/salaries", icon: "fas fa-money-check-alt", roles: ["admin", "finance"], group: "finance" },
     { name: "Emp Salary List", url: "/finance/employees/salaries", icon: "fas fa-clipboard-list", roles: ["admin", "finance"], group: "finance" },
-    { name: "New Expense", url: "/finance/expenses", icon: "fas fa-file-invoice", roles: ["admin", "finance"], group: "finance" },
-    { name: "Expense List", url: "/finance/expense/List", icon: "fas fa-list-ul", roles: ["admin", "finance"], group: "finance" },
+    // 👇 NEW: rest of the Salary module
+    { name: "Pay Salary", url: "/finance/salaries/pay", icon: "fas fa-money-bill-wave", roles: ["admin", "finance"], group: "finance" },
+    { name: "Paid Salaries", url: "/finance/salaries/paid", icon: "fas fa-receipt", roles: ["admin", "finance"], group: "finance" },
+    { name: "Find Teacher Salary", url: "/finance/salaries/lookup", icon: "fas fa-search-dollar", roles: ["admin", "finance"], group: "finance" },
+    { name: "New Expense", url: "/finance/expenses", icon: "fas fa-file-invoice", roles: ["admin", "finance"], group: "expenses" },
+    { name: "Expense List", url: "/finance/expense/List", icon: "fas fa-list-ul", roles: ["admin", "finance"], group: "expenses" },
 
 
     // Leaves Group

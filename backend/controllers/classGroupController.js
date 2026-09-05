@@ -194,7 +194,11 @@ export const getClassGroupDetails = catchAsyncErrors(async (req, res, next) => {
       select: "courseName code description teacher",
       populate: {
         path: "teacher",
-        select: "name email"
+        // ✅ FIX: User has no `name` field — only firstName/middleName/
+        // lastName (see the fullName() helper in timeTableSlotController.js).
+        // Selecting "name email" meant `teacher.name` was always undefined,
+        // so every course showed an unassigned/blank teacher.
+        select: "firstName middleName lastName email"
       }
     });
 
@@ -367,7 +371,8 @@ export const getCourseByClassGroupAndTeacherID = catchAsyncErrors(async (req, re
     path: "courses",
     populate: {
       path: "teacher",
-      select: "name email"
+      // ✅ FIX: same missing-`name`-field bug as getClassGroupDetails above.
+      select: "firstName middleName lastName email"
     }
   });
 

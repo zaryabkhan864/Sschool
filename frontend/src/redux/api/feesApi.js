@@ -231,6 +231,15 @@ export const feesApi = createApi({
                 ...(body?.studentId ? [{ type: "StudentFees", id: body.studentId }] : []),
             ],
         }),
+
+        // ================= NEW: FEES BY FEE TYPE (Finance Dashboard) =================
+        // Admission/Tuition/Exam/Transport/Hostel, each with its own
+        // Collected + Due totals per currency — powers the 5-box
+        // breakdown on FinanceDashboard.jsx.
+        getFeesByFeeType: builder.query({
+            query: () => "/fees/statistics/by-type",
+            providesTags: ["CurrencyFees"],
+        }),
     }),
 });
 
@@ -253,4 +262,5 @@ export const {
     useGetUpcomingDuesByStudentQuery,  // 👈 NEW
     useMarkFeeRemindersSentBulkMutation, // 👈 NEW
     useGetPaidDuesByStudentQuery, // 👈 NEW
+    useGetFeesByFeeTypeQuery,     // 👈 NEW — was missing, this is the fix
 } = feesApi;

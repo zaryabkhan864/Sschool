@@ -1,13 +1,9 @@
 // backend/routes/financeDashboard.js
-//
-// NEW FILE — separate from fees.js/salaries.js/expenses.js so nothing
-// existing has to be edited. Only adds one read-only endpoint the
-// dashboard needs.
-
 import express from "express";
 import {
     getRecentFinanceActivity,
     getPayrollOverview,
+    getAcademicYearFinanceSummary, // 👈 NEW
 } from "../controllers/financeDashboardController.js";
 import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 
@@ -22,5 +18,10 @@ router
 router
     .route("/finance/dashboard/payroll-overview")
     .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getPayrollOverview);
+
+// 👇 NEW: whole-academic-year collected / due / paid-out / payable-pending
+router
+    .route("/finance/dashboard/academic-year-summary")
+    .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getAcademicYearFinanceSummary);
 
 export default router;

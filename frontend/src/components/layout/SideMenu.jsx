@@ -9,18 +9,52 @@ import {
   XMarkIcon
 } from "@heroicons/react/24/outline";
 
+
 const groupNames = {
   main: "Dashboard",
   timetable: "Timetable Management",
   academics: "Academics",
   users: "Users",
   finance: "Finance",
+  expenses: "Expenses",
+  fees: "Fees", 
   counseling: "Counseling",
   campus: "Campus & Academic Year",
   attendance: "Attendance & Exams",
   events: "Events",
   leaves: "Leaves",
   others: "Others"
+};
+
+// 👇 FIX: this used to build its "which groups exist" list from
+// `Object.keys(groupNames)` — but menu items can (and did, for "fees")
+// carry a `group` value that was never added to `groupNames` above.
+// Since that group key never appeared in the accordion state object at
+// all, `openGroups["fees"]` was permanently `undefined`, so clicking it
+// could never set it to `true` — that group could never open, while
+// every group actually listed in `groupNames` (like "finance") worked
+// fine. Deriving the group list from the actual `menuItems` instead
+// means ANY group used anywhere always works, regardless of whether
+// it's also in `groupNames` (which now only controls the display
+// label, via the `t(groupNames[groupName] || groupName)` fallback
+// below).
+const getGroupKeys = (items) => {
+  const seen = new Set();
+  items.forEach((item) => {
+    if (item.group) seen.add(item.group);
+  });
+  return Array.from(seen);
+};
+
+// Builds an "all closed" map, with at most one group set to true — used
+// both for the initial state and every time we want to open exactly one
+// group (accordion behavior).
+const buildAccordionState = (items, openGroupName) => {
+  const state = {};
+  getGroupKeys(items).forEach((key) => {
+    state[key] = key === openGroupName;
+  });
+  return state;
 };
 
 const SideMenu = ({ menuItems, user }) => {
@@ -30,16 +64,22 @@ const SideMenu = ({ menuItems, user }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
 
+  // 👇 FIX: previously initialized EVERY group to `true` (all open at
+  // once, exactly what showed in your screenshot). Now only the group
+  // containing the current page starts open.
   const [openGroups, setOpenGroups] = useState(() => {
-    const initial = {};
-    Object.keys(groupNames).forEach((key) => { initial[key] = true; });
-    return initial;
+    const currentItem = menuItems.find((item) => item.url === location.pathname);
+    return buildAccordionState(menuItems, currentItem?.group);
   });
 
   useEffect(() => {
     const currentItem = menuItems.find((item) => item.url === location.pathname);
     if (currentItem && currentItem.group) {
-      setOpenGroups((prev) => ({ ...prev, [currentItem.group]: true }));
+      // 👇 FIX: was `{ ...prev, [currentItem.group]: true }`, which only
+      // ever added groups to the open set and never closed any — that's
+      // the other half of why everything stayed open. Now it opens just
+      // this one group and closes the rest.
+      setOpenGroups(buildAccordionState(menuItems, currentItem.group));
     }
     setActiveMenuItem(location.pathname);
   }, [location.pathname, menuItems]);
@@ -50,8 +90,15 @@ const SideMenu = ({ menuItems, user }) => {
     return acc;
   }, {});
 
+  // 👇 FIX: was `{ ...prev, [groupName]: !prev[groupName] }` — toggled
+  // only the clicked group and left every other group's state untouched,
+  // so opening a second group never closed the first one. Now: opening a
+  // closed group closes every other group; clicking an already-open
+  // group just closes it.
   const toggleGroup = (groupName) => {
-    setOpenGroups((prev) => ({ ...prev, [groupName]: !prev[groupName] }));
+    setOpenGroups((prev) =>
+      prev[groupName] ? buildAccordionState(menuItems, null) : buildAccordionState(menuItems, groupName)
+    );
   };
 
   return (

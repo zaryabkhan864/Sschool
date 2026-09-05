@@ -10,7 +10,7 @@ import { examApi } from "./api/examApi";
 import { gradeApi } from "./api/gradesApi";
 import { postingApi } from "./api/postingApi";
 import { feesApi } from "./api/feesApi";
-import { salariesApi } from "./api/salaryApi";
+import { salaryApi } from "./api/salaryApi";
 import { expensesApi } from "./api/expensesApi";
 import { quizApi } from "./api/quizApi";
 import { studentApi } from "./api/studentsApi";
@@ -48,7 +48,7 @@ export const store = configureStore({
     auth: userReducer,
     [schoolApi.reducerPath]: schoolApi.reducer,
     [feesApi.reducerPath]: feesApi.reducer,
-    [salariesApi.reducerPath]: salariesApi.reducer,
+    [salaryApi.reducerPath]: salaryApi.reducer,
     [scholarshipApi.reducerPath]: scholarshipApi.reducer,
     [expensesApi.reducerPath]: expensesApi.reducer,
     [revenueApi.reducerPath]: revenueApi.reducer,
@@ -88,7 +88,7 @@ export const store = configureStore({
     getDefaultMiddleware().concat([
       schoolApi.middleware,
       feesApi.middleware,
-      salariesApi.middleware,
+      salaryApi.middleware,
       scholarshipApi.middleware,
       expensesApi.middleware,
       revenueApi.middleware,

@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 
 // ===== API =====
 import { useGetClassGroupsQuery } from "../../redux/api/authApi";
+import { useGetClassGroupDetailsQuery } from "../../redux/api/classGroupApi";
 import { useGetWeekDaysQuery } from "../../redux/api/weekDayApi";
 import { useGetSessionTemplatesQuery } from "../../redux/api/sessionTemplateApi";
 import {
@@ -20,6 +21,10 @@ import AppButton from "../GUI/AppButton";
 import Loader from "../layout/Loader";
 import TimetableGrid from "../GUI/TimetableGrid";
 
+// User has no single `name` field — only firstName/middleName/lastName.
+const fullName = (user) =>
+  [user?.firstName, user?.middleName, user?.lastName].filter(Boolean).join(" ") || "-";
+
 const CreateTimeTable = () => {
   const { t } = useTranslation();
 
@@ -28,13 +33,23 @@ const CreateTimeTable = () => {
   const isInitialLoadDone = useRef(false);
   const [fetchTrigger, setFetchTrigger] = useState(false);
 
-  // ----- Class list (left panel) -----
+  // ----- Class list (bottom-left panel) -----
   const { data: classGroupsData, isLoading: classGroupsLoading } = useGetClassGroupsQuery();
 
   const classGroups = useMemo(
     () => (classGroupsData || []).filter((cg) => cg.status !== false),
     [classGroupsData]
   );
+
+  // ----- Class group details (bottom-right: courses + teachers) -----
+  const {
+    data: classGroupDetails,
+    isFetching: isClassGroupDetailsFetching,
+  } = useGetClassGroupDetailsQuery(selectedClassGroup?._id, {
+    skip: !selectedClassGroup?._id,
+  });
+
+  const assignedCourses = classGroupDetails?.courses || [];
 
   // ----- Week Days & Session Templates -----
   const {
@@ -125,7 +140,7 @@ const CreateTimeTable = () => {
     setGrid(newGrid);
   }, [timeTableData, sortedWeekDays, displaySessions]);
 
-  // Selecting a class from the left list loads its timetable immediately.
+  // Selecting a class from the list loads its timetable immediately.
   const handleSelectClass = (cg) => {
     if (selectedClassGroup?._id === cg._id) return;
     setSelectedClassGroup(cg);
@@ -178,23 +193,74 @@ const CreateTimeTable = () => {
     <AdminLayout>
       <MetaData title={t("Timetable")} />
 
-      <div className="max-w-7xl mx-auto py-6 animate-fade-in">
+      <div className="max-w-7xl mx-auto py-6 animate-fade-in space-y-6">
         <AppPageHeader
           title={t("Class Timetables")}
-          subtitle={t("Select a class on the left to view or edit its weekly schedule")}
+          subtitle={t("Select a class below to view or edit its weekly schedule")}
           backUrl="/admin/timetables"
         />
 
+        {/* ---------- Top: Timetable grid for the selected class ---------- */}
+        {!selectedClassGroup ? (
+          <AppCard title={t("Timetable")} icon="fa-table" className="animate-slide-up">
+            <div className="p-6 text-center text-gray-500 text-sm-custom">
+              {t("Select a class from the list below to view its timetable.")}
+            </div>
+          </AppCard>
+        ) : !timeTableData ? (
+          <AppCard title={selectedClassGroup.displayName} icon="fa-table" className="animate-slide-up">
+            <Loader />
+          </AppCard>
+        ) : (
+          <form onSubmit={submitHandler}>
+            <AppCard
+              title={t("Timetable")}
+              subtitle={selectedClassGroup.displayName}
+              icon="fa-table"
+              className="animate-slide-up"
+              footer={
+                !gridBlockedReason && (
+                  <div className="flex justify-end">
+                    <AppButton
+                      type="submit"
+                      label={t("Save Timetable")}
+                      loadingLabel={t("Saving...")}
+                      isLoading={isUpdating}
+                      icon="fa-save"
+                    />
+                  </div>
+                )
+              }
+            >
+              {gridBlockedReason ? (
+                <div className="p-4 bg-yellow-50 text-yellow-800 rounded-xl flex items-start gap-3 shadow-soft">
+                  <i className="fa fa-exclamation-triangle mt-0.5"></i>
+                  <span className="text-sm-custom font-medium">{gridBlockedReason}</span>
+                </div>
+              ) : (
+                <TimetableGrid
+                  weekDays={sortedWeekDays}
+                  sessions={displaySessions}
+                  grid={grid}
+                  classGroupId={selectedClassGroup._id}
+                  onCourseChange={handleCourseChange}
+                />
+              )}
+            </AppCard>
+          </form>
+        )}
+
+        {/* ---------- Bottom: Class list (left) + Courses & Teachers (right) ---------- */}
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* ---------- Left: Class list ---------- */}
-          <div className="lg:w-64 flex-shrink-0">
+          {/* Left: Class list */}
+          <div className="lg:w-72 flex-shrink-0">
             <AppCard title={t("Classes")} icon="fa-users" className="animate-slide-up">
               {classGroupsLoading ? (
                 <Loader />
               ) : classGroups.length === 0 ? (
                 <p className="text-sm text-gray-500">{t("No classes found.")}</p>
               ) : (
-                <div className="max-h-[600px] overflow-y-auto divide-y">
+                <div className="max-h-[420px] overflow-y-auto divide-y">
                   {classGroups.map((cg) => (
                     <button
                       key={cg._id}
@@ -219,60 +285,59 @@ const CreateTimeTable = () => {
             </AppCard>
           </div>
 
-          {/* ---------- Right: Grid ---------- */}
+          {/* Right: Courses & Teachers for the selected class */}
           <div className="flex-1 min-w-0">
-            {!selectedClassGroup ? (
-              <AppCard title={t("Timetable")} icon="fa-table" className="animate-slide-up">
-                <div className="p-6 text-center text-gray-500 text-sm-custom">
-                  {t("Select a class from the list to view its timetable.")}
-                </div>
-              </AppCard>
-            ) : !timeTableData ? (
-              <AppCard
-                title={selectedClassGroup.displayName}
-                icon="fa-table"
-                className="animate-slide-up"
-              >
+            <AppCard
+              title={t("Courses & Teachers")}
+              subtitle={selectedClassGroup?.displayName || t("Select a class to see its courses")}
+              icon="fa-chalkboard-teacher"
+              className="animate-slide-up"
+            >
+              {!selectedClassGroup ? (
+                <p className="text-sm text-gray-500 p-2">
+                  {t("Select a class from the list to see its assigned courses and teachers.")}
+                </p>
+              ) : isClassGroupDetailsFetching ? (
                 <Loader />
-              </AppCard>
-            ) : (
-              <form onSubmit={submitHandler}>
-                <AppCard
-                  title={t("Timetable")}
-                  subtitle={selectedClassGroup.displayName}
-                  icon="fa-table"
-                  className="animate-slide-up"
-                  footer={
-                    !gridBlockedReason && (
-                      <div className="flex justify-end">
-                        <AppButton
-                          type="submit"
-                          label={t("Save Timetable")}
-                          loadingLabel={t("Saving...")}
-                          isLoading={isUpdating}
-                          icon="fa-save"
-                        />
-                      </div>
-                    )
-                  }
-                >
-                  {gridBlockedReason ? (
-                    <div className="p-4 bg-yellow-50 text-yellow-800 rounded-xl flex items-start gap-3 shadow-soft">
-                      <i className="fa fa-exclamation-triangle mt-0.5"></i>
-                      <span className="text-sm-custom font-medium">{gridBlockedReason}</span>
-                    </div>
-                  ) : (
-                    <TimetableGrid
-                      weekDays={sortedWeekDays}
-                      sessions={displaySessions}
-                      grid={grid}
-                      classGroupId={selectedClassGroup._id}
-                      onCourseChange={handleCourseChange}
-                    />
-                  )}
-                </AppCard>
-              </form>
-            )}
+              ) : assignedCourses.length === 0 ? (
+                <p className="text-sm text-gray-500 p-2">
+                  {t("No courses have been assigned to this class yet.")}
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 border-b">
+                        <th className="p-2 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                          {t("Course")}
+                        </th>
+                        <th className="p-2 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                          {t("Code")}
+                        </th>
+                        <th className="p-2 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                          {t("Teacher")}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {assignedCourses.map((course) => (
+                        <tr key={course._id}>
+                          <td className="p-2 text-sm font-semibold text-gray-800">
+                            {course.courseName}
+                          </td>
+                          <td className="p-2 text-xs text-gray-500">{course.code || "-"}</td>
+                          <td className="p-2 text-sm text-gray-700">
+                            {course.teacher ? fullName(course.teacher) : (
+                              <span className="text-gray-400 italic">{t("Unassigned")}</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </AppCard>
           </div>
         </div>
       </div>

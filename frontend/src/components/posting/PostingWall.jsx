@@ -1,315 +1,414 @@
-import { Dropdown } from "flowbite-react";
-import { useSelector } from 'react-redux';
-import "react-quill/dist/quill.snow.css";
+// src/components/posting/Wall.jsx
+//
+// Announcements Wall — scoped to the currently-selected campus +
+// academic year. Anyone can post either to the whole school, or to one
+// specific class group. Students can only target their own class group
+// (or the whole school) — every other role can post to any class group.
+import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
-import ReactQuill from "react-quill";
-import { useState, useEffect, useCallback } from "react";
-import dayjs from "dayjs";
-import relativeTime from 'dayjs/plugin/relativeTime';
-import FileUpload from "../UploadFile";
-import Comment from './Comment';
-import ConfirmationModal from './ConfirmationModal';
-import EditPostModal from './EditPostModal';
-import { useTranslation } from 'react-i18next';
+import { useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 
 import {
   useCreateAnnouncementMutation,
-  useGetAnnouncementsQuery,
   useDeleteAnnouncementMutation,
-  useUpdateAnnouncementMutation
+  useGetAnnouncementsQuery,
 } from "../../redux/api/postingApi";
-import {
-  useCreateCommentMutation,
-  useDeleteCommentMutation,
-  useUpdateCommentMutation
-} from "../../redux/api/commentApi";
+import { useGetClassGroupsQuery } from "../../redux/api/classGroupApi";
 
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
+import AppPageHeader from "../layout/AppPageHeader";
+import Loader from "../layout/Loader";
+import AppCard from "../GUI/AppCard";
+import AppInput from "../GUI/AppInput";
+import AppButton from "../GUI/AppButton";
+import AppBadge from "../GUI/AppBadge";
+import EmptyState from "../GUI/EmptyState";
+import ConfirmationModal from "../GUI/ConfirmationModal";
 
-const PostingWall = () => {
-  const { t, i18n } = useTranslation();
-  dayjs.extend(relativeTime);
+const getFullName = (u) =>
+  u ? `${u.firstName || ""} ${u.middleName || ""} ${u.lastName || ""}`.trim() : "";
 
-  const [page, setPage] = useState(1);
-  const { data, isLoading, refetch, isFetching } = useGetAnnouncementsQuery({ page, limit: 10 });
+const initials = (u) => {
+  const name = getFullName(u);
+  return name ? name.charAt(0).toUpperCase() : "?";
+};
 
-  const [hasMore, setHasMore] = useState(true);
-  const [announcements, setAnnouncements] = useState([]);
-  const [selectedPost, setSelectedPost] = useState(null);
+const timeAgo = (date) => {
+  if (!date) return "";
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  const units = [
+    ["y", 31536000],
+    ["mo", 2592000],
+    ["d", 86400],
+    ["h", 3600],
+    ["m", 60],
+  ];
+  for (const [label, secs] of units) {
+    const val = Math.floor(seconds / secs);
+    if (val >= 1) return `${val}${label} ago`;
+  }
+  return "just now";
+};
 
-  const [createAnnouncement, { isLoading: isCreating, isSuccess }] = useCreateAnnouncementMutation();
-  const [deleteAnnouncement, { isLoading: isDeletingPost }] = useDeleteAnnouncementMutation();
-  const [updateAnnouncement, { isLoading: isEditingPost }] = useUpdateAnnouncementMutation();
+// ============================================================
+// Composer — the "who can post where" rules live here.
+// ============================================================
+const Composer = ({ userRole, onPosted }) => {
+  const { t } = useTranslation();
+  const isStudent = userRole === "student";
 
-  const [createComment, { isLoading: isAddingComment }] = useCreateCommentMutation();
-  const [deleteComment] = useDeleteCommentMutation();
-  const [updateComment] = useUpdateCommentMutation();
+  const [message, setMessage] = useState("");
+  const [scope, setScope] = useState("school"); // "school" | "class"
+  const [classGroupSearch, setClassGroupSearch] = useState("");
+  const [selectedClassGroup, setSelectedClassGroup] = useState(null); // {value,label} — staff only
 
-  const { user } = useSelector((state) => state.auth);
+  const { data: classGroupsData, isFetching: classGroupsLoading } = useGetClassGroupsQuery(
+    { status: "active", paginate: "false", keyword: classGroupSearch },
+    { skip: isStudent || classGroupSearch.length < 2 }
+  );
 
-  const [files, setFiles] = useState([]);
-  const [isUploadingFile, setIsUploadingFile] = useState(false);
-  const [newPost, setNewPost] = useState("");
-  const [comments, setComments] = useState({});
-  const [expandedPosts, setExpandedPosts] = useState(new Set());
-  const [showEditPostModal, setShowEditPostModal] = useState(false);
-  const [showDeletePostModal, setShowDeletePostModal] = useState(false);
+  const classGroupOptions = useMemo(
+    () =>
+      (classGroupsData?.classGroups || []).map((g) => ({
+        value: g._id,
+        label: g.displayName || `${g.grade?.gradeName || ""} ${g.section || ""}`,
+      })),
+    [classGroupsData]
+  );
 
-  useEffect(() => {
-    if (data?.announcements) {
-      if (page === 1) {
-        setAnnouncements(data.announcements);
-      } else {
-        setAnnouncements(prev => [...prev, ...data.announcements]);
-      }
-      setHasMore(data.announcements.length === 10);
-    }
-  }, [data, page]);
+  const [createAnnouncement, { isLoading }] = useCreateAnnouncementMutation();
 
-  const loadMore = () => {
-    if (!isLoading && hasMore) {
-      setPage(prev => prev + 1);
-    }
-  };
-
-  const handlePostSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!newPost.trim()) return;
+    if (!message.trim()) return toast.error(t("Please write something before posting"));
+    if (scope === "class" && !isStudent && !selectedClassGroup) {
+      return toast.error(t("Please pick a class group to post to"));
+    }
 
-    const newPostData = {
-      userId: user?._id,
-      message: newPost,
-      attachments: files,
-    };
-    const result = await createAnnouncement(newPostData);
-    if (result.data) {
-      setPage(1);
-      refetch();
-      setNewPost("");
-      setFiles([]);
-      toast.success(t("Post created successfully"));
+    const body = { message: message.trim() };
+    if (scope === "class") {
+      if (isStudent) {
+        body.postToOwnClass = true;
+      } else {
+        body.classGroup = selectedClassGroup.value;
+      }
+    }
+
+    try {
+      await createAnnouncement(body).unwrap();
+      setMessage("");
+      setScope("school");
+      setSelectedClassGroup(null);
+      setClassGroupSearch("");
+      toast.success(t("Posted"));
+      onPosted?.();
+    } catch (err) {
+      toast.error(err?.data?.message || t("Error creating post"));
     }
   };
-
-  const handleCommentSubmit = async (postId, comment) => {
-    if (!comment.trim()) return;
-    const result = await createComment({ userId: user?._id, message: comment, announcementId: postId });
-    if (result.data) {
-      refetch();
-      setComments({ ...comments, [postId]: '' });
-      toast.success(t("Comment added"));
-    }
-  };
-
-  const updatePost = useCallback(async (message, files) => {
-    if (!message.trim()) return;
-    const result = await updateAnnouncement({ id: selectedPost._id, body: { attachments: files, message } });
-    if (result.data) {
-      setPage(1);
-      refetch();
-      setShowEditPostModal(false);
-      setSelectedPost(null);
-      toast.success(t("Announcement updated"));
-    }
-  }, [selectedPost, refetch, updateAnnouncement, t]);
-
-  const confirmDeletePost = useCallback(async (postId) => {
-    const result = await deleteAnnouncement(postId);
-    if (result?.data) {
-      setPage(1);
-      refetch();
-      toast.success(t("Post deleted"));
-      setShowDeletePostModal(false);
-    }
-  }, [deleteAnnouncement, refetch, t]);
-
-  const toggleComments = (postId) => {
-    setExpandedPosts(prev => {
-      const newSet = new Set(prev);
-      newSet.has(postId) ? newSet.delete(postId) : newSet.add(postId);
-      return newSet;
-    });
-  };
-
-  // UI Classes from NewGrade
-  const primaryBtn = "bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-6 rounded-lg transition-all shadow-md disabled:bg-gray-400 disabled:shadow-none";
-  const secondaryBtn = "px-4 py-2 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all shadow-sm";
-  const inputClass = "w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all bg-white placeholder:text-gray-400";
 
   return (
-    <AdminLayout>
-      <MetaData title={t("posting")} />
+    <form onSubmit={handleSubmit}>
+      {/* 👇 Not using AppCard's `footer` prop here — with only two
+          fields, its footer bar left a large empty gap above the Post
+          button. The button now sits directly in the normal content
+          flow instead, with just a thin top border to separate it. */}
+      <AppCard title={t("Create a Post")} icon="fa-bullhorn">
+        <AppInput
+          label={t("Message")}
+          type="textarea"
+          rows={3}
+          name="message"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder={t("Share an announcement...")}
+          required
+        />
 
-      <div className="max-w-4xl mx-auto py-6 px-4">
-        {/* Header Section */}
-        <div className="flex items-center justify-between mb-6 px-1">
+        <div className="mt-4">
+          <label className="text-[11px] font-semibold text-ink-600 uppercase">{t("Post To")}</label>
+          <div className="flex gap-2 mt-2">
+            <button
+              type="button"
+              onClick={() => setScope("school")}
+              className={`px-4 py-2 rounded-xl text-sm-custom font-medium border transition-colors ${
+                scope === "school"
+                  ? "bg-brand-500 text-white border-brand-500 shadow-button"
+                  : "bg-surface-50 text-ink-700 border-surface-200 hover:bg-surface-100"
+              }`}
+            >
+              <i className="fa fa-school mr-2"></i>
+              {t("Whole School")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setScope("class")}
+              className={`px-4 py-2 rounded-xl text-sm-custom font-medium border transition-colors ${
+                scope === "class"
+                  ? "bg-brand-500 text-white border-brand-500 shadow-button"
+                  : "bg-surface-50 text-ink-700 border-surface-200 hover:bg-surface-100"
+              }`}
+            >
+              <i className="fa fa-users mr-2"></i>
+              {isStudent ? t("My Class") : t("Specific Class Group")}
+            </button>
+          </div>
+
+          {/* Staff-only: search + pick which class group */}
+          {scope === "class" && !isStudent && (
+            <div className="mt-3">
+              {selectedClassGroup ? (
+                <div className="flex items-center justify-between px-3 py-2 border border-surface-200 rounded-lg bg-surface-50 text-sm-custom">
+                  <span>{selectedClassGroup.label}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedClassGroup(null)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <i className="fa fa-times"></i>
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    value={classGroupSearch}
+                    onChange={(e) => setClassGroupSearch(e.target.value)}
+                    placeholder={t("Search for a class group...")}
+                    className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm-custom focus:outline-none focus:ring-2 focus:ring-brand-400"
+                  />
+                  {classGroupSearch.length >= 2 && (
+                    <ul className="mt-1 border border-surface-200 rounded-lg max-h-40 overflow-y-auto shadow-soft">
+                      {classGroupsLoading && (
+                        <li className="px-3 py-2 text-sm-custom text-ink-400">{t("Loading...")}</li>
+                      )}
+                      {!classGroupsLoading && classGroupOptions.length === 0 && (
+                        <li className="px-3 py-2 text-sm-custom text-ink-400">{t("No class groups found")}</li>
+                      )}
+                      {classGroupOptions.map((opt) => (
+                        <li
+                          key={opt.value}
+                          onClick={() => {
+                            setSelectedClassGroup(opt);
+                            setClassGroupSearch("");
+                          }}
+                          className="px-3 py-2 hover:bg-surface-100 cursor-pointer text-sm-custom"
+                        >
+                          {opt.label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {scope === "class" && isStudent && (
+            <p className="text-xs-custom text-ink-400 mt-2">
+              {t("This will post to your own class group only.")}
+            </p>
+          )}
+        </div>
+
+        <div className="flex justify-end mt-5 pt-4 border-t border-surface-100">
+          <AppButton
+            type="submit"
+            label={t("Post")}
+            loadingLabel={t("Posting...")}
+            isLoading={isLoading}
+            icon="fa-paper-plane"
+          />
+        </div>
+      </AppCard>
+    </form>
+  );
+};
+
+// ============================================================
+// A single post in the feed
+// ============================================================
+const PostCard = ({ post, currentUserId, userRole, onDeleteClick }) => {
+  const { t } = useTranslation();
+  const isOwner = post.userId?._id === currentUserId;
+  const canManage = isOwner || ["admin", "principal"].includes(userRole);
+
+  return (
+    <div className="bg-white rounded-2xl shadow-soft border border-surface-100 p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {post.userId?.avatar?.url ? (
+            <img src={post.userId.avatar.url} alt="" className="w-10 h-10 rounded-full object-cover" />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm-custom">
+              {initials(post.userId)}
+            </div>
+          )}
           <div>
-            <h1 className="text-xl font-bold text-gray-800">{t('Announcement Wall')}</h1>
-            <p className="text-xs text-gray-500">{t('Share updates and interact with the community')}</p>
+            <p className="text-sm-custom font-semibold text-ink-900">{getFullName(post.userId) || t("Unknown")}</p>
+            <div className="flex items-center gap-2 text-xs-custom text-ink-400">
+              <span className="capitalize">{post.userId?.role}</span>
+              <span>•</span>
+              <span>{timeAgo(post.createdAt)}</span>
+            </div>
           </div>
         </div>
 
-        {/* Create Post Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
-          <form onSubmit={handlePostSubmit} className="p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <i className="fa fa-pen-fancy text-blue-500 text-xs"></i>
-              <h3 className="font-bold text-[11px] text-gray-500 uppercase tracking-wider">{t('Create New Post')}</h3>
-            </div>
+        {post.classGroup ? (
+          <AppBadge type="classGroup" value={post.classGroup.displayName} />
+        ) : (
+          <span className="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-brand-50 text-brand-600 border border-brand-100">
+            <i className="fa fa-school mr-1"></i>
+            {t("Whole School")}
+          </span>
+        )}
+      </div>
 
-            <div className="mb-4 border border-gray-100 rounded-lg overflow-hidden prose-sm">
-              <ReactQuill
-                key={i18n?.language}
-                theme="snow"
-                value={newPost}
-                onChange={setNewPost}
-                placeholder={t("What's on your mind?")}
-              />
-            </div>
+      <p className="text-sm-custom text-ink-700 mt-4 whitespace-pre-wrap leading-relaxed">{post.message}</p>
 
-            <div className="flex items-center justify-between pt-3 border-t border-gray-50">
-              <FileUpload
-                setIsUploadingFile={setIsUploadingFile}
-                isSubmitted={isSuccess}
-                setFiles={setFiles}
-                loading={isCreating}
-              />
-              <button
-                type="submit"
-                disabled={isCreating || isUploadingFile || !newPost.trim()}
-                className={primaryBtn}
-              >
-                {isCreating ? <i className="fa fa-spinner fa-spin mr-1"></i> : <i className="fa fa-paper-plane mr-1 text-[10px]"></i>}
-                <span>{t("Post")}</span>
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Feed */}
-        <div className="space-y-6">
-          {announcements.map((post) => (
-            <div key={post._id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              {/* Post Header */}
-              <div className="px-5 py-3.5 flex items-center justify-between border-b border-gray-50">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={post?.userId?.avatar?.url || "/images/default_avatar.jpg"}
-                    alt="User"
-                    className="w-9 h-9 rounded-full border border-gray-100 object-cover shadow-sm"
-                  />
-                  <div>
-                    <h4 className="font-bold text-gray-800 text-sm leading-tight">{post?.userId?.name}</h4>
-                    <span className="text-[10px] font-medium text-gray-400 italic">
-                      {dayjs(post?.createdAt).fromNow()}
-                    </span>
-                  </div>
-                </div>
-
-                {String(post?.userId?._id) === String(user?._id) && (
-                  <Dropdown
-                    label={<button className="p-1.5 hover:bg-gray-100 rounded-md transition-colors"><i className="fa fa-ellipsis-v text-gray-400 text-xs"></i></button>}
-                    inline={true}
-                    arrowIcon={false}
-                  >
-                    <Dropdown.Item onClick={() => { setSelectedPost(post); setShowEditPostModal(true); }}>
-                      <i className="fa fa-edit mr-2 text-blue-500"></i> {t('edit')}
-                    </Dropdown.Item>
-                    <Dropdown.Item className="text-red-600" onClick={() => { setSelectedPost(post); setShowDeletePostModal(true); }}>
-                      <i className="fa fa-trash mr-2"></i> {t('delete')}
-                    </Dropdown.Item>
-                  </Dropdown>
-                )}
-              </div>
-
-              {/* Post Content */}
-              <div className="px-5 py-4">
-                <div className="text-gray-700 text-[14.5px] leading-relaxed" dangerouslySetInnerHTML={{ __html: post?.message }} />
-
-                {post?.attachments?.length > 0 && (
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                    {post.attachments.map((file, index) => (
-                      <div key={index} className="rounded-lg overflow-hidden border border-gray-100 aspect-video bg-gray-50">
-                        <img src={file.url} alt="attachment" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Footer Actions & Comments */}
-              <div className="px-5 py-4 bg-gray-50/40 border-t border-gray-100">
-                <div className="flex gap-2 mb-4">
-                  <input
-                    type="text"
-                    placeholder={t("Write a comment...")}
-                    value={comments[post._id] || ""}
-                    onChange={(e) => setComments({ ...comments, [post._id]: e.target.value })}
-                    className={inputClass}
-                  />
-                  <button
-                    disabled={!comments[post._id] || isAddingComment}
-                    onClick={() => handleCommentSubmit(post._id, comments[post._id])}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 disabled:bg-gray-300 transition-colors shadow-sm"
-                  >
-                    {t("Post")}
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {post?.comments?.slice(0, expandedPosts.has(post._id) ? post.comments.length : 2).map((comment, idx) => (
-                    <Comment
-                      key={idx}
-                      comment={comment}
-                      currentUserId={user?._id}
-                      postId={post?._id}
-                      onDelete={() => refetch()} // Or pass specific delete handlers
-                      onUpdateComment={() => refetch()}
-                    />
-                  ))}
-                  {post.comments.length > 2 && (
-                    <button onClick={() => toggleComments(post._id)} className="text-[11px] font-bold text-blue-600 hover:text-blue-800 transition-colors">
-                      {expandedPosts.has(post._id) ? t('Show Less') : `${t('View all')} ${post.comments.length} ${t('comments')}`}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+      {post.attachments?.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-3">
+          {post.attachments.map((a) => (
+            <a
+              key={a.public_id}
+              href={a.url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs-custom text-brand-600 underline"
+            >
+              <i className="fa fa-paperclip mr-1"></i>
+              {t("Attachment")}
+            </a>
           ))}
         </div>
+      )}
 
-        {/* Load More Button */}
-        {hasMore && (
-          <div className="flex justify-center mt-10">
-            <button onClick={loadMore} disabled={isFetching} className={secondaryBtn}>
-              {isFetching ? <i className="fa fa-spinner fa-spin mr-2"></i> : null}
-              {t('Load More Posts')}
-            </button>
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-surface-100">
+        <span className="text-xs-custom text-ink-400">
+          <i className="fa fa-comment mr-1"></i>
+          {post.comments?.length || 0} {t("comments")}
+        </span>
+        {canManage && (
+          <button
+            onClick={() => onDeleteClick(post._id)}
+            className="text-xs-custom text-red-500 hover:text-red-700 font-medium"
+          >
+            <i className="fa fa-trash mr-1"></i>
+            {t("Delete")}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// Main Wall
+// ============================================================
+const Wall = () => {
+  const { t } = useTranslation();
+  const { user } = useSelector((state) => state.auth);
+
+  const [page, setPage] = useState(1);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState(null);
+
+  const { data, isLoading, isFetching, error, refetch } = useGetAnnouncementsQuery(
+    { page },
+    { refetchOnMountOrArgChange: true }
+  );
+
+  const [deleteAnnouncement, { isLoading: isDeleteLoading, isSuccess: deleteSuccess, error: deleteError }] =
+    useDeleteAnnouncementMutation();
+
+  useEffect(() => {
+    if (error) toast.error(error?.data?.message || t("Error loading the wall"));
+    if (deleteError) toast.error(deleteError?.data?.message || t("Error deleting post"));
+    if (deleteSuccess) {
+      toast.success(t("Post deleted"));
+      setShowModal(false);
+      setSelectedPostId(null);
+    }
+  }, [error, deleteError, deleteSuccess, t]);
+
+  const posts = data?.announcements || [];
+  const totalPages = Math.max(Math.ceil((data?.filteredCount || 0) / (data?.resPerPage || 8)), 1);
+
+  const handleDeleteClick = (id) => {
+    setSelectedPostId(id);
+    setShowModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedPostId) deleteAnnouncement(selectedPostId);
+  };
+
+  if (isLoading) return <Loader />;
+
+  return (
+    <AdminLayout>
+      <MetaData title={t("Wall")} />
+
+      <div className="max-w-6xl mx-auto space-y-6">
+        <AppPageHeader
+          title={t("Announcements Wall")}
+          subtitle={t("Posts for the current campus and academic year")}
+        />
+
+        <Composer userRole={user?.role} onPosted={() => setPage(1)} />
+
+        {posts.length === 0 ? (
+          <EmptyState
+            icon="bullhorn"
+            title={t("Nothing posted yet")}
+            message={t("Be the first to share something with the school or your class.")}
+          />
+        ) : (
+          <div className="space-y-4">
+            {posts.map((post) => (
+              <PostCard
+                key={post._id}
+                post={post}
+                currentUserId={user?._id}
+                userRole={user?.role}
+                onDeleteClick={handleDeleteClick}
+              />
+            ))}
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-3 pt-2">
+            <AppButton
+              text={t("Previous")}
+              icon="chevron-left"
+              disabled={page <= 1 || isFetching}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            />
+            <span className="text-sm-custom text-ink-600">
+              {t("Page")} {page} {t("of")} {totalPages}
+            </span>
+            <AppButton
+              text={t("Next")}
+              icon="chevron-right"
+              disabled={page >= totalPages || isFetching}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            />
           </div>
         )}
       </div>
 
-      {/* Modals */}
       <ConfirmationModal
-        show={showDeletePostModal}
-        onConfirm={() => confirmDeletePost(selectedPost?._id)}
-        loading={isDeletingPost}
-        onClose={() => setShowDeletePostModal(false)}
-        message={t("Are you sure you want to delete this post?")}
+        show={showModal}
+        onClose={() => setShowModal(false)}
+        onConfirm={confirmDelete}
+        loading={isDeleteLoading}
+        message={t("Are you sure you want to delete this post? This cannot be undone.")}
       />
-
-      {selectedPost && (
-        <EditPostModal
-          show={showEditPostModal}
-          onClose={() => { setShowEditPostModal(false); setSelectedPost(null); }}
-          onSave={(message, files) => updatePost(message, files)}
-          selectedPost={selectedPost}
-          loading={isEditingPost}
-        />
-      )}
     </AdminLayout>
   );
 };
 
-export default PostingWall;
+export default Wall;

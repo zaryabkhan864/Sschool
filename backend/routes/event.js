@@ -3,6 +3,7 @@ import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
 import {
     newEvent,
     getEvents,
+    getEventStats,      // 👈 NEW
     getEventDetails,
     updateEvent,
     deleteEvent,
@@ -14,6 +15,9 @@ const router = express.Router();
 router
     .route("/admin/events")
     .post(isAuthenticatedUser, authorizeRoles("admin"), newEvent);
+
+// 👇 NEW: totals for the stat cards — public, same as getEvents below
+router.route("/events/stats").get(getEventStats);
 
 // Get all events
 router.route("/events").get(getEvents);

@@ -74,7 +74,7 @@ const NewCourse = () => {
     e.preventDefault();
 
     // Validate required fields
-    if (!courseName.trim() || code.length !== 8 || !teacher) {
+    if (!courseName.trim() || code.length !== 9 || !teacher) {
       return toast.error(t("Please fill all required fields correctly"));
     }
 
@@ -142,7 +142,7 @@ const NewCourse = () => {
                 onChange={onChange}
                 label={t("Course Code")}
                 placeholder={t("e.g. MATH101")}
-                maxLength={8}
+                maxLength={9}
                 required
               />
 
@@ -176,7 +176,7 @@ const NewCourse = () => {
 
             {/* Informational note */}
             <AppInfoBox icon="fa-info-circle">
-              <strong>{t("Note")}:</strong> - {t("Course code must be exactly 8 characters.\nThe teacher must be active and will be assigned to this course.")}<br />
+              <strong>{t("Note")}:</strong> - {t("Course code must be exactly 9 characters.\nThe teacher must be active and will be assigned to this course.")}<br />
             </AppInfoBox>
           </AppCard>
         </form>

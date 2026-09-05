@@ -1,14 +1,7 @@
 import express from "express";
-import {
-    newExpense,
-    getExpenses,
-    getExpenseDetails,
-    updateExpense,
-    deleteExpense,
-    getExpensesByCategory,
-    getExpensesByVendor,
-} from "../controllers/expensesController.js";
+
 import { authorizeRoles, isAuthenticatedUser } from "../middlewares/auth.js";
+import { deleteExpense, getExpenseDetails, getExpenses, getExpensesByCategory, getExpensesByVendor, getExpenseStats, newExpense, updateExpense } from "../controllers/expensesController.js";
 
 export const router = express.Router();
 
@@ -21,6 +14,21 @@ router
 router
     .route("/finance/get/expenses")
     .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getExpenses);
+
+// 👇 NEW: totals per category, for the stat cards
+router
+    .route("/finance/expenses/stats")
+    .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getExpenseStats);
+
+// Get expenses by category
+router
+    .route("/expenses/category/:category")
+    .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getExpensesByCategory);
+
+// Get expenses by vendor
+router
+    .route("/expenses/vendor/:vendor")
+    .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getExpensesByVendor);
 
 // Get single expense details
 router
@@ -36,15 +44,5 @@ router
 router
     .route("/expenses/:id")
     .delete(isAuthenticatedUser, authorizeRoles("admin", "finance"), deleteExpense);
-
-// Get expenses by category
-router
-    .route("/expenses/category/:category")
-    .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getExpensesByCategory);
-
-// Get expenses by vendor
-router
-    .route("/expenses/vendor/:vendor")
-    .get(isAuthenticatedUser, authorizeRoles("admin", "finance"), getExpensesByVendor);
 
 export default router;

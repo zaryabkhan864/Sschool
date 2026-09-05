@@ -4,6 +4,7 @@ import { useGetGradesQuery } from "../../redux/api/gradesApi";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
 import Slider from "../layout/Slider";
+import Loader from "../layout/Loader";
 import { useTranslation } from "react-i18next";
 import {
   AcademicCapIcon,
@@ -167,9 +168,7 @@ const TeacherDashboard = () => {
   if (isLoading) {
     return (
       <AdminLayout>
-        <div className="p-8 flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
+        <Loader />
       </AdminLayout>
     );
   }

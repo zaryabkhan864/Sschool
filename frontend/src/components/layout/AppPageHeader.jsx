@@ -1,23 +1,22 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import AppButton from "./AppButton";
+
 const AppPageHeader = ({ title, subtitle, backUrl }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   return (
     <div className="flex items-center justify-between mb-6 px-2">
       <div>
-        <h1 className="text-xl-custom font-bold text-gray-800">{title}</h1>
-        {subtitle && <p className="text-xs-custom text-gray-500 mt-0.5">{subtitle}</p>}
+        <h1 className="text-xl-custom font-bold text-ink-900">{title}</h1>
+        {subtitle && <p className="text-xs-custom text-ink-400 mt-0.5">{subtitle}</p>}
       </div>
-      <button
-        onClick={() => navigate(backUrl)}
-        className="px-4 py-2 text-xs-custom font-semibold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 shadow-soft transition-all active:scale-95"
-      >
-        <i className="fa fa-arrow-left mr-1.5"></i> {t("Back")}
-      </button>
+      {/* 👇 Now uses the shared AppButton (backUrl-only → its "secondary"
+          Back-button defaults) instead of a hand-rolled button, so this
+          header and every other Back/Cancel button in the app always
+          look identical and stay in sync with the theme automatically. */}
+      <AppButton backUrl={backUrl} />
     </div>
   );
 };

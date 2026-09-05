@@ -1,14 +1,10 @@
 // frontend/src/redux/api/financeDashboardApi.js
-//
-// NEW FILE — separate api slice, doesn't touch feesApi/salariesApi/etc.
-// Only powers the "Recent Transactions" panel on the Finance Dashboard.
-
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export const financeDashboardApi = createApi({
     reducerPath: "financeDashboardApi",
     baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" }),
-    tagTypes: ["RecentActivity", "PayrollOverview"],
+    tagTypes: ["RecentActivity", "PayrollOverview", "AcademicYearSummary"],
     endpoints: (builder) => ({
         getRecentFinanceActivity: builder.query({
             query: (limit = 8) => ({
@@ -25,10 +21,19 @@ export const financeDashboardApi = createApi({
             query: () => "/finance/dashboard/payroll-overview",
             providesTags: ["PayrollOverview"],
         }),
+
+        // 👇 NEW: "how much has come in, how much is still owed to us,
+        // how much have we paid out, how much do we still owe" — for the
+        // whole selected academic year, per currency.
+        getAcademicYearFinanceSummary: builder.query({
+            query: () => "/finance/dashboard/academic-year-summary",
+            providesTags: ["AcademicYearSummary"],
+        }),
     }),
 });
 
 export const {
     useGetRecentFinanceActivityQuery,
     useGetPayrollOverviewQuery,
+    useGetAcademicYearFinanceSummaryQuery, // 👈 NEW
 } = financeDashboardApi;

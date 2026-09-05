@@ -14,15 +14,18 @@ import {
 } from "recharts";
 import AdminLayout from "../layout/AdminLayout";
 import MetaData from "../layout/MetaData";
+import Loader from "../layout/Loader";
 import { useGetRevenueVsExpensesQuery } from "../../redux/api/revenueApi";
 import {
   useGetFeesByCurrencyQuery,
   useGetUpcomingFeeDuesQuery,
+  useGetFeesByFeeTypeQuery, // 👈 NEW
 } from "../../redux/api/feesApi";
 import { useGetUnpaidSalariesQuery } from "../../redux/api/salaryApi";
 import {
   useGetRecentFinanceActivityQuery,
   useGetPayrollOverviewQuery,
+  useGetAcademicYearFinanceSummaryQuery, // 👈 NEW
 } from "../../redux/api/financeDashboardApi";
 import { useTranslation } from "react-i18next";
 import {
@@ -38,44 +41,89 @@ import {
   ClockIcon,
   UserGroupIcon,
   BriefcaseIcon,
+  // 👇 NEW: one icon per fee type, for the "Fees by Type" breakdown
+  UserPlusIcon,
+  BookOpenIcon,
+  ClipboardDocumentCheckIcon,
+  TruckIcon,
+  BuildingLibraryIcon,
 } from "@heroicons/react/24/outline";
+
+// 👇 NEW: fixed order + icon/color per fee type, so the 5 boxes always
+// appear in the same place regardless of which types have data.
+const FEE_TYPE_META = {
+  Admission: { icon: UserPlusIcon, color: "from-sky-600 to-blue-400" },
+  Tuition: { icon: BookOpenIcon, color: "from-emerald-600 to-green-400" },
+  Exam: { icon: ClipboardDocumentCheckIcon, color: "from-amber-500 to-orange-400" },
+  // Transport called out in its own color on purpose — it may be run by
+  // a third party the school doesn't actually keep this money from, so
+  // finance should be able to eyeball it separately from the rest at a
+  // glance, not just by reading the label.
+  Transport: { icon: TruckIcon, color: "from-purple-600 to-violet-400" },
+  Hostel: { icon: BuildingLibraryIcon, color: "from-rose-600 to-pink-400" },
+};
 
 const MONTH_NAMES = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
+// e.g. [{currency:"USD",total:5000},{currency:"TRY",total:12000}] -> "USD 5,000, TRY 12,000"
+const formatCurrencyList = (rows) =>
+  rows && rows.length
+    ? rows.map((r) => `${r.currency} ${r.total.toLocaleString()}`).join(", ")
+    : "0";
+
+// 👇 NEW: { USD: 1234.56, TRY: 42345.6 } -> "≈ $1,235 · ₺42,346" — the
+// combined, live-converted view shown under each raw per-currency list,
+// so mixed-currency fees + TRY salaries/expenses can actually be
+// compared against each other.
+const formatConverted = (converted) => {
+  if (!converted) return null;
+  return `≈ $${converted.USD.toLocaleString(undefined, { maximumFractionDigits: 0 })} · ₺${converted.TRY.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+};
+
 const FinanceDashboard = () => {
   const { t } = useTranslation();
 
   // Monthly revenue/expenses/profit series — real, from Revenue + Fees + Salary + Expense
-  const { data, isLoading, error } = useGetRevenueVsExpensesQuery();
+  const { data, isLoading, error } = useGetRevenueVsExpensesQuery(undefined, { refetchOnMountOrArgChange: true });
 
   // Currency breakdown — real (layout stays "dummy" per design, data is live)
-  const { data: currencyData, isLoading: currencyLoading } = useGetFeesByCurrencyQuery();
+  const { data: currencyData, isLoading: currencyLoading } = useGetFeesByCurrencyQuery(undefined, { refetchOnMountOrArgChange: true });
 
   // NEW: fee installments due soon (real, already existed on the backend, just wasn't wired up)
-  const { data: upcomingDuesData, isLoading: upcomingLoading } = useGetUpcomingFeeDuesQuery(7);
+  const { data: upcomingDuesData, isLoading: upcomingLoading } = useGetUpcomingFeeDuesQuery(7, { refetchOnMountOrArgChange: true });
 
   // NEW: staff/teachers whose salary hasn't been paid yet
   // NOTE: backend returns a 404 when the list is empty (by design, same as getOverdueFees),
   // so we treat an error here as "nothing pending" rather than a real failure.
-  const { data: unpaidSalariesData, isLoading: unpaidSalariesLoading } = useGetUnpaidSalariesQuery();
+  const { data: unpaidSalariesData, isLoading: unpaidSalariesLoading } = useGetUnpaidSalariesQuery(undefined, { refetchOnMountOrArgChange: true });
 
   // NEW: merged Fees/Expenses/Salaries feed powering "Recent Transactions"
-  const { data: recentActivityData, isLoading: recentActivityLoading } = useGetRecentFinanceActivityQuery(8);
+  const { data: recentActivityData, isLoading: recentActivityLoading } = useGetRecentFinanceActivityQuery(8, { refetchOnMountOrArgChange: true });
 
   // NEW: projected/committed monthly payroll, sourced from active EmployeeContract.salary
   // (this is what finance is committed to pay, decided when each contract was created —
   // different from the Salary collection, which tracks what's already been paid out)
-  const { data: payrollData, isLoading: payrollLoading } = useGetPayrollOverviewQuery();
+  const { data: payrollData, isLoading: payrollLoading } = useGetPayrollOverviewQuery(undefined, { refetchOnMountOrArgChange: true });
 
-  if (isLoading || currencyLoading) {
+  // 👇 NEW: whole-academic-year collected / due / paid-out / payable-pending —
+  // this is what actually answers "how much has come in, how much is
+  // still owed to us, how much have we paid out, how much do we still
+  // owe", instead of the always-zero-prone "this month vs last month"
+  // comparison the top cards used to show.
+  const { data: yearSummaryData, isLoading: yearSummaryLoading } = useGetAcademicYearFinanceSummaryQuery(undefined, { refetchOnMountOrArgChange: true });
+
+  // 👇 NEW: per-fee-type breakdown (Admission/Tuition/Exam/Transport/
+  // Hostel), each with its own Collected + Due totals — see the 5 cards
+  // rendered further down.
+  const { data: feesByTypeData, isLoading: feesByTypeLoading } = useGetFeesByFeeTypeQuery(undefined, { refetchOnMountOrArgChange: true });
+
+  if (isLoading || currencyLoading || yearSummaryLoading || feesByTypeLoading) {
     return (
       <AdminLayout>
-        <div className="p-8 flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
+        <Loader />
       </AdminLayout>
     );
   }
@@ -106,18 +154,6 @@ const FinanceDashboard = () => {
     previousMonthRevenue: previousMonth?.totalRevenue || 0,
     previousMonthExpenses: previousMonth?.totalExpenses || 0,
   };
-
-  const revenueGrowth = financialData.previousMonthRevenue
-    ? (((financialData.totalRevenue - financialData.previousMonthRevenue) / financialData.previousMonthRevenue) * 100).toFixed(1)
-    : 0;
-
-  const expensesGrowth = financialData.previousMonthExpenses
-    ? (((financialData.totalExpenses - financialData.previousMonthExpenses) / financialData.previousMonthExpenses) * 100).toFixed(1)
-    : 0;
-
-  const profitMargin = financialData.totalRevenue
-    ? ((financialData.netProfit / financialData.totalRevenue) * 100).toFixed(1)
-    : "0.0";
 
   const pieChartData = [
     { name: t("Revenue"), value: financialData.totalRevenue, color: "#4CAF50" },
@@ -158,44 +194,76 @@ const FinanceDashboard = () => {
   const payrollByCurrency = payrollData?.payrollByCurrency || [];
   const totalActiveContracts = payrollData?.totalActiveContracts || 0;
 
+  // 👇 NEW: whole-academic-year summary, per currency
+  const yearSummary = yearSummaryData?.summary || { collected: [], due: [], paidOut: [], payablePending: [] };
+  const academicYearName = yearSummaryData?.academicYear?.name;
+
+  // 👇 NEW: per-fee-type breakdown, in the fixed FEE_TYPE_META order
+  // (falls back to an empty collected/due pair for any type the backend
+  // hasn't returned yet, so the 5 boxes are always all present).
+  const byFeeType = Object.keys(FEE_TYPE_META).map((feeType) => {
+    const found = feesByTypeData?.byFeeType?.find((f) => f.feeType === feeType);
+    return found || { feeType, collected: [], due: [] };
+  });
+
+  // 👇 REPLACED: the old 4 cards showed "this month vs last month" and
+  // were $0 whenever the current/previous month had no matched records
+  // (see the getRevenueVsExpenses bug fix). These now answer exactly
+  // what was asked for: how much has come in, how much is still owed to
+  // us, how much has been paid out, and how much is still owed by us —
+  // for the whole academic year, broken out per currency.
   const stats = [
     {
-      label: t("Total Revenue"),
-      value: `$${financialData.totalRevenue.toLocaleString()}`,
+      label: t("Collected This Year"),
+      value: formatCurrencyList(yearSummary.collected),
+      converted: formatConverted(yearSummary.converted?.collected),
       icon: <CurrencyDollarIcon className="w-8 h-8" />,
       color: "from-emerald-600 to-green-400",
       shadow: "shadow-emerald-200",
-      growth: revenueGrowth,
-      trend: revenueGrowth >= 0 ? "up" : "down",
     },
     {
-      label: t("Total Expenses"),
-      value: `$${financialData.totalExpenses.toLocaleString()}`,
+      label: t("Still Due This Year"),
+      value: formatCurrencyList(yearSummary.due),
+      converted: formatConverted(yearSummary.converted?.due),
+      icon: <ClockIcon className="w-8 h-8" />,
+      color: "from-amber-500 to-orange-400",
+      shadow: "shadow-amber-200",
+    },
+    {
+      label: t("Paid Out This Year"),
+      value: formatCurrencyList(yearSummary.paidOut),
+      converted: formatConverted(yearSummary.converted?.paidOut),
       icon: <ReceiptPercentIcon className="w-8 h-8" />,
       color: "from-rose-600 to-red-400",
       shadow: "shadow-rose-200",
-      growth: expensesGrowth,
-      trend: expensesGrowth >= 0 ? "up" : "down",
     },
     {
-      label: t("Net Profit"),
-      value: `$${financialData.netProfit.toLocaleString()}`,
-      icon: <ArrowTrendingUpIcon className="w-8 h-8" />,
-      color: "from-blue-600 to-cyan-400",
-      shadow: "shadow-blue-200",
-      growth: profitMargin,
-      trend: financialData.netProfit >= 0 ? "up" : "down",
-    },
-    {
-      label: t("Profit Margin"),
-      value: `${profitMargin}%`,
-      icon: <ChartBarIcon className="w-8 h-8" />,
+      label: t("Still Payable This Year"),
+      value: formatCurrencyList(yearSummary.payablePending),
+      converted: formatConverted(yearSummary.converted?.payablePending),
+      icon: <BanknotesIcon className="w-8 h-8" />,
       color: "from-violet-600 to-purple-400",
       shadow: "shadow-violet-200",
-      growth: profitMargin,
-      trend: financialData.netProfit >= 0 ? "up" : "down",
     },
   ];
+
+  // 👇 NEW: "Current Balance" — Collected minus Paid Out, converted (this
+  // is the one figure above that can't be a raw per-currency list, since
+  // it's a subtraction across currencies by nature). Turns red if the
+  // school has paid out more than it's actually collected so far.
+  const currentBalance = yearSummary.currentBalance;
+  const isBalanceNegative = currentBalance && (currentBalance.USD < 0 || currentBalance.TRY < 0);
+  if (currentBalance) {
+    stats.push({
+      label: t("Current Balance"),
+      value: formatConverted(currentBalance) || "—",
+      converted: null,
+      icon: <WalletIcon className="w-8 h-8" />,
+      color: isBalanceNegative ? "from-red-600 to-rose-500" : "from-blue-600 to-indigo-500",
+      shadow: isBalanceNegative ? "shadow-red-200" : "shadow-blue-200",
+      negative: isBalanceNegative,
+    });
+  }
 
   return (
     <AdminLayout>
@@ -208,12 +276,14 @@ const FinanceDashboard = () => {
             {t("Financial Overview")}
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            {t("Track your school's financial performance and activities in real-time.")}
+            {academicYearName
+              ? t("Whole-year totals for {{year}} — updated in real-time.", { year: academicYearName })
+              : t("Track your school's financial performance and activities in real-time.")}
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Stats Grid — whole academic year, per currency */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
           {stats.map((stat, index) => (
             <div
               key={index}
@@ -224,21 +294,15 @@ const FinanceDashboard = () => {
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
                     {stat.label}
                   </p>
-                  <h3 className="text-2xl font-black text-gray-800 mb-2">{stat.value}</h3>
-                  <div className="flex items-center gap-2">
-                    {stat.trend === "up" ? (
-                      <ArrowTrendingUpIcon className="w-4 h-4 text-emerald-500" />
-                    ) : (
-                      <ArrowTrendingDownIcon className="w-4 h-4 text-rose-500" />
-                    )}
-                    <span className={`text-sm font-bold ${stat.trend === "up" ? "text-emerald-600" : "text-rose-600"}`}>
-                      {stat.growth}%
-                    </span>
-                    <span className="text-xs text-gray-500">from last month</span>
-                  </div>
+                  <h3 className={`text-xl font-black mb-2 break-words ${stat.negative ? "text-red-600" : "text-gray-800"}`}>
+                    {stat.value}
+                  </h3>
+                  {stat.converted && (
+                    <p className="text-xs font-semibold text-gray-400">{stat.converted}</p>
+                  )}
                 </div>
                 <div
-                  className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} text-white shadow-lg ${stat.shadow} group-hover:scale-110 transition-transform`}
+                  className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} text-white shadow-lg ${stat.shadow} group-hover:scale-110 transition-transform flex-shrink-0`}
                 >
                   {stat.icon}
                 </div>
@@ -246,6 +310,47 @@ const FinanceDashboard = () => {
               <div className="absolute -bottom-2 -right-2 w-16 h-16 bg-gray-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
             </div>
           ))}
+        </div>
+
+        {/* 👇 NEW: Fees by Type — Admission / Tuition / Exam / Transport /
+            Hostel each get their own box (Collected + Due, per
+            currency). Transport especially benefits from being called
+            out on its own since it may be a third-party service the
+            school doesn't actually keep this revenue from. */}
+        <div className="mb-8">
+          <h2 className="text-lg font-bold text-gray-800 mb-1">{t("Fees by Type")}</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            {t("Collected and still-due amounts broken out per fee type, for the whole academic year")}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+            {byFeeType.map((row) => {
+              const meta = FEE_TYPE_META[row.feeType] || {};
+              const Icon = meta.icon || CurrencyDollarIcon;
+              return (
+                <div
+                  key={row.feeType}
+                  className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300"
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`p-2.5 rounded-xl bg-gradient-to-br ${meta.color || "from-gray-600 to-gray-400"} text-white shadow-md`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <h3 className="font-bold text-gray-800">{t(row.feeType)}</h3>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t("Collected")}</p>
+                      <p className="text-sm font-black text-emerald-600 break-words">{formatCurrencyList(row.collected)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t("Still Due")}</p>
+                      <p className="text-sm font-black text-amber-600 break-words">{formatCurrencyList(row.due)}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Main Content Grid */}

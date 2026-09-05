@@ -1,158 +1,117 @@
-import React, { useEffect, useState } from "react";
-import toast from "react-hot-toast";
+// src/components/finance/salary/NewSalary.jsx
+//
+// "Generate Monthly Salaries" — the entry point for the whole module.
+// Salaries are never typed in by hand here; picking a month+year
+// generates one Unpaid Salary row per active, monthly-paid
+// EmployeeContract — so every salary is always contract-based. Running
+// this again for a month that's already been generated is safe:
+// existing rows are skipped, never duplicated.
+//
+// Campus/Academic Year are NOT picked here — the backend scopes
+// generation from the same cookies every other finance screen uses.
+import React, { useState } from "react";
+import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { useCreateSalaryMutation } from "../../../redux/api/salaryApi";
-
-import MetaData from "../../layout/MetaData";
-import { useGetUserByTypeQuery } from "../../../redux/api/authApi";
 import { useTranslation } from "react-i18next";
+
 import AdminLayout from "../../layout/AdminLayout";
+import MetaData from "../../layout/MetaData";
+import AppPageHeader from "../../layout/AppPageHeader";
+import AppCard from "../../GUI/AppCard";
+import AppInput from "../../GUI/AppInput";
+import AppButton from "../../GUI/AppButton";
+import SelectField from "./SelectField";
+import { useGenerateMonthlySalariesMutation } from "../../../redux/api/salaryApi";
+import { MONTH_NAMES, currentMonthName } from "../../../constants/salaryConstants";
 
 const NewSalary = () => {
-    const { t } = useTranslation();
-    const navigate = useNavigate();
-    const [createSalary, { isLoading, error, isSuccess }] = useCreateSalaryMutation();
-    const { data: employeesData, isLoading: employeesLoading } = useGetUserByTypeQuery("employee");
-    const employees = employeesData?.users || [];
+  const { t } = useTranslation();
+  const navigate = useNavigate();
 
-    const [salaryData, setSalaryData] = useState({
-        employeeId: "",
-        amount: "",
-        month: "",
-        status: "Unpaid",
-        paymentDate: "",
-        deductions: "",
-        netSalary: "",
-    });
+  const [month, setMonth] = useState(currentMonthName());
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [lastResult, setLastResult] = useState(null);
 
-    const { employeeId, amount, month, status, paymentDate, deductions, netSalary } = salaryData;
+  const [generateMonthlySalaries, { isLoading }] = useGenerateMonthlySalariesMutation();
 
-    useEffect(() => {
-        if (error) {
-            toast.error(error?.data?.message || "Something went wrong!");
-        }
-        if (isSuccess) {
-            toast.success("Salary record created successfully");
-            navigate("/finance/employees/salaries");
-        }
-    }, [error, isSuccess, navigate]);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const result = await generateMonthlySalaries({ month, year: Number(year) }).unwrap();
+      setLastResult(result);
+      toast.success(t("{{created}} salary record(s) generated", { created: result.created }));
+    } catch (err) {
+      toast.error(err?.data?.message || t("Error generating salaries"));
+    }
+  };
 
-    const onChange = (e) => {
-        setSalaryData({ ...salaryData, [e.target.name]: e.target.value });
-    };
+  return (
+    <AdminLayout>
+      <MetaData title={t("Generate Monthly Salaries")} />
 
-    const submitHandler = (e) => {
-        e.preventDefault();
-        console.log("from form salaryData", salaryData)
-        createSalary(salaryData);
-    };
+      {/* Same container class as every other admin/finance page
+          (UpdateEmployeeContract, ListStudents, PaySalary, etc.) —
+          max-w-6xl mx-auto space-y-6, so navigating between screens
+          doesn't jump width. */}
+      <div className="max-w-6xl mx-auto space-y-6">
+        <AppPageHeader
+          title={t("Generate Monthly Salaries")}
+          subtitle={t("Creates one salary record per active, monthly-paid contract for the selected month")}
+          backUrl="/finance/employees/salaries"
+        />
 
-    return (
-        <AdminLayout>
-            <MetaData title={"Create New Salary"} />
-            <div className="flex justify-center items-center pt-5 pb-10">
-                <div className="w-full max-w-7xl">
-                    <h2 className="text-2xl font-semibold mb-6">{t('New Salary')}</h2>
-                    <form onSubmit={submitHandler}>
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">{t('Employee Name')}</label>
-                            <select
-                                name="employeeId" // Change name to employeeId
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                value={employeeId} // Set value to employeeId
-                                onChange={onChange}
-                            >
-                                <option value="" disabled>{t('Select Employee')}</option>
-                                {!employeesLoading && employees.map((emp) => (
-                                    <option key={emp._id} value={emp._id}>{emp.name}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">{t('Amount')}</label>
-                                <input
-                                    type="number"
-                                    name="amount"
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={amount}
-                                    onChange={onChange}
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">{t('Month')}</label>
-                                <input
-                                    type="month"
-                                    name="month"
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={month}
-                                    onChange={onChange}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">{t('Deductions')}</label>
-                                <input
-                                    type="number"
-                                    name="deductions"
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={deductions}
-                                    onChange={onChange}
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">{t('Net Salary')}</label>
-                                <input
-                                    type="number"
-                                    name="netSalary"
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={netSalary}
-                                    onChange={onChange}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">{t('Status')}</label>
-                                <select
-                                    name="status"
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={status}
-                                    onChange={onChange}
-                                >
-                                    <option value="Unpaid">{t('Unpaid')}</option>
-                                    <option value="Paid">{t('Paid')}</option>
-                                    <option value="Pending">{t('Pending')}</option>
-                                </select>
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700">{t('Payment Date')}</label>
-                                <input
-                                    type="date"
-                                    name="paymentDate"
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={paymentDate}
-                                    onChange={onChange}
-                                />
-                            </div>
-                        </div>
-
-                        <button
-                            type="submit"
-                            className={`w-full py-2 text-white font-semibold rounded-md ${isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"} focus:outline-none focus:ring focus:ring-blue-300`}
-                            disabled={isLoading}
-                        >
-                            {isLoading ? "Creating..." : "CREATE"}
-                        </button>
-                    </form>
-                </div>
+        <form onSubmit={handleSubmit}>
+          <AppCard
+            title={t("Select Period")}
+            icon="fa-calendar-alt"
+            footer={
+              <div className="flex justify-end gap-2">
+                <AppButton backUrl="/finance/employees/salaries" />
+                <AppButton
+                  type="submit"
+                  label={t("Generate Salaries")}
+                  loadingLabel={t("Generating...")}
+                  isLoading={isLoading}
+                  icon="fa-magic"
+                />
+              </div>
+            }
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <SelectField
+                label={t("Month")}
+                value={month}
+                onChange={setMonth}
+                options={MONTH_NAMES}
+                optionLabel={(m) => t(m)}
+              />
+              <AppInput
+                label={t("Year")}
+                type="number"
+                name="year"
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                required
+              />
             </div>
-        </AdminLayout>
-    );
+          </AppCard>
+        </form>
+
+        {lastResult && (
+          <AppCard title={t("Generated")} icon="fa-check-circle">
+            <p className="text-sm-custom text-dark-light">{lastResult.message}</p>
+            <div className="flex justify-end mt-4">
+              <AppButton
+                label={t("View Monthly Salaries")}
+                icon="fa-list"
+                onClick={() => navigate(`/finance/employees/salaries?month=${month}&year=${year}`)}
+              />
+            </div>
+          </AppCard>
+        )}
+      </div>
+    </AdminLayout>
+  );
 };
 
 export default NewSalary;

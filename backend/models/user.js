@@ -198,7 +198,15 @@ const userSchema = new mongoose.Schema(
     resetPasswordToken: String,
     resetPasswordExpire: Date,
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    // 👇 NEW: lets computed fields like the `fullName` virtual below show
+    // up whenever a User document is serialized (res.json(...), or a
+    // .populate() elsewhere) — nothing existing changes, this only adds
+    // extra derived fields on top of what's already there.
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
 );
 
 // ====================== INDEXES ======================
@@ -236,6 +244,15 @@ userSchema.methods.getResetPasswordToken = function () {
 userSchema.methods.hasActiveEmployment = function () {
   return !!this.currentContract;
 };
+
+// 👇 NEW: computed, not stored — `${firstName} ${middleName ? middleName
+// + " " : ""}${lastName}`.trim(), the exact same formula every
+// getFullName() helper across the frontend was already doing by hand.
+// Read-only, doesn't touch any existing field, query, or validation.
+userSchema.virtual("fullName").get(function () {
+  const { firstName = "", middleName = "", lastName = "" } = this;
+  return `${firstName} ${middleName ? middleName + " " : ""}${lastName}`.trim();
+});
 
 userSchema.statics.findExistingStudent = async function ({ email, nationalID }) {
   if (email) {

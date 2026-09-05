@@ -16,6 +16,12 @@ import ListFees from "../finance/fees/ListFees";
 import ListDues from "../finance/fees/ListDues";
 import NewFees from "../finance/fees/NewFees";
 
+// 👇 NEW: rest of the salary module (Generate/List already existed above)
+import PaySalary from "../finance/salary/PaySalary";
+import PaidSalariesList from "../finance/salary/PaidSalariesList";
+import TeacherSalaryLookup from "../finance/salary/TeacherSalaryLookup";
+import SalaryReceiptView from "../finance/salary/SalaryReceiptView";
+
 
 const financeRoutes = () => {
     return (
@@ -46,6 +52,45 @@ const financeRoutes = () => {
                     </ProtectedRoute>
                 }
             />
+
+            {/* ============== NEW: rest of the Salary module ============== */}
+            {/* Pay a specific employee's unpaid month(s); ?employeeId=&salaryIds= */}
+            <Route
+                path="/finance/salaries/pay"
+                element={
+                    <ProtectedRoute finance={true} admin={true}>
+                        <PaySalary />
+                    </ProtectedRoute>
+                }
+            />
+            {/* Full paid-salary history across every employee and month */}
+            <Route
+                path="/finance/salaries/paid"
+                element={
+                    <ProtectedRoute finance={true} admin={true}>
+                        <PaidSalariesList />
+                    </ProtectedRoute>
+                }
+            />
+            {/* Look up / deduct one teacher's salary regardless of month */}
+            <Route
+                path="/finance/salaries/lookup"
+                element={
+                    <ProtectedRoute finance={true} admin={true}>
+                        <TeacherSalaryLookup />
+                    </ProtectedRoute>
+                }
+            />
+            {/* Printable receipt for one already-paid salary record */}
+            <Route
+                path="/finance/salaries/receipt/:salaryId"
+                element={
+                    <ProtectedRoute finance={true} admin={true}>
+                        <SalaryReceiptView />
+                    </ProtectedRoute>
+                }
+            />
+
             <Route
                 path="/finance/expenses"
                 element={

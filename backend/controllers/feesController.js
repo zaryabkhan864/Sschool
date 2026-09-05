@@ -7,7 +7,10 @@ import User from "../models/user.js";
 import Salary from "../models/salaries.js";
 import Expense from "../models/expenses.js";
 import Revenue from "../models/revenue.js";
-import mongoose from "mongoose"; // ← Yahaan add karo
+import mongoose from "mongoose"; 
+import AcademicYear from "../models/academicYear.js"; // add if not already imported
+
+const FEE_TYPES = ["Admission", "Tuition", "Exam", "Transport", "Hostel"];
 // Create new fee entry => /api/v1/fees
 export const newFee = catchAsyncErrors(async (req, res, next) => {
     const { campus, selectedYear } = req.cookies;
@@ -310,11 +313,25 @@ export const getFeesStats = catchAsyncErrors(async (req, res, next) => {
 
 // Get Revenue Vs Expenses => /api/v1/fees/stats/revenue-vs-expenses
 export const getRevenueVsExpenses = catchAsyncErrors(async (req, res, next) => {
-    const { campus, selectedYear } = req.cookies;
+    const { campus, academicYear } = req.cookies; // 👈 FIX: was `selectedYear`
 
-    // Calculate monthly revenue
+    const campusObjId =
+        campus && mongoose.Types.ObjectId.isValid(campus) ? new mongoose.Types.ObjectId(campus) : null;
+    const academicYearObjId =
+        academicYear && mongoose.Types.ObjectId.isValid(academicYear)
+            ? new mongoose.Types.ObjectId(academicYear)
+            : null;
+
+    const scopeMatch = {};
+    if (campusObjId) scopeMatch.campus = campusObjId;
+    if (academicYearObjId) scopeMatch.academicYear = academicYearObjId;
+
+    // Revenue has no campus/academicYear field on its schema at all, so
+    // it can't be scoped the same way — left unfiltered for now (grabs
+    // every Revenue record regardless of campus/year). If you want this
+    // scoped too, campus/academicYear fields need to be added to
+    // models/revenue.js first — happy to do that if you want it.
     const monthlyRevenue = await Revenue.aggregate([
-        { $match: { campus, year: selectedYear } },
         {
             $group: {
                 _id: { month: { $month: "$date" }, year: { $year: "$date" } },
@@ -324,33 +341,36 @@ export const getRevenueVsExpenses = catchAsyncErrors(async (req, res, next) => {
         { $sort: { "_id.year": 1, "_id.month": 1 } }
     ]);
 
-    // Calculate monthly fees
+    // Fees: only what's actually been PAID counts as revenue, grouped by
+    // when it was paid — not dueDate, and not Pending/Overdue amounts
+    // (that's money still owed, not money received).
     const monthlyFees = await Fees.aggregate([
-        { $match: { campus, year: selectedYear } },
+        { $match: { ...scopeMatch, status: "Paid" } },
         {
             $group: {
-                _id: { month: { $month: "$dueDate" }, year: { $year: "$dueDate" } },
+                _id: { month: { $month: "$paymentDate" }, year: { $year: "$paymentDate" } },
                 totalFees: { $sum: "$amount" }
             }
         },
         { $sort: { "_id.year": 1, "_id.month": 1 } }
     ]);
 
-    // Calculate monthly salaries
+    // Salaries: only what's actually been PAID counts as an expense,
+    // using netSalary (what actually left the bank after deductions) —
+    // not the gross amount, and not Unpaid rows.
     const monthlySalaries = await Salary.aggregate([
-        { $match: { campus, year: selectedYear } },
+        { $match: { ...scopeMatch, status: "Paid" } },
         {
             $group: {
                 _id: { month: { $month: "$paymentDate" }, year: { $year: "$paymentDate" } },
-                totalSalaries: { $sum: "$amount" }
+                totalSalaries: { $sum: "$netSalary" }
             }
         },
         { $sort: { "_id.year": 1, "_id.month": 1 } }
     ]);
 
-    // Calculate monthly other expenses
     const monthlyOtherExpenses = await Expense.aggregate([
-        { $match: { campus, year: selectedYear } },
+        { $match: scopeMatch },
         {
             $group: {
                 _id: { month: { $month: "$date" }, year: { $year: "$date" } },
@@ -1143,5 +1163,75 @@ export const getPaidDuesByStudent = catchAsyncErrors(async (req, res, next) => {
         total,
         ...(paginationMeta && { pagination: paginationMeta }),
         paidDues: rows,
+    });
+});
+export const getFeesByFeeType = catchAsyncErrors(async (req, res, next) => {
+    const { campus: cookieCampus } = req.cookies;
+    let academicYear = req.cookies.academicYear;
+
+    let academicYearDoc = null;
+    if (academicYear && mongoose.Types.ObjectId.isValid(academicYear)) {
+        academicYearDoc = await AcademicYear.findById(academicYear);
+    }
+    if (!academicYearDoc) {
+        academicYearDoc = await AcademicYear.findOne({ isCurrent: true });
+        academicYear = academicYearDoc?._id;
+    }
+
+    if (!academicYear) {
+        return res.status(200).json({
+            success: true,
+            academicYear: null,
+            byFeeType: FEE_TYPES.map((feeType) => ({ feeType, collected: [], due: [] })),
+        });
+    }
+
+    // aggregate() needs real ObjectId instances, not the raw cookie
+    // strings — same casting rule as getAcademicYearFinanceSummary.
+    const academicYearObjId = new mongoose.Types.ObjectId(academicYear);
+    const campusObjId =
+        cookieCampus && mongoose.Types.ObjectId.isValid(cookieCampus)
+            ? new mongoose.Types.ObjectId(cookieCampus)
+            : null;
+
+    const match = { academicYear: academicYearObjId };
+    if (campusObjId) match.campus = campusObjId;
+
+    const rows = await Fees.aggregate([
+        { $match: match },
+        {
+            $group: {
+                _id: { feeType: "$feeType", currency: "$currency", status: "$status" },
+                total: { $sum: "$amount" },
+            },
+        },
+    ]);
+
+    const byFeeType = {};
+    FEE_TYPES.forEach((feeType) => {
+        byFeeType[feeType] = { collected: {}, due: {} };
+    });
+
+    rows.forEach((row) => {
+        const { feeType, currency, status } = row._id;
+        if (!byFeeType[feeType]) byFeeType[feeType] = { collected: {}, due: {} };
+        const bucket = status === "Paid" ? "collected" : ["Pending", "Overdue"].includes(status) ? "due" : null;
+        if (!bucket) return;
+        byFeeType[feeType][bucket][currency] = (byFeeType[feeType][bucket][currency] || 0) + row.total;
+    });
+
+    const toCurrencyList = (obj) =>
+        Object.entries(obj).map(([currency, total]) => ({ currency, total: Math.round(total * 100) / 100 }));
+
+    const result = FEE_TYPES.map((feeType) => ({
+        feeType,
+        collected: toCurrencyList(byFeeType[feeType].collected),
+        due: toCurrencyList(byFeeType[feeType].due),
+    }));
+
+    res.status(200).json({
+        success: true,
+        academicYear: { id: academicYear, name: academicYearDoc?.name || academicYearDoc?.year || null },
+        byFeeType: result,
     });
 });

@@ -1,163 +1,207 @@
+// src/components/finance/expenses/NewExpenses.jsx
+//
+// Create or edit a one-off expense record (utility bills, maintenance,
+// books, furniture, events...). Same screen handles both: with
+// ?id=<expenseId> in the URL it loads and edits that record, otherwise
+// it creates a new one. audit.createdBy/updatedBy are stamped
+// server-side from the logged-in user — nothing to pick here.
 import React, { useEffect, useState } from "react";
-import toast from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
-import { useCreateExpenseMutation } from "../../../redux/api/expensesApi";
-import { useGetCampusQuery } from "../../../redux/api/campusApi";
-
-
-import MetaData from "../../layout/MetaData";
+import { toast } from "react-hot-toast";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+
 import AdminLayout from "../../layout/AdminLayout";
+import MetaData from "../../layout/MetaData";
+import AppPageHeader from "../../layout/AppPageHeader";
+import Loader from "../../layout/Loader";
+import AppCard from "../../GUI/AppCard";
+import AppInput from "../../GUI/AppInput";
+import AppButton from "../../GUI/AppButton";
+import SelectField from "../../GUI/SelectField";
+
+import {
+  useCreateExpenseMutation,
+  useUpdateExpenseMutation,
+  useGetExpenseDetailsQuery,
+} from "../../../redux/api/expensesApi";
+import { EXPENSE_CATEGORIES, EXPENSE_PAYMENT_METHODS } from "../../../constants/expenseConstants";
+
+const todayISO = () => new Date().toISOString().split("T")[0];
+
+const emptyExpense = {
+  category: EXPENSE_CATEGORIES[0],
+  amount: "",
+  date: todayISO(),
+  vendor: "",
+  description: "",
+  paymentMethod: EXPENSE_PAYMENT_METHODS[0],
+  reference: "",
+};
 
 const NewExpenses = () => {
-    const { t } = useTranslation();
-    const navigate = useNavigate();
-    const [createExpense, { isLoading, error, isSuccess }] = useCreateExpenseMutation();
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const expenseId = searchParams.get("id");
+  const isEditMode = Boolean(expenseId);
 
-  const { data: campusData, isLoading: campusLoading } = useGetCampusQuery({paginate: false});
+  const [expense, setExpense] = useState(emptyExpense);
 
+  const { data: expenseDetails, isLoading: detailsLoading } = useGetExpenseDetailsQuery(expenseId, {
+    skip: !isEditMode,
+  });
 
-    const [expenseData, setExpenseData] = useState({
-        category: "",
-        amount: "",
-        date: new Date().toISOString().split("T")[0], // Default to today's date
-        description: "",
-        vendor: "",
-        campus:"",
-    });
+  const [createExpense, { isLoading: isCreating }] = useCreateExpenseMutation();
+  const [updateExpense, { isLoading: isUpdating }] = useUpdateExpenseMutation();
 
-    const { category, amount, date, description, vendor, campus } = expenseData;
+  useEffect(() => {
+    if (isEditMode && expenseDetails?.expense) {
+      const e = expenseDetails.expense;
+      setExpense({
+        category: e.category,
+        amount: e.amount,
+        date: e.date ? new Date(e.date).toISOString().split("T")[0] : todayISO(),
+        vendor: e.vendor || "",
+        description: e.description || "",
+        paymentMethod: e.paymentMethod || EXPENSE_PAYMENT_METHODS[0],
+        reference: e.reference || "",
+      });
+    }
+  }, [expenseDetails, isEditMode]);
 
-    useEffect(() => {
-        if (error) {
-            toast.error(error?.data?.message || "Something went wrong!");
-        }
+  const onChange = (field, value) => {
+    setExpense((prev) => ({ ...prev, [field]: value }));
+  };
 
-        if (isSuccess) {
-            toast.success("Expense record created successfully");
-            navigate("/finance/expenses");
-        }
-    }, [error, isSuccess, navigate]);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-    const onChange = (e) => {
-        setExpenseData({ ...expenseData, [e.target.name]: e.target.value });
+    if (!expense.category || !expense.amount || Number(expense.amount) <= 0) {
+      return toast.error(t("Please select a category and enter a valid amount"));
+    }
+
+    const payload = {
+      category: expense.category,
+      amount: Number(expense.amount),
+      date: expense.date,
+      vendor: expense.vendor || undefined,
+      description: expense.description || undefined,
+      paymentMethod: expense.paymentMethod,
+      reference: expense.reference || undefined,
     };
 
-    const submitHandler = (e) => {
-        e.preventDefault();
-        createExpense(expenseData);
-    };
+    try {
+      if (isEditMode) {
+        await updateExpense({ id: expenseId, ...payload }).unwrap();
+        toast.success(t("Expense updated successfully"));
+      } else {
+        await createExpense(payload).unwrap();
+        toast.success(t("Expense recorded successfully"));
+      }
+      navigate("/finance/expense/List");
+    } catch (err) {
+      toast.error(err?.data?.message || t("Error saving expense"));
+    }
+  };
 
-    return (
-        <AdminLayout>
-            <MetaData title={"Create New Expense"} />
-            <div className="flex justify-center items-center pt-5 pb-10">
-                <div className="w-full max-w-7xl">
-                    <h2 className="text-2xl font-semibold mb-6">{t('New Expense')}</h2>
-                    <form onSubmit={submitHandler}>
-                    <div className="mb-4">
-                <label
-                  htmlFor="campus_field"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {t('Campus')}
-                </label>
-                <select
-                  type="text"
-                  id="campus_field"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  name="campus"
-                  value={campus}
-                  onChange={onChange}
-                  disabled={campusLoading}
+  if (isEditMode && detailsLoading) return <Loader />;
 
-                >
-                  <option value="">
-                    Select {t('Campus')}                    
-                  </option>
-                  {campusData?.campus?.map(({ name, _id }) => (
-                    <option key={name} value={_id}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
+  return (
+    <AdminLayout>
+      <MetaData title={isEditMode ? t("Edit Expense") : t("New Expense")} />
+
+      <div className="max-w-6xl mx-auto space-y-6">
+        <AppPageHeader
+          title={isEditMode ? t("Edit Expense") : t("New Expense")}
+          subtitle={t("Record a one-off school expense — utilities, maintenance, supplies, events")}
+          backUrl="/finance/expense/List"
+        />
+
+        <form onSubmit={handleSubmit}>
+          <AppCard
+            title={t("Expense Details")}
+            icon="fa-file-invoice"
+            footer={
+              <div className="flex justify-end gap-2">
+                <AppButton backUrl="/finance/expense/List" />
+                <AppButton
+                  type="submit"
+                  label={isEditMode ? t("Save Changes") : t("Record Expense")}
+                  loadingLabel={isEditMode ? t("Saving...") : t("Recording...")}
+                  isLoading={isEditMode ? isUpdating : isCreating}
+                  icon="fa-check"
+                />
               </div>
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">{t('Category')}</label>
-                            <select
-                                name="category"
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                value={category}
-                                onChange={onChange}
-                                required
-                            >
-                                <option value="" disabled>{t('Select Category')}</option>
-                                <option value="Electricity">{t('Electricity')}</option>
-                                <option value="Maintenance">{t('Maintenance')}</option>
-                                <option value="Books">{t('Books')}</option>
-                                <option value="Furniture">{t('Furniture')}</option>
-                                <option value="Events">{t('Events')}</option>
-                            </select>
-                        </div>
-
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">{t('Amount')}</label>
-                            <input
-                                type="number"
-                                name="amount"
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                value={amount}
-                                onChange={onChange}
-                                required
-                            />
-                        </div>
-
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">{t('Date')}</label>
-                            <input
-                                type="date"
-                                name="date"
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                value={date}
-                                onChange={onChange}
-                                required
-                            />
-                        </div>
-
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">{t('Description')}</label>
-                            <textarea
-                                name="description"
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                value={description}
-                                onChange={onChange}
-                            />
-                        </div>
-
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">{t('Vendor')}</label>
-                            <input
-                                type="text"
-                                name="vendor"
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                value={vendor}
-                                onChange={onChange}
-                                required
-                            />
-                        </div>
-
-                        <button
-                            type="submit"
-                            className={`w-full py-2 text-white font-semibold rounded-md ${isLoading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"} focus:outline-none focus:ring focus:ring-blue-300`}
-                            disabled={isLoading}
-                        >
-                            {isLoading ? "Creating..." : "CREATE"}
-                        </button>
-                    </form>
-                </div>
+            }
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <SelectField
+                label={t("Category")}
+                value={expense.category}
+                onChange={(val) => onChange("category", val)}
+                options={EXPENSE_CATEGORIES}
+                optionLabel={(c) => t(c)}
+              />
+              <AppInput
+                label={t("Amount")}
+                type="number"
+                step="0.01"
+                min="0.01"
+                name="amount"
+                value={expense.amount}
+                onChange={(e) => onChange("amount", e.target.value)}
+                required
+              />
+              <AppInput
+                label={t("Date")}
+                type="date"
+                name="date"
+                value={expense.date}
+                onChange={(e) => onChange("date", e.target.value)}
+                required
+              />
             </div>
-        </AdminLayout>
-    );
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              <AppInput
+                label={t("Vendor")}
+                name="vendor"
+                value={expense.vendor}
+                onChange={(e) => onChange("vendor", e.target.value)}
+                placeholder={t("Optional")}
+              />
+              <SelectField
+                label={t("Payment Method")}
+                value={expense.paymentMethod}
+                onChange={(val) => onChange("paymentMethod", val)}
+                options={EXPENSE_PAYMENT_METHODS}
+                optionLabel={(m) => t(m)}
+              />
+              <AppInput
+                label={t("Reference / Invoice No.")}
+                name="reference"
+                value={expense.reference}
+                onChange={(e) => onChange("reference", e.target.value)}
+                placeholder={t("Optional")}
+              />
+            </div>
+
+            <div className="mt-4">
+              <AppInput
+                label={t("Description")}
+                type="textarea"
+                rows={3}
+                name="description"
+                value={expense.description}
+                onChange={(e) => onChange("description", e.target.value)}
+                placeholder={t("Optional notes about this expense")}
+              />
+            </div>
+          </AppCard>
+        </form>
+      </div>
+    </AdminLayout>
+  );
 };
 
 export default NewExpenses;

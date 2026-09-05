@@ -6,11 +6,29 @@ import { useGetEventsQuery } from "../../redux/api/eventApi";
 import Loader from "./Loader";
 import { format } from "date-fns";
 
+// Used whenever an event has no uploaded image yet — keeps the card
+// layout intact instead of a broken <img>.
+const FALLBACK_IMAGE = "/images/trip.jpg";
+
 const Slider = () => {
   const { data, isLoading } = useGetEventsQuery();
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   if (isLoading) return <Loader />;
+
+  const events = data?.events || [];
+
+  // 👇 FIX: OwlCarousel clones/duplicates existing slides to pad out to
+  // whatever `items` count you ask for, whenever there are FEWER real
+  // items than that — with only 1 event and items={5} (or 3), it was
+  // rendering that same single event 3-5 times to fill the row. Cap
+  // every breakpoint's item count at the actual number of events, and
+  // only enable `loop` once there are genuinely more events than fit on
+  // screen at once (looping 1-2 real items is meaningless and is what
+  // was triggering the clone-padding).
+  const maxVisible = 3;
+  const effectiveItems = Math.max(1, Math.min(maxVisible, events.length));
+  const shouldLoop = events.length > effectiveItems;
 
   const handleViewDetails = (event) => {
     setSelectedEvent(event);
@@ -25,31 +43,34 @@ const Slider = () => {
       <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">
         Events
       </h1>
-      <OwlCarousel
-        className="owl-theme lg:py-5 md:py-5"
-        loop
-        margin={10}
-        autoplay={true}
-        items={5}
-        dots={false}
-        center={true}
-        responsive={{
-          0: { items: 1 },
-          640: { items: 2 },
-          1024: { items: 3 },
-          1280: { items: 5 },
-        }}
-      >
-        {data?.events &&
-          data?.events.map((event) => (
+
+      {events.length === 0 ? (
+        <p className="text-center text-gray-400 text-sm">No events to show yet.</p>
+      ) : (
+        <OwlCarousel
+          className="owl-theme lg:py-5 md:py-5"
+          loop={shouldLoop}
+          margin={10}
+          autoplay={shouldLoop}
+          items={effectiveItems}
+          dots={false}
+          center={events.length > 1}
+          responsive={{
+            0: { items: Math.min(1, events.length) },
+            640: { items: Math.min(2, events.length) },
+            1024: { items: Math.min(3, events.length) },
+            1280: { items: Math.min(3, events.length) },
+          }}
+        >
+          {events.map((event) => (
             <div
               className="bg-white shadow-md rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transform transition-transform hover:scale-105 max-w-sm"
-              key={event.id}
+              key={event._id}
             >
               {/* Image Section */}
               <div className="relative">
                 <img
-                  src="/images/trip.jpg"
+                  src={event.image?.url || FALLBACK_IMAGE}
                   alt={event.eventName}
                   className="w-full h-40 object-cover"
                 />
@@ -110,7 +131,8 @@ const Slider = () => {
               </div>
             </div>
           ))}
-      </OwlCarousel>
+        </OwlCarousel>
+      )}
 
       {/* Modal */}
       {selectedEvent && (
@@ -118,7 +140,7 @@ const Slider = () => {
           <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-4">
             <h2 className="text-2xl font-bold">{selectedEvent.eventName}</h2>
             <img
-              src="/images/trip.jpg"
+              src={selectedEvent.image?.url || FALLBACK_IMAGE}
               alt={selectedEvent.eventName}
               className="w-full h-48 object-cover rounded-md"
             />

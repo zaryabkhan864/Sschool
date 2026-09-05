@@ -1,165 +1,274 @@
-import { Pagination, Table } from "flowbite-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import {
-  useDeleteEventMutation,
   useGetEventsQuery,
+  useGetEventStatsQuery,
+  useDeleteEventMutation,
 } from "../../redux/api/eventApi";
+
 import AdminLayout from "../layout/AdminLayout";
 import Loader from "../layout/Loader";
 import MetaData from "../layout/MetaData";
-import dayjs from "dayjs";
-import { useTranslation } from "react-i18next";
+import ConfirmationModal from "../GUI/ConfirmationModal";
+import { DataTableContainer } from "../GUI/DataTableContainer";
+import AppButton from "../GUI/AppButton";
+import AppInput from "../GUI/AppInput";
+import ActionButtons from "../GUI/ActionButtons";
+import FilterDropdown from "../GUI/FilterDropdown";
+import EmptyState from "../GUI/EmptyState";
+import TruncatedCell from "../GUI/TruncatedCell";
+import AppBadge from "../GUI/AppBadge";
+import SelectField from "../GUI/SelectField";
+
+const formatDate = (d) => (d ? new Date(d).toLocaleDateString() : "-");
 
 const ListEvents = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { data, isLoading, error, refetch } = useGetEventsQuery();
-  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth);
+
   const [userRole, setUserRole] = useState("");
-
-  const [
-    deleteEvent,
-    { isLoading: isDeleteLoading, error: deleteError, isSuccess },
-  ] = useDeleteEventMutation();
-
+  const [search, setSearch] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [limit, setLimit] = useState(8);
+  const [isPaidFilter, setIsPaidFilter] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  const [showModal, setShowModal] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState(null);
 
   useEffect(() => {
-    if (error) toast.error(error?.data?.message);
-    if (deleteError) toast.error(deleteError?.data?.message);
-    if (isSuccess) {
-      toast.success("Event Deleted");
+    const timer = setTimeout(() => {
+      setSearchTerm(search);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => setCurrentPage(1), [isPaidFilter, dateFrom, dateTo]);
+
+  const { data: statsData } = useGetEventStatsQuery(undefined, { refetchOnMountOrArgChange: true });
+
+  const { data, isLoading, isFetching, error, refetch } = useGetEventsQuery(
+    {
+      page: currentPage,
+      limit,
+      keyword: searchTerm || undefined,
+      isPaid: isPaidFilter || undefined,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+    },
+    { refetchOnMountOrArgChange: true }
+  );
+
+  const [deleteEvent, { isLoading: isDeleteLoading, error: deleteError, isSuccess: deleteSuccess }] =
+    useDeleteEventMutation();
+
+  useEffect(() => {
+    if (error) toast.error(error?.data?.message || t("Something went wrong"));
+    if (deleteError) toast.error(deleteError?.data?.message || t("Failed to delete event"));
+    if (deleteSuccess) {
+      toast.success(t("Event deleted successfully"));
+      setShowModal(false);
+      setSelectedEventId(null);
       refetch();
     }
-    if (user?.role === "admin") setUserRole(user?.role);
-  }, [error, deleteError, isSuccess, navigate, refetch, user]);
+    if (user?.role === "admin") setUserRole("admin");
+  }, [error, deleteError, deleteSuccess, user, t, refetch]);
 
-  const deleteEventHandler = (id) => {
-    deleteEvent(id);
+  const rows = data?.events || [];
+  const paginationMeta = data?.pagination || {
+    total: data?.total ?? rows.length,
+    page: currentPage,
+    limit,
+    totalPages: Math.max(Math.ceil((data?.total ?? rows.length) / limit), 1),
   };
 
-  const filteredEvents = data?.events?.filter((event) =>
-    event?.eventName?.toLowerCase().includes(searchTerm.toLowerCase())
+  const stats = [
+    { label: t("Total Events"), value: statsData?.stats?.total ?? 0, icon: "calendar-alt", color: "blue" },
+    { label: t("Paid Events"), value: statsData?.stats?.paid ?? 0, icon: "dollar-sign", color: "green" },
+    { label: t("Upcoming"), value: statsData?.stats?.upcoming ?? 0, icon: "clock", color: "purple" },
+  ];
+
+  const handleDeleteClick = (id) => {
+    setSelectedEventId(id);
+    setShowModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedEventId) deleteEvent(selectedEventId);
+  };
+
+  const handleEdit = (id) => navigate(`/admin/events/${id}`);
+  const handleView = (id) => navigate(`/admin/event/${id}/details`);
+
+  const columns = [
+    {
+      header: t("Event"),
+      width: "26%",
+      minWidth: "220px",
+      render: (_, row) => (
+        <div className="flex items-center gap-3">
+          {row.image?.url ? (
+            <img src={row.image.url} alt="" className="h-9 w-9 rounded-lg object-cover border border-gray-200" />
+          ) : (
+            <div className="h-9 w-9 rounded-lg border border-dashed border-gray-200 flex items-center justify-center text-gray-300 flex-shrink-0">
+              <i className="fa fa-calendar text-xs"></i>
+            </div>
+          )}
+          <TruncatedCell maxChars={30}>{row.eventName}</TruncatedCell>
+        </div>
+      ),
+    },
+    {
+      header: t("Campus"),
+      width: "14%",
+      minWidth: "130px",
+      render: (_, row) => row.campus?.name || "-",
+    },
+    { header: t("Venue"), width: "16%", minWidth: "150px", render: (_, row) => <TruncatedCell maxChars={28}>{row.venue}</TruncatedCell> },
+    { header: t("Date"), width: "12%", minWidth: "120px", render: (_, row) => formatDate(row.date) },
+    {
+      header: t("Paid"),
+      width: "10%",
+      minWidth: "100px",
+      render: (_, row) => <AppBadge type="booleanStatus" active={row.isPaid} />,
+    },
+    {
+      header: t("Amount"),
+      width: "10%",
+      minWidth: "110px",
+      render: (_, row) => (row.isPaid ? `${row.currency} ${Number(row.amount).toFixed(2)}` : "-"),
+    },
+    {
+      header: t("Action"),
+      width: "12%",
+      minWidth: "140px",
+      render: (_, row) => (
+        <ActionButtons
+          id={row._id}
+          userRole={userRole}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={handleDeleteClick}
+          isDeleteLoading={isDeleteLoading}
+        />
+      ),
+    },
+  ];
+
+  const filters = (
+    <FilterDropdown
+      limit={limit}
+      onLimitChange={(newLimit) => {
+        setLimit(newLimit);
+        setCurrentPage(1);
+      }}
+      onReset={() => {
+        setSearch("");
+        setSearchTerm("");
+        setIsPaidFilter("");
+        setDateFrom("");
+        setDateTo("");
+        setCurrentPage(1);
+        setLimit(8);
+      }}
+    >
+      <SelectField
+        label={t("Type")}
+        value={isPaidFilter}
+        onChange={setIsPaidFilter}
+        placeholder={t("All Events")}
+        options={["true", "false"]}
+        optionLabel={(v) => (v === "true" ? t("Paid") : t("Free"))}
+      />
+      <AppInput label={t("From")} type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+      <AppInput label={t("To")} type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+    </FilterDropdown>
   );
 
-  const totalPages = Math.ceil((filteredEvents?.length || 0) / itemsPerPage);
-  const paginatedEvents = filteredEvents?.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+  const emptyState = (
+    <EmptyState
+      icon="calendar-alt"
+      title={searchTerm ? t("No events found matching your search") : t("No events scheduled yet")}
+      message={t("Create your first event to see it here.")}
+    />
   );
+
+  const refreshButton = (
+    <AppButton
+      onClick={() => {
+        refetch();
+        toast.success(t("Refreshed"));
+      }}
+      text={t("Refresh")}
+      icon="sync-alt"
+      disabled={isFetching}
+      className="ml-2"
+    />
+  );
+
+  const addButton = userRole === "admin" ? (
+    <AppButton onClick={() => navigate("/admin/event/new")} label={t("New Event")} icon="plus" />
+  ) : null;
 
   if (isLoading) return <Loader />;
 
   return (
     <AdminLayout>
-      <MetaData title={"All Events"} />
-      <div className="flex justify-center items-center pt-5 pb-10">
-        <div className="w-full max-w-7xl">
-          <h2 className="text-2xl font-semibold mb-6">
-            {data?.events?.length} {t('Events')}
-          </h2>
+      <MetaData title={t("Events")} />
 
-          {/* Controls Section */}
-          <div className="flex flex-col md:flex-row justify-between items-center mb-4">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="block w-full md:w-1/3 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <div className="flex items-center mt-2 md:mt-0">
-              <label
-                htmlFor="itemsPerPage"
-                className="mr-2 text-sm font-medium"
-              >
-                {t('entriesPerPage')}:
-              </label>
-              <select
-                id="itemsPerPage"
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                value={itemsPerPage}
-                onChange={(e) => setItemsPerPage(Number(e.target.value))}
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={20}>20</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Grades Table */}
-          <Table hoverable={true} className="w-full">
-            <Table.Head>
-              <Table.HeadCell>{t('ID')}</Table.HeadCell>
-              <Table.HeadCell>{t('Event Name')}</Table.HeadCell>
-              <Table.HeadCell>{t('Campus')}</Table.HeadCell>
-              <Table.HeadCell>{t('Date')}</Table.HeadCell>
-              <Table.HeadCell>{t('Paid')}</Table.HeadCell>
-              <Table.HeadCell>{t('actions')}</Table.HeadCell>
-            </Table.Head>
-            <Table.Body>
-              {paginatedEvents?.map((event) => (
-                <Table.Row
-                  key={event?._id}
-                  className="bg-white dark:bg-gray-800"
-                >
-                  <Table.Cell>{event?._id}</Table.Cell>
-                  <Table.Cell>{event?.eventName}</Table.Cell>
-                  <Table.Cell>{event?.campus?.name || 'N/A'}</Table.Cell>
-                  <Table.Cell>{dayjs(event?.date).format('DD/MM/YYYY hh:mm:ss A')}</Table.Cell>
-                  <Table.Cell>{!!event?.isPaid?'Yes': 'No'}</Table.Cell>
-                  <Table.Cell>
-                    <div className="flex space-x-2">
-                      {userRole === "admin" && (
-                        <Link
-                          to={`/admin/events/${event?._id}`}
-                          className="px-3 py-2 text-blue-600 border border-blue-600 rounded hover:bg-blue-600 hover:text-white focus:outline-none"
-                        >
-                          <i className="fa fa-pencil"></i>
-                        </Link>
-                      )}
-                      <Link
-                        to={`/admin/event/${event?._id}/details`}
-                        className="px-3 py-2 text-green-600 border border-green-600 rounded hover:bg-green-600 hover:text-white focus:outline-none"
-                      >
-                        <i className="fa fa-eye"></i>
-                      </Link>
-                      {userRole === "admin" && (
-                        <button
-                          className="px-3 py-2 text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white focus:outline-none"
-                          onClick={() => deleteEventHandler(event?._id)}
-                          disabled={isDeleteLoading}
-                        >
-                          <i className="fa fa-trash"></i>
-                        </button>
-                      )}
-                    </div>
-                  </Table.Cell>
-                </Table.Row>
-              ))}
-            </Table.Body>
-          </Table>
-
-          {/* Pagination */}
-          <div className="flex justify-center mt-4">
-            <Pagination
-              currentPage={currentPage}
-              layout="navigation"
-              onPageChange={(page) => setCurrentPage(page)}
-              showIcons={true}
-              totalPages={totalPages}
-            />
-          </div>
-        </div>
+      <div className="max-w-6xl mx-auto">
+        <DataTableContainer
+          title={t("Events")}
+          subtitle={t("School events, both free and paid")}
+          data={rows}
+          columns={columns}
+          isLoading={isLoading}
+          isFetching={isFetching}
+          pagination={paginationMeta}
+          currentPage={paginationMeta.page}
+          setCurrentPage={setCurrentPage}
+          limit={limit}
+          setLimit={setLimit}
+          search={search}
+          setSearch={setSearch}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          searchPlaceholder={t("Search by name, description, or venue...")}
+          onRefresh={refetch}
+          refreshButton={refreshButton}
+          addButton={addButton}
+          emptyState={emptyState}
+          filters={filters}
+          stats={stats}
+          userRole={userRole}
+          renderHeaderInfo={() => (
+            <p className="text-sm-custom text-dark-light mt-1">
+              <i className="fa fa-info-circle mr-2"></i>
+              {t("Showing")}: {rows.length} {t("of")} {paginationMeta.total} {t("events")}
+            </p>
+          )}
+          showSearch={true}
+          showStats={true}
+          showPagination={true}
+        />
       </div>
+
+      <ConfirmationModal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        confirmDelete={confirmDelete}
+        isDeleteLoading={isDeleteLoading}
+        message={t("Are you sure you want to delete this event?")}
+        title={t("Confirm Delete")}
+      />
     </AdminLayout>
   );
 };

@@ -1,24 +1,12 @@
-// controllers
-// Note: Isme cookies se campus ya academicYear nahi liye, kuin k School
-// singleton ha aur kisi cheez se linked nahi.
-
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import School from "../models/school.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import { delete_file, upload_file } from "../utils/cloudinary.js";
-
-// Get school info => /api/v1/school
-// Public/authenticated route — jahan bhi school ka data (name/logo/desc)
-// dikhana ho, wahan se ye endpoint hit kar sakte ho.
 export const getSchool = catchAsyncErrors(async (req, res, next) => {
   const school = await School.findOne();
   res.status(200).json({ success: true, school });
 });
 
-// Create or update school info (singleton) => /api/v1/admin/school
-// Agar school record already exist karta ha to update ho jaye ga,
-// warna naya bann jaye ga. Isi liye alag se "create" route ki
-// zaroorat nahi.
 export const upsertSchool = catchAsyncErrors(async (req, res, next) => {
   const {
     name,
@@ -29,7 +17,7 @@ export const upsertSchool = catchAsyncErrors(async (req, res, next) => {
     email,
     website,
     establishedYear,
-    logo, // base64 / data-url string, jaise avatar handle hota ha
+    logo, 
   } = req.body;
 
   let school = await School.findOne();
@@ -54,7 +42,6 @@ export const upsertSchool = catchAsyncErrors(async (req, res, next) => {
     ...(logoData && { logo: logoData }),
   };
 
-  // undefined fields ko hata do taky existing values overwrite na ho
   Object.keys(schoolData).forEach(
     (key) => schoolData[key] === undefined && delete schoolData[key]
   );

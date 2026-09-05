@@ -1,8 +1,9 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+
 export const postingApi = createApi({
   reducerPath: "postingApi",
   baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" }),
-  tagTypes: ["Announcement", "Comments", "Posting"],
+  tagTypes: ["Announcement"],
   endpoints: (builder) => ({
     createAnnouncement: builder.mutation({
       query(body) {
@@ -14,13 +15,20 @@ export const postingApi = createApi({
       },
       invalidatesTags: ["Announcement"],
     }),
+    // 👇 FIX: this query never had `providesTags`, so the "Announcement"
+    // tag that create/update/delete invalidate had nothing to actually
+    // invalidate — the Wall never auto-refreshed after posting, it only
+    // updated on a manual page reload.
     getAnnouncements: builder.query({
       query: (params) => ({
         url: "/announcement",
         params: {
           page: params?.page,
+          classGroup: params?.classGroup, // optional staff filter
+          keyword: params?.keyword,
         },
       }),
+      providesTags: ["Announcement"],
     }),
     updateAnnouncement: builder.mutation({
       query({ id, body }) {
@@ -43,10 +51,9 @@ export const postingApi = createApi({
     }),
   }),
 });
-
 export const {
   useCreateAnnouncementMutation,
   useUpdateAnnouncementMutation,
   useDeleteAnnouncementMutation,
-  useGetAnnouncementsQuery
+  useGetAnnouncementsQuery,
 } = postingApi;

@@ -121,6 +121,15 @@ const UpdateStudentEnrollment = () => {
   const [classGroupSearch, setClassGroupSearch] = useState("");
   const [campusSearch, setCampusSearch] = useState("");
 
+  // 👇 NEW: covers the WHOLE submit flow — enrollment save, then the
+  // optional scholarship save, then navigate away. `isCreating`/
+  // `isUpdating` below only reflect the enrollment mutation itself, so
+  // there was a gap after that mutation settled but before the
+  // scholarship call (and the navigate) finished, during which the
+  // button re-enabled and the form was editable again. This stays true
+  // for the entire flow instead.
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const { student, academicYear, classGroup, campus, startDate, endDate, status } = enrollment;
 
   // ================== MUTATIONS ==================
@@ -355,6 +364,11 @@ const UpdateStudentEnrollment = () => {
       }
     }
 
+    // 👇 NEW: block the form from here until we either navigate away or
+    // hit an error — covers the enrollment save AND the scholarship save
+    // AND the toast/navigate, not just the enrollment mutation.
+    setIsSubmitting(true);
+
     const payload = { ...enrollment };
     if (payload.campus === "") delete payload.campus;
     // Active enrollments may legitimately have no end date yet — send null
@@ -414,8 +428,13 @@ const UpdateStudentEnrollment = () => {
 
       toast.success(t("Enrollment saved successfully"));
       navigate("/admin/studentenrollements");
+      // Deliberately NOT resetting isSubmitting here — navigate() unmounts
+      // this component on success, so there's nothing left to re-enable.
     } catch (err) {
       toast.error(err?.data?.message || t("Error saving enrollment"));
+      // 👇 On failure we DO need to give control back so the admin can
+      // fix whatever was wrong and try again.
+      setIsSubmitting(false);
     }
   };
 
@@ -467,7 +486,10 @@ const UpdateStudentEnrollment = () => {
     [campusesData]
   );
 
-  const isSaving = isEditMode ? isUpdating : isCreating;
+  // 👇 previously just `isCreating`/`isUpdating` — now also covers the
+  // gap after those mutations settle but before the scholarship
+  // save/navigate finishes.
+  const isSaving = (isEditMode ? isUpdating : isCreating) || isSubmitting;
 
   if (enrollmentLoading && isEditMode) return <Loader />;
 
@@ -475,7 +497,10 @@ const UpdateStudentEnrollment = () => {
     <AdminLayout>
       <MetaData title={isEditMode ? t("Edit Enrollment") : t("New Student Enrollment")} />
 
-      <div className="max-w-6xl mx-auto space-y-6">
+      {/* 👇 NEW: relative wrapper so the loading overlay below can cover
+          exactly this form area (header + info box + form), nothing else
+          on the page. */}
+      <div className="max-w-6xl mx-auto space-y-6 relative">
         <AppPageHeader
           title={isEditMode ? t("Edit Enrollment") : t("New Student Enrollment")}
           subtitle={
@@ -549,6 +574,22 @@ const UpdateStudentEnrollment = () => {
           onScholarshipChange={onScholarshipChange}
           discountedAmountPreview={discountedAmountPreview}
         />
+
+        {/* 👇 NEW: blocking overlay — covers the whole form (not just the
+            submit button) for the entire submit flow, including the gap
+            between the enrollment mutation settling and the scholarship
+            save + navigate finishing, so nothing here can be edited or
+            re-submitted while a save is genuinely still in flight. Solid
+            background (no blur) with the same branded Loader used
+            everywhere else in the app. */}
+        {isSubmitting && (
+          <div className="absolute inset-0 z-50 bg-white flex flex-col items-center justify-center rounded-xl">
+            <Loader />
+            <p className="text-sm-custom text-dark-light font-medium -mt-6">
+              {t("Saving enrollment...")}
+            </p>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
