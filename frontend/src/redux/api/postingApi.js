@@ -1,5 +1,4 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-
 export const postingApi = createApi({
   reducerPath: "postingApi",
   baseQuery: fetchBaseQuery({ baseUrl: "/api/v1" }),
@@ -49,6 +48,43 @@ export const postingApi = createApi({
       },
       invalidatesTags: ["Announcement"],
     }),
+    // 👇 NEW: comment endpoints — the backend routes/controllers already
+    // existed (routes/comment.js, controllers/commentController.js), but
+    // nothing on the frontend called them, so the Wall had no way to add,
+    // edit, or delete a comment. Comments come back as part of each
+    // announcement (via the Announcement model's virtual `comments`
+    // populate), so the simplest correct cache-invalidation is to
+    // invalidate the whole "Announcement" tag — that re-fetches the Wall
+    // feed with the updated comment list included.
+    addComment: builder.mutation({
+      query(body) {
+        return {
+          url: "/comment",
+          method: "POST",
+          body, // { announcementId, message, userId }
+        };
+      },
+      invalidatesTags: ["Announcement"],
+    }),
+    updateComment: builder.mutation({
+      query({ id, ...body }) {
+        return {
+          url: `/comment/${id}`,
+          method: "PUT",
+          body, // { message }
+        };
+      },
+      invalidatesTags: ["Announcement"],
+    }),
+    deleteComment: builder.mutation({
+      query(id) {
+        return {
+          url: `/comment/${id}`,
+          method: "DELETE",
+        };
+      },
+      invalidatesTags: ["Announcement"],
+    }),
   }),
 });
 export const {
@@ -56,4 +92,7 @@ export const {
   useUpdateAnnouncementMutation,
   useDeleteAnnouncementMutation,
   useGetAnnouncementsQuery,
+  useAddCommentMutation,
+  useUpdateCommentMutation,
+  useDeleteCommentMutation,
 } = postingApi;

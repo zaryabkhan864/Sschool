@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Table, Pagination, Dropdown } from 'flowbite-react';
 import { useTranslation } from 'react-i18next';
 
 // ✅ FIX: the previous version built classes like `bg-${stat.color}-50` at
@@ -8,17 +7,50 @@ import { useTranslation } from 'react-i18next';
 // would silently produce NO background/text color in a production build —
 // the stat cards would render unstyled. This static map guarantees every
 // class Tailwind needs to see is present as a literal string.
+//
+// Every entry now maps to a named token in tailwind.config.js (brand/
+// success/danger/warning/info/violet/teal/accent) instead of raw Tailwind
+// defaults — retuning any stat color going forward means editing the config,
+// not this file. The external keys (blue/green/purple/red/amber/indigo/
+// teal/orange) are left as-is since callers across the app already pass
+// `color: "green"`, `color: "orange"`, etc.
 const STAT_COLOR_STYLES = {
   blue: { chip: 'bg-brand-50 border-brand-100', iconBg: 'bg-brand-100', iconText: 'text-brand-600', label: 'text-brand-600' },
-  green: { chip: 'bg-emerald-50 border-emerald-100', iconBg: 'bg-emerald-100', iconText: 'text-emerald-600', label: 'text-emerald-600' },
-  purple: { chip: 'bg-purple-50 border-purple-100', iconBg: 'bg-purple-100', iconText: 'text-purple-600', label: 'text-purple-600' },
-  red: { chip: 'bg-red-50 border-red-100', iconBg: 'bg-red-100', iconText: 'text-red-600', label: 'text-red-600' },
-  amber: { chip: 'bg-amber-50 border-amber-100', iconBg: 'bg-amber-100', iconText: 'text-amber-600', label: 'text-amber-600' },
-  indigo: { chip: 'bg-indigo-50 border-indigo-100', iconBg: 'bg-indigo-100', iconText: 'text-indigo-600', label: 'text-indigo-600' },
+  green: { chip: 'bg-success-50 border-success-100', iconBg: 'bg-success-100', iconText: 'text-success-600', label: 'text-success-600' },
+  purple: { chip: 'bg-violet-50 border-violet-100', iconBg: 'bg-violet-100', iconText: 'text-violet-600', label: 'text-violet-600' },
+  red: { chip: 'bg-danger-50 border-danger-100', iconBg: 'bg-danger-100', iconText: 'text-danger-600', label: 'text-danger-600' },
+  amber: { chip: 'bg-warning-50 border-warning-100', iconBg: 'bg-warning-100', iconText: 'text-warning-600', label: 'text-warning-600' },
+  indigo: { chip: 'bg-info-50 border-info-100', iconBg: 'bg-info-100', iconText: 'text-info-600', label: 'text-info-600' },
   teal: { chip: 'bg-teal-50 border-teal-100', iconBg: 'bg-teal-100', iconText: 'text-teal-600', label: 'text-teal-600' },
-  orange: { chip: 'bg-orange-50 border-orange-100', iconBg: 'bg-orange-100', iconText: 'text-orange-600', label: 'text-orange-600' },
+  orange: { chip: 'bg-accent-50 border-accent-100', iconBg: 'bg-accent-100', iconText: 'text-accent-600', label: 'text-accent-600' },
 };
 const getStatStyle = (color) => STAT_COLOR_STYLES[color] || STAT_COLOR_STYLES.blue;
+
+// 👇 FIX: builds the list of page numbers/ellipses to render, e.g.
+// [1, '...', 4, 5, 6, '...', 12]. Replaces flowbite-react's <Pagination>,
+// whose internal range calculation throws `RangeError: Invalid array length`
+// for certain small totalPages values (surfaced as soon as a query crossed
+// from 1 page to 2). This version is plain arithmetic we fully control.
+const getPageNumbers = (current, total) => {
+  const delta = 1;
+  const pages = [];
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+      pages.push(i);
+    }
+  }
+  const withDots = [];
+  let last = null;
+  pages.forEach((page) => {
+    if (last !== null) {
+      if (page - last === 2) withDots.push(last + 1);
+      else if (page - last > 2) withDots.push('...');
+    }
+    withDots.push(page);
+    last = page;
+  });
+  return withDots;
+};
 
 const DataTableContainer = ({
   // Basic props
@@ -151,6 +183,7 @@ const DataTableContainer = ({
   const actionColumnWidth = getActionColumnWidth();
 
   const hasPagination = pagination && pagination.totalPages > 1;
+  const pageNumbers = hasPagination ? getPageNumbers(currentPage, pagination.totalPages) : [];
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -294,12 +327,10 @@ const DataTableContainer = ({
                 })}
                 {renderRowActions && (
                   <th
-                    className="font-semibold text-ink-700 text-xs-custom px-4 py-3.5 text-center sticky right-0"
+                    className="font-semibold text-ink-700 text-xs-custom px-4 py-3.5 text-center sticky right-0 bg-surface-50 shadow-[-1px_0_0_0_theme(colors.surface.200)]"
                     style={{
                       width: actionColumnWidth,
                       minWidth: actionColumnWidth,
-                      backgroundColor: '#f8fafc',
-                      boxShadow: '-1px 0 0 0 #e2e8f0',
                     }}
                   >
                     <div className="truncate uppercase tracking-wide">
@@ -339,12 +370,11 @@ const DataTableContainer = ({
                     })}
                     {renderRowActions && (
                       <td
-                        className="px-2 py-2 text-center bg-white sticky right-0"
+                        className="px-2 py-2 text-center bg-white sticky right-0 shadow-[-1px_0_0_0_theme(colors.surface.200)]"
                         style={{
                           width: '1%',
                           whiteSpace: 'nowrap',
                           verticalAlign: 'middle',
-                          boxShadow: '-1px 0 0 0 #e2e8f0',
                         }}
                       >
                         <div className="flex items-center justify-center gap-1">
@@ -398,15 +428,54 @@ const DataTableContainer = ({
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-4">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={pagination.totalPages}
-                  onPageChange={setCurrentPage}
-                  showIcons
-                  previousLabel=""
-                  nextLabel=""
-                />
+
+              {/* 👇 FIX: custom pagination replaces flowbite-react's <Pagination>,
+                  which threw `RangeError: Invalid array length` from its
+                  internal page-range calculation once totalPages crossed 1. */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-surface-200 text-ink-600 hover:bg-surface-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  aria-label={t("Previous page")}
+                >
+                  <i className="fa fa-chevron-left text-xs-custom"></i>
+                </button>
+
+                {pageNumbers.map((p, idx) =>
+                  p === '...' ? (
+                    <span
+                      key={`dots-${idx}`}
+                      className="w-9 h-9 flex items-center justify-center text-ink-400 text-sm-custom"
+                    >
+                      …
+                    </span>
+                  ) : (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setCurrentPage(p)}
+                      className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm-custom font-semibold transition-colors ${
+                        p === currentPage
+                          ? "bg-brand-600 text-white shadow-button"
+                          : "text-ink-600 hover:bg-surface-50 border border-surface-200"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))}
+                  disabled={currentPage === pagination.totalPages}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-surface-200 text-ink-600 hover:bg-surface-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  aria-label={t("Next page")}
+                >
+                  <i className="fa fa-chevron-right text-xs-custom"></i>
+                </button>
               </div>
             </div>
           </div>

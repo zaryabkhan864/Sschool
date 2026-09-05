@@ -3,6 +3,8 @@ import Course from "../models/course.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import Grade from "../models/grade.js";
 import Teacher from "../models/user.js";
+import ClassGroup from "../models/classGroup.js";
+import StudentEnrollment from "../models/studentEnrollment.js";
 import APIFilters from "../utils/apiFilters.js";
 import mongoose from "mongoose";
 
@@ -316,15 +318,42 @@ export const getCourseDetails = catchAsyncErrors(async (req, res, next) => {
     };
   }
 
-  // Student count from enrollments (if you have an Enrollment model)
-  let studentCount = 0;
-  try {
-    studentCount = await Enrollment.countDocuments({
-      course: course._id,
+  // 👇 FIX: Course doesn't reference a ClassGroup directly — it's the other
+  // way round (ClassGroup.courses is an array of course IDs). Find every
+  // ClassGroup that includes this course, then pull the actual enrolled
+  // students for those class groups via StudentEnrollment. The old code
+  // called `Enrollment.countDocuments(...)` — a model that was never
+  // imported (only `Course` was) — so it silently threw inside the
+  // try/catch below and studentCount was always 0.
+  const classGroups = await ClassGroup.find({ courses: course._id })
+    .select("displayName section grade academicLevel")
+    .populate("grade", "gradeName")
+    .populate("academicLevel", "name");
+
+  const classGroupIds = classGroups.map((cg) => cg._id);
+
+  let students = [];
+  if (classGroupIds.length > 0) {
+    const enrollments = await StudentEnrollment.find({
+      classGroup: { $in: classGroupIds },
       status: "active",
-    });
-  } catch (err) {
-    // Enrollment model may not exist yet – keep 0
+      isDeleted: false,
+    })
+      .populate("student", "firstName middleName lastName email")
+      .populate("classGroup", "displayName")
+      .sort({ createdAt: 1 });
+
+    students = enrollments
+      .filter((e) => e.student) // guard against a deleted/null student
+      .map((e) => ({
+        _id: e.student._id,
+        name: [e.student.firstName, e.student.middleName, e.student.lastName]
+          .filter(Boolean)
+          .join(" "),
+        email: e.student.email,
+        classGroup: e.classGroup?.displayName || "",
+        enrollmentId: e._id,
+      }));
   }
 
   res.status(200).json({
@@ -340,7 +369,15 @@ export const getCourseDetails = catchAsyncErrors(async (req, res, next) => {
       teacher: teacherData,
       status: course.status ? "Active" : "Inactive",
       createdAt: course.createdAt,
-      studentCount,
+      studentCount: students.length,
+      classGroups: classGroups.map((cg) => ({
+        _id: cg._id,
+        displayName: cg.displayName,
+        section: cg.section,
+        gradeName: cg.grade?.gradeName || "",
+        academicLevelName: cg.academicLevel?.name || "",
+      })),
+      students,
     },
   });
 });

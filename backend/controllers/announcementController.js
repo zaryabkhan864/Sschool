@@ -26,7 +26,7 @@ const getStudentClassGroup = async (studentId) => {
 //
 // Rule (per your 4 requirements): a STUDENT may only post to their own
 // class group, or to the whole school — never another class. Every
-// other role (teacher, principal, admin, or anyone else) has no such
+// other role (teacher, principle, admin, or anyone else) has no such
 // restriction and may post to any class group or the whole school.
 export const createAnnouncement = catchAsyncErrors(async (req, res, next) => {
     const { campus, academicYear } = req.cookies;
@@ -137,7 +137,7 @@ export const getAnnouncements = catchAsyncErrors(async (req, res, next) => {
 // Update announcement => PUT /api/v1/announcement/:id
 // 👇 FIX: previously had NO ownership check at all — any authenticated
 // user, including an unrelated student, could edit anyone's post. Now
-// only the original author (or admin/principal) can.
+// only the original author (or admin/principle) can.
 export const updateAnnouncement = catchAsyncErrors(async (req, res, next) => {
     const announcement = await Announcement.findById(req.params.id);
     if (!announcement) {
@@ -145,7 +145,12 @@ export const updateAnnouncement = catchAsyncErrors(async (req, res, next) => {
     }
 
     const isOwner = announcement.userId.toString() === req.user._id.toString();
-    const isPrivileged = ["admin", "principal"].includes(req.user.role);
+    // 👇 FIX: this app's actual role string is "principle" (see the
+    // /principle/dashboard route and the PRINCIPLE badge in the header),
+    // not the correctly-spelled "principal". The mismatch meant a real
+    // principle account never satisfied this check and could never edit
+    // someone else's post despite being an intended privileged role.
+    const isPrivileged = ["admin", "principle"].includes(req.user.role);
     if (!isOwner && !isPrivileged) {
         return next(new ErrorHandler("You can only edit your own posts", 403));
     }
@@ -165,7 +170,8 @@ export const updateAnnouncement = catchAsyncErrors(async (req, res, next) => {
 });
 
 // Delete announcement => DELETE /api/v1/announcement/:id
-// 👇 FIX: same missing-ownership-check bug as update, above.
+// 👇 FIX: same missing-ownership-check bug as update, above, plus the
+// same "principal" -> "principle" role-string mismatch.
 export const deleteAnnouncement = catchAsyncErrors(async (req, res, next) => {
     const announcement = await Announcement.findById(req.params.id);
     if (!announcement) {
@@ -173,7 +179,7 @@ export const deleteAnnouncement = catchAsyncErrors(async (req, res, next) => {
     }
 
     const isOwner = announcement.userId.toString() === req.user._id.toString();
-    const isPrivileged = ["admin", "principal"].includes(req.user.role);
+    const isPrivileged = ["admin", "principle"].includes(req.user.role);
     if (!isOwner && !isPrivileged) {
         return next(new ErrorHandler("You can only delete your own posts", 403));
     }

@@ -110,8 +110,8 @@ const SearchableDropdown = ({
     }
   }, [options, searchTerm, onSearch]);
 
-  const defaultInputClass = "w-full px-4 py-2.5 text-sm-custom border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all bg-white placeholder:text-gray-400";
-  const defaultLabelClass = "block text-xs-custom font-semibold text-gray-700 uppercase tracking-wider mb-1.5";
+  const defaultInputClass = "w-full px-4 py-2.5 text-sm-custom border border-surface-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all bg-white placeholder:text-ink-400";
+  const defaultLabelClass = "block text-xs-custom font-semibold text-ink-700 uppercase tracking-wider mb-1.5";
 
   return (
     <div className={`relative ${className}`}>
@@ -125,7 +125,7 @@ const SearchableDropdown = ({
         <input
           ref={inputRef}
           type="text"
-          className={`${defaultInputClass} ${inputClassName} pr-10 ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'cursor-pointer'}`}
+          className={`${defaultInputClass} ${inputClassName} pr-10 ${disabled ? 'bg-surface-100 cursor-not-allowed' : 'cursor-pointer'}`}
           placeholder={placeholder}
           value={searchTerm}
           onChange={(e) => handleSearch(e.target.value)}
@@ -136,7 +136,7 @@ const SearchableDropdown = ({
           disabled={disabled}
         />
         
-        <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-400">
+        <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-ink-400">
           {isLoading ? (
             <i className="fa fa-spinner fa-spin text-xs-custom"></i>
           ) : (
@@ -147,7 +147,7 @@ const SearchableDropdown = ({
         {isOpen && !disabled && (
           <div 
             ref={dropdownRef}
-            className={`absolute left-0 z-[100] mt-1 bg-white border border-gray-200 rounded-xl shadow-premium overflow-hidden flex flex-col ${dropdownClassName}`}
+            className={`absolute left-0 z-[100] mt-1 bg-white border border-surface-200 rounded-xl shadow-premium overflow-hidden flex flex-col ${dropdownClassName}`}
             style={{ 
               maxHeight: '300px', 
               minWidth: '300px',
@@ -157,7 +157,7 @@ const SearchableDropdown = ({
           >
             <div className="overflow-y-auto flex-1 custom-scrollbar">
               {displayOptions.length > 0 ? (
-                <ul className="divide-y divide-gray-100">
+                <ul className="divide-y divide-surface-100">
                   {displayOptions.map((option, index) => {
                     const isLast = index === displayOptions.length - 1;
                     return (
@@ -172,15 +172,15 @@ const SearchableDropdown = ({
                         ) : (
                           <>
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white text-xs-custom font-bold shadow-sm">
+                              <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white text-xs-custom font-bold shadow-soft">
                                 {option.label?.charAt(0).toUpperCase() || '?'}
                               </div>
                               <div>
-                                <p className="text-sm-custom font-semibold text-gray-800 leading-tight">
+                                <p className="text-sm-custom font-semibold text-ink-900 leading-tight">
                                   {option.label}
                                 </p>
                                 {option.subtitle && (
-                                  <p className="text-xs-custom text-gray-500">
+                                  <p className="text-xs-custom text-ink-400">
                                     {option.subtitle}
                                   </p>
                                 )}
@@ -200,10 +200,10 @@ const SearchableDropdown = ({
                   {isLoading ? (
                     <div className="flex flex-col items-center gap-2">
                       <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
-                      <p className="text-xs-custom text-gray-500">{loadingMessage}</p>
+                      <p className="text-xs-custom text-ink-400">{loadingMessage}</p>
                     </div>
                   ) : (
-                    <p className="text-xs-custom text-gray-400 font-medium italic">
+                    <p className="text-xs-custom text-ink-400 font-medium italic">
                       {emptyMessage}
                     </p>
                   )}
@@ -211,7 +211,7 @@ const SearchableDropdown = ({
               )}
 
               {isLoading && displayOptions.length > 0 && (
-                <div className="p-3 flex justify-center items-center gap-2 bg-gray-50/50 border-t border-gray-100">
+                <div className="p-3 flex justify-center items-center gap-2 bg-surface-50/50 border-t border-surface-100">
                   <div className="w-3 h-3 border-2 border-brand-600 border-t-transparent rounded-full animate-spin"></div>
                   <span className="text-xs-custom text-brand-600 font-semibold uppercase tracking-tighter">
                     Loading more...

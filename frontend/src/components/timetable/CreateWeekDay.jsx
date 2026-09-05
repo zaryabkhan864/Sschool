@@ -190,14 +190,14 @@ const CreateWeekDay = () => {
       header: t("Full Name"),
       accessor: "name",
       width: "30%",
-      render: (val) => <span className="font-medium text-gray-800">{val}</span>,
+      render: (val) => <span className="font-medium text-ink-900">{val}</span>,
     },
     {
       header: t("Short Name"),
       accessor: "shortName",
       width: "20%",
       render: (val) => (
-        <span className="bg-purple-50 text-purple-700 px-2 py-1 rounded text-xs font-bold border border-purple-100">
+        <span className="bg-brand-50 text-brand-700 px-2 py-1 rounded text-xs-custom font-bold border border-brand-100">
           {val}
         </span>
       ),
@@ -206,7 +206,7 @@ const CreateWeekDay = () => {
       header: t("Order"),
       accessor: "order",
       width: "20%",
-      render: (val) => <span className="font-semibold text-gray-700">{val}</span>,
+      render: (val) => <span className="font-semibold text-ink-700">{val}</span>,
     },
     {
       header: t("Working Day"),
@@ -214,8 +214,8 @@ const CreateWeekDay = () => {
       width: "20%",
       render: (val) => (
         <span
-          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-            val ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
+          className={`px-3 py-1 rounded-full text-xs-custom font-semibold ${
+            val ? "bg-brand-50 text-brand-700" : "bg-surface-100 text-ink-700"
           }`}
         >
           {val ? t("Yes") : t("No")}
@@ -282,7 +282,7 @@ const CreateWeekDay = () => {
 
   // Custom header info (optional)
   const renderHeaderInfo = () => (
-    <p className="text-sm text-gray-500 mt-1">
+    <p className="text-sm-custom text-ink-400 mt-1">
       <i className="fa fa-info-circle mr-2"></i>
       {editMode
         ? t("Edit mode active – Scroll up to see the form")
@@ -295,7 +295,7 @@ const CreateWeekDay = () => {
     <button
       type="button"
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-md flex items-center gap-2"
+      className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm-custom font-semibold rounded-xl shadow-button flex items-center gap-2"
     >
       <i className="fa fa-plus"></i>
       {editMode ? t("Edit Mode Active") : t("Scroll to Form")}
@@ -346,7 +346,7 @@ const CreateWeekDay = () => {
               />
             </div>
 
-            <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between">
+            <div className="mt-6 pt-6 border-t border-surface-100 flex items-center justify-between">
               <AppCheckbox
                 name="isWorkingDay"
                 checked={isWorkingDay}
@@ -357,12 +357,18 @@ const CreateWeekDay = () => {
               <div className="flex gap-2">
                 {editMode && (
                   <AppButton
+                    type="button"
                     label={t("Cancel")}
                     onClick={resetForm}
                     icon="times"
+                    variant="secondary"
                   />
                 )}
+                {/* 👇 FIX: `type="submit"` was missing — AppButton defaults to
+                    type="button", so clicking this never triggered the
+                    form's onSubmit and no request was ever sent. */}
                 <AppButton
+                  type="submit"
                   label={editMode ? t("Update Day") : t("Save Day")}
                   isLoading={createLoading || updateLoading}
                   icon={editMode ? "save" : "plus"}
@@ -391,7 +397,7 @@ const CreateWeekDay = () => {
           setSearchTerm={setSearchTerm}
           searchPlaceholder={t("Search by name or short name...")}
           onRefresh={handleRefresh}
-          refreshButton={<AppButton onClick={handleRefresh} disabled={isFetching} />}
+          refreshButton={<AppButton type="button" onClick={handleRefresh} disabled={isFetching} />}
           addButton={addButton}
           emptyState={emptyState}
           userRole={user?.role}

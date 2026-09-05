@@ -1,9 +1,11 @@
-// src/components/posting/Wall.jsx
+// src/components/posting/PostingWall.jsx
 //
 // Announcements Wall — scoped to the currently-selected campus +
 // academic year. Anyone can post either to the whole school, or to one
-// specific class group. Students can only target their own class group
-// (or the whole school) — every other role can post to any class group.
+// specific class group. Students can only target their own class group.
+// Teachers can only target class groups whose courses they actually
+// teach. Other staff (admin/principle/counselor) can post to any class
+// group.
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
@@ -13,6 +15,9 @@ import {
   useCreateAnnouncementMutation,
   useDeleteAnnouncementMutation,
   useGetAnnouncementsQuery,
+  useAddCommentMutation,
+  useUpdateCommentMutation,
+  useDeleteCommentMutation,
 } from "../../redux/api/postingApi";
 import { useGetClassGroupsQuery } from "../../redux/api/classGroupApi";
 
@@ -26,12 +31,16 @@ import AppButton from "../GUI/AppButton";
 import AppBadge from "../GUI/AppBadge";
 import EmptyState from "../GUI/EmptyState";
 import ConfirmationModal from "../GUI/ConfirmationModal";
+import SearchableDropdown from "../layout/SearchableDropdown";
+import Comment from "./Comment";
 
-const getFullName = (u) =>
-  u ? `${u.firstName || ""} ${u.middleName || ""} ${u.lastName || ""}`.trim() : "";
-
+// 👇 NEW: User model now exposes a `fullName` virtual (see backend/models/
+// user.js) — computed from firstName/middleName/lastName. Only `initials`
+// (a pure UI concern) and `timeAgo` (must be computed at render time, not
+// baked into the API response, or it goes stale for anyone viewing later)
+// stay on the frontend.
 const initials = (u) => {
-  const name = getFullName(u);
+  const name = u?.fullName || "";
   return name ? name.charAt(0).toUpperCase() : "?";
 };
 
@@ -55,18 +64,28 @@ const timeAgo = (date) => {
 // ============================================================
 // Composer — the "who can post where" rules live here.
 // ============================================================
-const Composer = ({ userRole, onPosted }) => {
+const Composer = ({ userRole, currentUserId, onPosted }) => {
   const { t } = useTranslation();
   const isStudent = userRole === "student";
+  const isTeacher = userRole === "teacher";
 
   const [message, setMessage] = useState("");
   const [scope, setScope] = useState("school"); // "school" | "class"
   const [classGroupSearch, setClassGroupSearch] = useState("");
-  const [selectedClassGroup, setSelectedClassGroup] = useState(null); // {value,label} — staff only
+  const [classGroupId, setClassGroupId] = useState("");
 
+  // 👇 For teachers specifically, only the class groups whose courses they
+  // actually teach should show up — passing teacherId restricts the
+  // backend query to that set (see classGroupController.js). Other staff
+  // roles (admin/principle/counselor) still see every class group.
   const { data: classGroupsData, isFetching: classGroupsLoading } = useGetClassGroupsQuery(
-    { status: "active", paginate: "false", keyword: classGroupSearch },
-    { skip: isStudent || classGroupSearch.length < 2 }
+    {
+      status: "active",
+      paginate: "false",
+      keyword: classGroupSearch,
+      ...(isTeacher && currentUserId ? { teacherId: currentUserId } : {}),
+    },
+    { skip: isStudent || classGroupSearch.length < 1 }
   );
 
   const classGroupOptions = useMemo(
@@ -80,10 +99,15 @@ const Composer = ({ userRole, onPosted }) => {
 
   const [createAnnouncement, { isLoading }] = useCreateAnnouncementMutation();
 
+  const resetClassPicker = () => {
+    setClassGroupId("");
+    setClassGroupSearch("");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!message.trim()) return toast.error(t("Please write something before posting"));
-    if (scope === "class" && !isStudent && !selectedClassGroup) {
+    if (scope === "class" && !isStudent && !classGroupId) {
       return toast.error(t("Please pick a class group to post to"));
     }
 
@@ -92,7 +116,7 @@ const Composer = ({ userRole, onPosted }) => {
       if (isStudent) {
         body.postToOwnClass = true;
       } else {
-        body.classGroup = selectedClassGroup.value;
+        body.classGroup = classGroupId;
       }
     }
 
@@ -100,8 +124,7 @@ const Composer = ({ userRole, onPosted }) => {
       await createAnnouncement(body).unwrap();
       setMessage("");
       setScope("school");
-      setSelectedClassGroup(null);
-      setClassGroupSearch("");
+      resetClassPicker();
       toast.success(t("Posted"));
       onPosted?.();
     } catch (err) {
@@ -128,7 +151,9 @@ const Composer = ({ userRole, onPosted }) => {
         />
 
         <div className="mt-4">
-          <label className="text-[11px] font-semibold text-ink-600 uppercase">{t("Post To")}</label>
+          <label className="text-[11px] font-semibold text-ink-600 uppercase tracking-wider">
+            {t("Post To")}
+          </label>
           <div className="flex gap-2 mt-2">
             <button
               type="button"
@@ -156,53 +181,24 @@ const Composer = ({ userRole, onPosted }) => {
             </button>
           </div>
 
-          {/* Staff-only: search + pick which class group */}
+          {/* Staff-only: search + pick which class group — same
+              SearchableDropdown component used everywhere else in the app */}
           {scope === "class" && !isStudent && (
             <div className="mt-3">
-              {selectedClassGroup ? (
-                <div className="flex items-center justify-between px-3 py-2 border border-surface-200 rounded-lg bg-surface-50 text-sm-custom">
-                  <span>{selectedClassGroup.label}</span>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedClassGroup(null)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <i className="fa fa-times"></i>
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <input
-                    type="text"
-                    value={classGroupSearch}
-                    onChange={(e) => setClassGroupSearch(e.target.value)}
-                    placeholder={t("Search for a class group...")}
-                    className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm-custom focus:outline-none focus:ring-2 focus:ring-brand-400"
-                  />
-                  {classGroupSearch.length >= 2 && (
-                    <ul className="mt-1 border border-surface-200 rounded-lg max-h-40 overflow-y-auto shadow-soft">
-                      {classGroupsLoading && (
-                        <li className="px-3 py-2 text-sm-custom text-ink-400">{t("Loading...")}</li>
-                      )}
-                      {!classGroupsLoading && classGroupOptions.length === 0 && (
-                        <li className="px-3 py-2 text-sm-custom text-ink-400">{t("No class groups found")}</li>
-                      )}
-                      {classGroupOptions.map((opt) => (
-                        <li
-                          key={opt.value}
-                          onClick={() => {
-                            setSelectedClassGroup(opt);
-                            setClassGroupSearch("");
-                          }}
-                          className="px-3 py-2 hover:bg-surface-100 cursor-pointer text-sm-custom"
-                        >
-                          {opt.label}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </>
-              )}
+              <SearchableDropdown
+                value={classGroupId}
+                onChange={setClassGroupId}
+                onSearch={setClassGroupSearch}
+                options={classGroupOptions}
+                isLoading={classGroupsLoading}
+                placeholder={t("Search for a class group...")}
+                emptyMessage={
+                  isTeacher
+                    ? t("No class groups found for your courses")
+                    : t("No class groups found")
+                }
+                clearable
+              />
             </div>
           )}
 
@@ -228,26 +224,169 @@ const Composer = ({ userRole, onPosted }) => {
 };
 
 // ============================================================
+// Class group filter — lets staff narrow the feed down to one class
+// group's posts instead of everything mixed together. Teachers only see
+// class groups whose courses they actually teach (same restriction as
+// the Composer); other staff (admin/principle/counselor) see every
+// active class group. Not shown to students — they already only see
+// whole-school posts plus their own class group's posts.
+// ============================================================
+const ClassGroupFilter = ({ userRole, currentUserId, value, onChange }) => {
+  const { t } = useTranslation();
+  const isTeacher = userRole === "teacher";
+  const [search, setSearch] = useState("");
+
+  const { data, isFetching } = useGetClassGroupsQuery(
+    {
+      status: "active",
+      paginate: "false",
+      keyword: search,
+      ...(isTeacher && currentUserId ? { teacherId: currentUserId } : {}),
+    },
+    { skip: search.length < 1 }
+  );
+
+  const options = useMemo(
+    () =>
+      (data?.classGroups || []).map((g) => ({
+        value: g._id,
+        label: g.displayName || `${g.grade?.gradeName || ""} ${g.section || ""}`,
+      })),
+    [data]
+  );
+
+  return (
+    <div className="w-full sm:w-72">
+      <SearchableDropdown
+        value={value}
+        onChange={onChange}
+        onSearch={setSearch}
+        options={options}
+        isLoading={isFetching}
+        placeholder={t("Filter by class group...")}
+        emptyMessage={
+          isTeacher ? t("No class groups found for your courses") : t("No class groups found")
+        }
+        showSelected={false}
+        clearable
+      />
+    </div>
+  );
+};
+
+// ============================================================
+// Comments — list of existing comments (via the Comment.jsx component)
+// plus a small form to add a new one. Comments arrive already attached
+// to each announcement (Announcement model's virtual `comments` populate),
+// so posting/editing/deleting just invalidates the "Announcement" tag to
+// pull the refreshed list back down.
+// ============================================================
+const CommentsSection = ({ post, currentUserId, t }) => {
+  const [newComment, setNewComment] = useState("");
+  const [activeCommentId, setActiveCommentId] = useState(null);
+
+  const [addComment, { isLoading: isAdding }] = useAddCommentMutation();
+  const [updateComment, { isLoading: isUpdatingComment, isSuccess: isCommentUpdated }] =
+    useUpdateCommentMutation();
+  const [deleteComment, { isLoading: isDeletingComment, isSuccess: isCommentDeleted }] =
+    useDeleteCommentMutation();
+
+  const comments = post.comments || [];
+
+  const handleAddComment = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+    try {
+      await addComment({
+        announcementId: post._id,
+        message: newComment.trim(),
+        userId: currentUserId,
+      }).unwrap();
+      setNewComment("");
+    } catch (err) {
+      toast.error(err?.data?.message || t("Error posting comment"));
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    setActiveCommentId(commentId);
+    try {
+      await deleteComment(commentId).unwrap();
+    } catch (err) {
+      toast.error(err?.data?.message || t("Error deleting comment"));
+    }
+  };
+
+  const handleUpdateComment = async (commentId, message) => {
+    setActiveCommentId(commentId);
+    try {
+      await updateComment({ id: commentId, message }).unwrap();
+    } catch (err) {
+      toast.error(err?.data?.message || t("Error updating comment"));
+    }
+  };
+
+  return (
+    <div className="mt-4 pt-4 border-t border-surface-100 space-y-3">
+      {comments.map((c) => (
+        <Comment
+          key={c._id}
+          comment={c}
+          currentUserId={currentUserId}
+          onDelete={handleDeleteComment}
+          onUpdateComment={handleUpdateComment}
+          isCommentDeleted={activeCommentId === c._id && isCommentDeleted}
+          isDeletingComment={activeCommentId === c._id && isDeletingComment}
+          isUpdatingComment={activeCommentId === c._id && isUpdatingComment}
+          isCommentUpdated={activeCommentId === c._id && isCommentUpdated}
+        />
+      ))}
+
+      <form onSubmit={handleAddComment} className="flex items-center gap-2 pt-1">
+        <input
+          type="text"
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          placeholder={t("Write a comment...")}
+          className="flex-1 px-3 py-2 text-sm-custom border border-surface-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
+        />
+        <button
+          type="submit"
+          disabled={isAdding || !newComment.trim()}
+          className="w-9 h-9 flex items-center justify-center bg-brand-600 hover:bg-brand-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+        >
+          <i className="fa fa-paper-plane text-xs-custom"></i>
+        </button>
+      </form>
+    </div>
+  );
+};
+
+// ============================================================
 // A single post in the feed
 // ============================================================
 const PostCard = ({ post, currentUserId, userRole, onDeleteClick }) => {
   const { t } = useTranslation();
+  const [showComments, setShowComments] = useState(false);
   const isOwner = post.userId?._id === currentUserId;
-  const canManage = isOwner || ["admin", "principal"].includes(userRole);
+  const canManage = isOwner || ["admin", "principle"].includes(userRole);
+  const commentCount = post.comments?.length || 0;
 
   return (
-    <div className="bg-white rounded-2xl shadow-soft border border-surface-100 p-5">
+    <div className="bg-white rounded-2xl shadow-soft border border-surface-100 p-5 hover:shadow-card transition-shadow">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           {post.userId?.avatar?.url ? (
-            <img src={post.userId.avatar.url} alt="" className="w-10 h-10 rounded-full object-cover" />
+            <img src={post.userId.avatar.url} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
           ) : (
-            <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm-custom">
+            <div className="w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold text-sm-custom flex-shrink-0 shadow-soft">
               {initials(post.userId)}
             </div>
           )}
-          <div>
-            <p className="text-sm-custom font-semibold text-ink-900">{getFullName(post.userId) || t("Unknown")}</p>
+          <div className="min-w-0">
+            <p className="text-sm-custom font-semibold text-ink-900 truncate">
+              {post.userId?.fullName || t("Unknown")}
+            </p>
             <div className="flex items-center gap-2 text-xs-custom text-ink-400">
               <span className="capitalize">{post.userId?.role}</span>
               <span>•</span>
@@ -259,7 +398,7 @@ const PostCard = ({ post, currentUserId, userRole, onDeleteClick }) => {
         {post.classGroup ? (
           <AppBadge type="classGroup" value={post.classGroup.displayName} />
         ) : (
-          <span className="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-brand-50 text-brand-600 border border-brand-100">
+          <span className="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-brand-50 text-brand-600 border border-brand-100 flex-shrink-0">
             <i className="fa fa-school mr-1"></i>
             {t("Whole School")}
           </span>
@@ -276,9 +415,9 @@ const PostCard = ({ post, currentUserId, userRole, onDeleteClick }) => {
               href={a.url}
               target="_blank"
               rel="noreferrer"
-              className="text-xs-custom text-brand-600 underline"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-50 border border-surface-200 rounded-lg text-xs-custom text-brand-600 hover:bg-surface-100 transition-colors"
             >
-              <i className="fa fa-paperclip mr-1"></i>
+              <i className="fa fa-paperclip"></i>
               {t("Attachment")}
             </a>
           ))}
@@ -286,10 +425,14 @@ const PostCard = ({ post, currentUserId, userRole, onDeleteClick }) => {
       )}
 
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-surface-100">
-        <span className="text-xs-custom text-ink-400">
+        <button
+          type="button"
+          onClick={() => setShowComments((v) => !v)}
+          className="text-xs-custom text-ink-400 hover:text-brand-600 font-medium transition-colors"
+        >
           <i className="fa fa-comment mr-1"></i>
-          {post.comments?.length || 0} {t("comments")}
-        </span>
+          {commentCount} {t("comments")}
+        </button>
         {canManage && (
           <button
             onClick={() => onDeleteClick(post._id)}
@@ -300,6 +443,8 @@ const PostCard = ({ post, currentUserId, userRole, onDeleteClick }) => {
           </button>
         )}
       </div>
+
+      {showComments && <CommentsSection post={post} currentUserId={currentUserId} t={t} />}
     </div>
   );
 };
@@ -310,14 +455,24 @@ const PostCard = ({ post, currentUserId, userRole, onDeleteClick }) => {
 const Wall = () => {
   const { t } = useTranslation();
   const { user } = useSelector((state) => state.auth);
+  const isStudent = user?.role === "student";
+
+  // 👇 NEW: teacher/principle/counselor MUST pick a specific class group
+  // before any posts are shown — otherwise every class's posts would be
+  // mixed together with no way to tell which class a post belongs to.
+  // Admin is exempt and still sees everything by default.
+  const requiresClassFilter = ["teacher", "principle", "counselor"].includes(user?.role);
 
   const [page, setPage] = useState(1);
+  const [filterClassGroupId, setFilterClassGroupId] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState(null);
 
+  const shouldSkipFetch = requiresClassFilter && !filterClassGroupId;
+
   const { data, isLoading, isFetching, error, refetch } = useGetAnnouncementsQuery(
-    { page },
-    { refetchOnMountOrArgChange: true }
+    { page, classGroup: filterClassGroupId || undefined },
+    { refetchOnMountOrArgChange: true, skip: shouldSkipFetch }
   );
 
   const [deleteAnnouncement, { isLoading: isDeleteLoading, isSuccess: deleteSuccess, error: deleteError }] =
@@ -345,6 +500,11 @@ const Wall = () => {
     if (selectedPostId) deleteAnnouncement(selectedPostId);
   };
 
+  const handleFilterChange = (id) => {
+    setFilterClassGroupId(id);
+    setPage(1);
+  };
+
   if (isLoading) return <Loader />;
 
   return (
@@ -352,14 +512,38 @@ const Wall = () => {
       <MetaData title={t("Wall")} />
 
       <div className="max-w-6xl mx-auto space-y-6">
-        <AppPageHeader
-          title={t("Announcements Wall")}
-          subtitle={t("Posts for the current campus and academic year")}
-        />
+        <div className="bg-white rounded-2xl shadow-soft border border-surface-100 p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl-custom font-bold text-ink-900 font-heading">
+                {t("Announcements Wall")}
+              </h1>
+              <p className="text-sm-custom text-ink-400 mt-1">
+                {requiresClassFilter
+                  ? t("Select a class group below to view its posts")
+                  : t("Posts for the current campus and academic year")}
+              </p>
+            </div>
+            {!isStudent && (
+              <ClassGroupFilter
+                userRole={user?.role}
+                currentUserId={user?._id}
+                value={filterClassGroupId}
+                onChange={handleFilterChange}
+              />
+            )}
+          </div>
+        </div>
 
-        <Composer userRole={user?.role} onPosted={() => setPage(1)} />
+        <Composer userRole={user?.role} currentUserId={user?._id} onPosted={() => setPage(1)} />
 
-        {posts.length === 0 ? (
+        {shouldSkipFetch ? (
+          <EmptyState
+            icon="filter"
+            title={t("Select a class group to view its posts")}
+            message={t("Choose a class group from the filter above to see announcements for that class.")}
+          />
+        ) : posts.length === 0 ? (
           <EmptyState
             icon="bullhorn"
             title={t("Nothing posted yet")}
@@ -379,23 +563,25 @@ const Wall = () => {
           </div>
         )}
 
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-3 pt-2">
-            <AppButton
-              text={t("Previous")}
-              icon="chevron-left"
-              disabled={page <= 1 || isFetching}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            />
-            <span className="text-sm-custom text-ink-600">
-              {t("Page")} {page} {t("of")} {totalPages}
-            </span>
-            <AppButton
-              text={t("Next")}
-              icon="chevron-right"
-              disabled={page >= totalPages || isFetching}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            />
+        {!shouldSkipFetch && totalPages > 1 && (
+          <div className="bg-white rounded-2xl shadow-soft border border-surface-100 p-4">
+            <div className="flex justify-center items-center gap-3">
+              <AppButton
+                text={t("Previous")}
+                icon="chevron-left"
+                disabled={page <= 1 || isFetching}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              />
+              <span className="text-sm-custom text-ink-600 font-medium">
+                {t("Page")} {page} {t("of")} {totalPages}
+              </span>
+              <AppButton
+                text={t("Next")}
+                icon="chevron-right"
+                disabled={page >= totalPages || isFetching}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              />
+            </div>
           </div>
         )}
       </div>

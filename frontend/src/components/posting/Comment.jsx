@@ -1,9 +1,8 @@
 import { Button, Dropdown, Textarea } from "flowbite-react";
 import dayjs from "dayjs";
 import { useState, useCallback, useEffect } from "react";
-import ConfirmationModal from './ConfirmationModal';
+import ConfirmationModal from '../GUI/ConfirmationModal';
 import { useTranslation } from 'react-i18next';
-
 
 const Comment = ({
     comment,
@@ -44,7 +43,7 @@ const Comment = ({
     }, [isCommentUpdated]);
 
     return (
-        <div className="flex items-start space-x-3 border-t pt-3">
+        <div className="flex items-start space-x-3 border-t border-surface-100 pt-3">
             <img
                 src={comment.userId?.avatar?.url || "/images/default_avatar.jpg"}
                 alt="Profile"
@@ -53,17 +52,17 @@ const Comment = ({
             <div className="flex-1">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                        <span className="font-semibold text-sm">
-                            {comment.userId?.name || "Anonymous"}
+                        <span className="font-semibold text-sm-custom text-ink-900">
+                            {comment.userId?.fullName || "Anonymous"}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs-custom text-ink-400">
                             {dayjs(comment.createdAt).fromNow()}
                         </span>
                     </div>
                     {isCommentOwner && (
                         <>
                             <Dropdown
-                                label={<i className="fa fa-ellipsis-v text-gray-600 hover:text-gray-900 cursor-pointer"></i>}
+                                label={<i className="fa fa-ellipsis-v text-ink-400 hover:text-ink-700 cursor-pointer"></i>}
                                 inline={true}
                                 arrowIcon={false}
                             >
@@ -91,7 +90,7 @@ const Comment = ({
                             type="text"
                             value={commentMessage}
                             onChange={(e) => updatedCommentMessage(e.target.value)}
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2 border border-surface-200 rounded-lg"
                         />
                         <div className="mt-2 flex space-x-2">
                             <Button
@@ -107,7 +106,7 @@ const Comment = ({
                         </div>
                     </div>
                 ) : (
-                    <p className="text-gray-700 text-sm mt-1">{comment.message}</p>
+                    <p className="text-ink-700 text-sm-custom mt-1">{comment.message}</p>
                 )}
             </div>
         </div>

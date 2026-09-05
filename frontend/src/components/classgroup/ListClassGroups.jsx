@@ -183,7 +183,7 @@ const ListClassGroups = () => {
       width: "15%",
       minWidth: "100px",
       render: (value) => (
-        <TruncatedCell lines={1} className="text-sm text-gray-700">
+        <TruncatedCell lines={1} className="text-sm-custom text-ink-700">
           {value?.gradeName || "—"}
         </TruncatedCell>
       ),
@@ -194,7 +194,7 @@ const ListClassGroups = () => {
       width: "15%",
       minWidth: "120px",
       render: (value) => (
-        <TruncatedCell lines={1} className="text-sm text-gray-700">
+        <TruncatedCell lines={1} className="text-sm-custom text-ink-700">
           {value?.name || "—"}
         </TruncatedCell>
       ),
@@ -205,7 +205,7 @@ const ListClassGroups = () => {
       width: "10%",
       minWidth: "80px",
       render: (value) => (
-        <span className="text-sm font-medium text-gray-800">
+        <span className="text-sm-custom font-medium text-ink-900">
           {value || "—"}
         </span>
       ),
@@ -226,7 +226,10 @@ const ListClassGroups = () => {
     {
       label: t("Total Class Groups"),
       value: data?.pagination?.total || 0,
-      icon: "users-class",
+      // 👇 FIX: "users-class" isn't a real FontAwesome icon name, so the
+      // <i className="fa fa-users-class"> rendered nothing (blank icon
+      // slot). "users" is a valid FA icon and fits "class groups" fine.
+      icon: "users",
       color: "blue",
     },
     {
@@ -278,22 +281,22 @@ const ListClassGroups = () => {
     <div className="relative">
       <button
         onClick={() => setShowFilters(!showFilters)}
-        className="px-4 py-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 flex items-center gap-2 shadow-soft"
+        className="px-4 py-3 border border-surface-200 rounded-xl bg-white hover:bg-surface-50 flex items-center gap-2 shadow-soft"
       >
         <i className="fa fa-sliders-h"></i>
         <span>{t("Filters")}</span>
-        <i className={`fa fa-chevron-${showFilters ? "up" : "down"} text-sm`}></i>
+        <i className={`fa fa-chevron-${showFilters ? "up" : "down"} text-sm-custom`}></i>
       </button>
 
       {showFilters && (
-        <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-premium z-20 p-5">
-          <h3 className="font-medium text-gray-700 mb-3">
+        <div className="absolute right-0 mt-2 w-72 bg-white border border-surface-200 rounded-xl shadow-premium z-20 p-5">
+          <h3 className="font-medium text-ink-700 mb-3">
             {t("Filter Class Groups")}
           </h3>
           <div className="space-y-4">
             {/* Items per page */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm-custom font-medium text-ink-700 mb-1">
                 {t("Items per page")}
               </label>
               <select
@@ -302,7 +305,7 @@ const ListClassGroups = () => {
                   setLimit(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                className="w-full p-2 border border-surface-200 rounded-lg text-sm-custom"
               >
                 {[5, 10, 15, 20, 25, 50].map((n) => (
                   <option key={n} value={n}>
@@ -314,7 +317,7 @@ const ListClassGroups = () => {
 
             {/* Status filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm-custom font-medium text-ink-700 mb-1">
                 {t("Status")}
               </label>
               <select
@@ -323,7 +326,7 @@ const ListClassGroups = () => {
                   setSelectedStatus(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                className="w-full p-2 border border-surface-200 rounded-lg text-sm-custom"
               >
                 <option value="">{t("All Status")}</option>
                 <option value="active">{t("Active")}</option>
@@ -332,10 +335,10 @@ const ListClassGroups = () => {
             </div>
 
             {/* Reset button */}
-            <div className="pt-2 border-t">
+            <div className="pt-2 border-t border-surface-100">
               <button
                 onClick={resetFilters}
-                className="w-full px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md flex items-center justify-center gap-2"
+                className="w-full px-4 py-2 text-sm-custom bg-surface-100 hover:bg-surface-200 text-ink-700 rounded-lg flex items-center justify-center gap-2"
               >
                 <i className="fa fa-undo"></i>
                 {t("Reset Filters")}
@@ -367,7 +370,7 @@ const ListClassGroups = () => {
   // ──────────────────────────────────────────────────────────────
   const emptyState = (
     <EmptyState
-      icon="users-class"
+      icon="users"
       title={searchTerm || selectedStatus ? t("No class groups found matching your criteria") : t("No class groups found")}
       message={t("Try adjusting your search or filters to find what you're looking for.")}
     />
@@ -408,7 +411,7 @@ const ListClassGroups = () => {
         userRole={userRole}
         renderRowActions={renderRowActions}
         renderHeaderInfo={() => (
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm-custom text-ink-400 mt-1">
             <i className="fa fa-info-circle mr-2"></i>
             {t("Showing")}: {data?.classGroups?.length || 0} {t("class groups")}
           </p>

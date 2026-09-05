@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useSelector } from "react-redux";
 
 // Redux
 import {
@@ -28,11 +29,19 @@ const getFullName = (user) => {
 const NewTeacherLeave = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user: currentUser } = useSelector((state) => state.auth);
+  // 👇 FIX: previously EVERY role saw a searchable "pick any teacher"
+  // dropdown, meaning a teacher applying for their own leave could just as
+  // easily file it under someone else's name. A teacher now has their own
+  // name locked in automatically; only admin/principle can pick who the
+  // leave is for.
+  const isSelfService = currentUser?.role === "teacher";
+
   const { refetch } = useGetTeacherLeavesQuery();
 
   // ------------------ Form state ------------------
   const [teacherLeave, setTeacherLeave] = useState({
-    teacher: "",
+    teacher: isSelfService ? currentUser._id : "",
     leaveType: "",
     startDate: "",
     endDate: "",
@@ -43,7 +52,7 @@ const NewTeacherLeave = () => {
   const { teacher, leaveType, startDate, endDate, totalDays, reason } =
     teacherLeave;
 
-  // ------------------ Teacher dropdown state ------------------
+  // ------------------ Teacher dropdown state (admin/principle only) ------------------
   const [teacherSearchTerm, setTeacherSearchTerm] = useState("");
 
   const {
@@ -56,7 +65,7 @@ const NewTeacherLeave = () => {
       limit: 0,
       keyword: teacherSearchTerm,
     },
-    { skip: false } // teacher is mandatory
+    { skip: isSelfService } // no need to fetch the whole teacher list for self-service
   );
 
   const teacherOptions = useMemo(() => {
@@ -166,10 +175,14 @@ const NewTeacherLeave = () => {
     <AdminLayout>
       <MetaData title={t("New Teacher Leave")} />
 
-      <div className="max-w-4xl mx-auto">
+      <div className=" mx-auto">
         <AppPageHeader
           title={t("New Teacher Leave")}
-          subtitle={t("Create a leave record for a teacher")}
+          subtitle={
+            isSelfService
+              ? t("Apply for your own leave")
+              : t("Create a leave record for a teacher")
+          }
           backUrl="/admin/teacher-leaves"
         />
 
@@ -192,19 +205,30 @@ const NewTeacherLeave = () => {
           >
             {/* Teacher */}
             <div className="mb-4">
-              <SearchableDropdown
-                label={t("Teacher")}
-                placeholder={t("Search and select teacher")}
-                value={teacher}
-                onChange={handleTeacherChange}
-                onSearch={setTeacherSearchTerm}
-                options={teacherOptions}
-                isLoading={teachersLoading}
-                hasMore={false}
-                emptyMessage={t("No teachers found")}
-                loadingMessage={t("Loading...")}
-                required
-              />
+              {isSelfService ? (
+                <AppInput
+                  label={t("Applying As")}
+                  type="text"
+                  value={getFullName(currentUser) || currentUser?.email || ""}
+                  readOnly
+                  helperText={t("You can only apply for your own leave")}
+                />
+              ) : (
+                <SearchableDropdown
+                  label={t("Teacher")}
+                  placeholder={t("Search and select teacher")}
+                  value={teacher}
+                  onChange={handleTeacherChange}
+                  onSearch={setTeacherSearchTerm}
+                  options={teacherOptions}
+                  isLoading={teachersLoading}
+                  hasMore={false}
+                  emptyMessage={t("No teachers found")}
+                  loadingMessage={t("Loading...")}
+                  showSelected={false}
+                  required
+                />
+              )}
             </div>
 
             {/* Leave Type */}
@@ -220,6 +244,7 @@ const NewTeacherLeave = () => {
                 hasMore={false}
                 emptyMessage={t("No leave type found")}
                 loadingMessage=""
+                showSelected={false}
                 required
               />
             </div>

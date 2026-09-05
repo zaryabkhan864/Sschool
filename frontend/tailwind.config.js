@@ -56,6 +56,18 @@ module.exports = {
           400: '#94a3b8',
           300: '#cbd5e1',
         },
+        // Semantic accent scales for status chips, stat cards, and badges
+        // (e.g. DataTableContainer's STAT_COLOR_STYLES) — centralizes colors
+        // that used to be raw Tailwind defaults (emerald/purple/red/amber/
+        // indigo/teal/orange) scattered across components, so they can be
+        // retuned from one place.
+        success: { 50: '#ecfdf5', 100: '#d1fae5', 600: '#059669' },
+        danger: { 50: '#fef2f2', 100: '#fee2e2', 600: '#dc2626' },
+        warning: { 50: '#fffbeb', 100: '#fef3c7', 600: '#d97706' },
+        info: { 50: '#eef2ff', 100: '#e0e7ff', 600: '#4f46e5' },
+        violet: { 50: '#faf5ff', 100: '#f3e8ff', 600: '#9333ea' },
+        teal: { 50: '#f0fdfa', 100: '#ccfbf1', 600: '#0d9488' },
+        accent: { 50: '#fff7ed', 100: '#ffedd5', 600: '#ea580c' },
       },
       boxShadow: {
         'soft': '0 2px 12px -2px rgba(15, 23, 42, 0.04)',

@@ -224,11 +224,11 @@ const SessionTemplate = () => {
   const getTypeBadge = (type) => {
     switch (type) {
       case "CLASS":
-        return "bg-blue-100 text-blue-800";
+        return "bg-brand-50 text-brand-700";
       case "BREAK":
-        return "bg-green-100 text-green-800";
+        return "bg-surface-100 text-ink-700";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-surface-100 text-ink-700";
     }
   };
 
@@ -252,12 +252,12 @@ const SessionTemplate = () => {
       render: (value, row) => (
         <div>
           <div className="flex items-center gap-2">
-            <h4 className="text-sm font-semibold text-gray-800">{value}</h4>
+            <h4 className="text-sm-custom font-semibold text-ink-900">{value}</h4>
             <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${getTypeBadge(row.type)}`}>
               {row.type}
             </span>
           </div>
-          <p className="text-xs text-gray-500 mt-0.5">Year: {row.year}</p>
+          <p className="text-xs-custom text-ink-400 mt-0.5">Year: {row.year}</p>
         </div>
       ),
     },
@@ -266,8 +266,8 @@ const SessionTemplate = () => {
       accessor: "order",
       width: "10%",
       render: (val) => (
-        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
-          <span className="text-xs font-bold text-blue-600">{val}</span>
+        <div className="w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center">
+          <span className="text-xs-custom font-bold text-brand-600">{val}</span>
         </div>
       ),
     },
@@ -278,12 +278,12 @@ const SessionTemplate = () => {
       render: (value, row) => (
         <div>
           <div className="flex items-center gap-2">
-            <i className="fa fa-clock text-xs text-gray-400"></i>
-            <span className="text-sm font-medium text-gray-700">
+            <i className="fa fa-clock text-xs-custom text-ink-400"></i>
+            <span className="text-sm-custom font-medium text-ink-700">
               {formatTime(value)} - {formatTime(row.endTime)}
             </span>
           </div>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs-custom text-ink-400 mt-0.5">
             Duration: {calculateDuration(value, row.endTime)}
           </p>
         </div>
@@ -294,7 +294,7 @@ const SessionTemplate = () => {
       accessor: "academicLevel",
       width: "25%",
       render: (val) => (
-        <p className="text-sm text-gray-700">{getAcademicLevelName(val?._id || val)}</p>
+        <p className="text-sm-custom text-ink-700">{getAcademicLevelName(val?._id || val)}</p>
       ),
     },
   ];
@@ -330,13 +330,30 @@ const SessionTemplate = () => {
   ];
 
   // Filters component
+  // 👇 FIX: SessionFilters expects `onAcademicLevelChange` / `onKeywordChange`
+  // / `onReset`, but this was passing `setFilterAcademicLevel` / `setKeyword`
+  // and no reset handler at all. Prop-name mismatch meant SearchableDropdown
+  // received `onChange={undefined}` inside SessionFilters, so selecting an
+  // academic level crashed with "onChange is not a function". Reset would
+  // have crashed the same way once clicked.
   const filters = (
     <SessionFilters
       filterAcademicLevel={filterAcademicLevel}
-      setFilterAcademicLevel={setFilterAcademicLevel}
+      onAcademicLevelChange={(val) => {
+        setFilterAcademicLevel(val);
+        setPage(1);
+      }}
       academicLevelOptions={academicLevelOptions}
       keyword={keyword}
-      setKeyword={setKeyword}
+      onKeywordChange={(val) => {
+        setKeyword(val);
+        setPage(1);
+      }}
+      onReset={() => {
+        setFilterAcademicLevel("");
+        setKeyword("");
+        setPage(1);
+      }}
     />
   );
 
@@ -362,13 +379,13 @@ const SessionTemplate = () => {
 
   const emptyState = (
     <div className="flex flex-col items-center justify-center py-12">
-      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-        <i className="fa fa-clock text-gray-400 text-2xl"></i>
+      <div className="w-16 h-16 bg-surface-100 rounded-full flex items-center justify-center mb-4">
+        <i className="fa fa-clock text-ink-400 text-2xl"></i>
       </div>
-      <h3 className="text-lg font-medium text-gray-700 mb-2">
+      <h3 className="text-lg-custom font-medium text-ink-700 mb-2">
         {t("No session templates created yet")}
       </h3>
-      <p className="text-sm text-gray-500 text-center max-w-md">
+      <p className="text-sm-custom text-ink-400 text-center max-w-md">
         {t("Get started by creating your first session template using the button above.")}
       </p>
     </div>
@@ -397,22 +414,26 @@ const SessionTemplate = () => {
         userRole="admin"
         renderRowActions={renderRowActions}
         renderHeaderInfo={() => (
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm-custom text-ink-400 mt-1">
             <i className="fa fa-info-circle mr-2"></i>
             {t("Session templates define the timing for classes and breaks")}
           </p>
         )}
         showSearch={true} // Enable search (keyword input)
-        searchValue={keyword}
-        onSearchChange={(e) => {
-          setKeyword(e.target.value);
+        search={keyword}
+        setSearch={(val) => {
+          setKeyword(val);
           setPage(1); // reset to first page on search
         }}
+        searchTerm={keyword}
+        setSearchTerm={setKeyword}
         showStats={false}
         showPagination={true} // Enable pagination
         pagination={pagination}
-        onPageChange={(newPage) => setPage(newPage)}
-        onLimitChange={(newLimit) => {
+        currentPage={page}
+        setCurrentPage={setPage}
+        limit={limit}
+        setLimit={(newLimit) => {
           setLimit(newLimit);
           setPage(1);
         }}

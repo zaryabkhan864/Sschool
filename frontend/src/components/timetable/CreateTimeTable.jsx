@@ -7,6 +7,7 @@ import { useGetClassGroupsQuery } from "../../redux/api/authApi";
 import { useGetClassGroupDetailsQuery } from "../../redux/api/classGroupApi";
 import { useGetWeekDaysQuery } from "../../redux/api/weekDayApi";
 import { useGetSessionTemplatesQuery } from "../../redux/api/sessionTemplateApi";
+import { useGetDaySessionConfigsQuery } from "../../redux/api/daySessionConfigApi";
 import {
   useGetAndCreateTimeTableQuery,
   useUpdateTimeTableSlotsMutation,
@@ -51,6 +52,8 @@ const CreateTimeTable = () => {
 
   const assignedCourses = classGroupDetails?.courses || [];
 
+  const levelId = selectedClassGroup?.academicLevel?._id || selectedClassGroup?.academicLevel;
+
   // ----- Week Days & Session Templates -----
   const {
     data: weekDaysData,
@@ -62,10 +65,22 @@ const CreateTimeTable = () => {
     data: sessionTemplatesData,
     isError: isSessionsError,
     error: sessionsError,
-  } = useGetSessionTemplatesQuery({ page: 1, limit: 500 });
+  } = useGetSessionTemplatesQuery({ paginate: "false" });
+
+  // ----- Day Session Configs (which periods actually run on which day for
+  // this academic level — e.g. Mon–Thu = 9 periods, Fri = 8) -----
+  const {
+    data: daySessionConfigsData,
+    isError: isDaySessionConfigsError,
+    error: daySessionConfigsError,
+  } = useGetDaySessionConfigsQuery(
+    { academicLevel: levelId, limit: 50 },
+    { skip: !levelId }
+  );
 
   const weekDays = weekDaysData?.days || [];
   const sessionTemplates = sessionTemplatesData?.sessions || sessionTemplatesData || [];
+  const daySessionConfigs = daySessionConfigsData?.configs || [];
 
   const sortedWeekDays = useMemo(
     () => [...weekDays].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
@@ -73,12 +88,26 @@ const CreateTimeTable = () => {
   );
 
   const displaySessions = useMemo(() => {
-    if (!selectedClassGroup) return [];
-    const levelId = selectedClassGroup.academicLevel?._id || selectedClassGroup.academicLevel;
+    if (!levelId) return [];
     return sessionTemplates
       .filter((s) => !s.academicLevel || s.academicLevel?._id === levelId || s.academicLevel === levelId)
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  }, [sessionTemplates, selectedClassGroup]);
+  }, [sessionTemplates, levelId]);
+
+  // Map of weekDayId -> Set of sessionTemplate IDs that are actually
+  // scheduled that day, per the Day Session Template config. A day with no
+  // config document yet is left out of this map entirely (undefined), so
+  // the grid can tell "not configured" apart from "configured with fewer
+  // periods" (e.g. Friday).
+  const allowedSessionsByDay = useMemo(() => {
+    const map = {};
+    daySessionConfigs.forEach((cfg) => {
+      const dayId = cfg.weekDay?._id || cfg.weekDay;
+      const ids = (cfg.sessions || []).map((s) => s?._id || s);
+      map[dayId] = new Set(ids);
+    });
+    return map;
+  }, [daySessionConfigs]);
 
   // ----- Timetable Data (fetch or create) -----
   const {
@@ -109,6 +138,14 @@ const CreateTimeTable = () => {
       toast.error(sessionsError?.data?.message || t("Failed to load session templates"));
     }
   }, [isSessionsError, sessionsError, t]);
+
+  useEffect(() => {
+    if (isDaySessionConfigsError) {
+      toast.error(
+        daySessionConfigsError?.data?.message || t("Failed to load day session config")
+      );
+    }
+  }, [isDaySessionConfigsError, daySessionConfigsError, t]);
 
   // Populate grid once timetable data, week days and sessions are all ready.
   useEffect(() => {
@@ -164,6 +201,9 @@ const CreateTimeTable = () => {
     const slotsToUpdate = [];
     Object.keys(grid).forEach((dayId) => {
       Object.keys(grid[dayId]).forEach((sessionId) => {
+        // Don't submit slots for periods that aren't actually scheduled on
+        // this day (e.g. Friday's 9th period) — they were never editable.
+        if (!allowedSessionsByDay[dayId]?.has(sessionId)) return;
         const cell = grid[dayId][sessionId];
         slotsToUpdate.push({
           weekDay: dayId,
@@ -187,6 +227,10 @@ const CreateTimeTable = () => {
     ? t("No week days are configured for this campus yet. Add week days first.")
     : !displaySessions.length
     ? t("No session templates found for this academic level. Create session templates first.")
+    : !daySessionConfigs.length
+    ? t(
+        "No Day Session Template configured for this academic level yet. Set up which periods run on each day first."
+      )
     : null;
 
   return (
@@ -203,7 +247,7 @@ const CreateTimeTable = () => {
         {/* ---------- Top: Timetable grid for the selected class ---------- */}
         {!selectedClassGroup ? (
           <AppCard title={t("Timetable")} icon="fa-table" className="animate-slide-up">
-            <div className="p-6 text-center text-gray-500 text-sm-custom">
+            <div className="p-6 text-center text-ink-400 text-sm-custom">
               {t("Select a class from the list below to view its timetable.")}
             </div>
           </AppCard>
@@ -233,8 +277,8 @@ const CreateTimeTable = () => {
               }
             >
               {gridBlockedReason ? (
-                <div className="p-4 bg-yellow-50 text-yellow-800 rounded-xl flex items-start gap-3 shadow-soft">
-                  <i className="fa fa-exclamation-triangle mt-0.5"></i>
+                <div className="p-4 bg-surface-50 text-ink-700 rounded-xl flex items-start gap-3 shadow-soft border border-surface-200">
+                  <i className="fa fa-exclamation-triangle mt-0.5 text-ink-400"></i>
                   <span className="text-sm-custom font-medium">{gridBlockedReason}</span>
                 </div>
               ) : (
@@ -244,6 +288,7 @@ const CreateTimeTable = () => {
                   grid={grid}
                   classGroupId={selectedClassGroup._id}
                   onCourseChange={handleCourseChange}
+                  allowedSessionsByDay={allowedSessionsByDay}
                 />
               )}
             </AppCard>
@@ -258,9 +303,9 @@ const CreateTimeTable = () => {
               {classGroupsLoading ? (
                 <Loader />
               ) : classGroups.length === 0 ? (
-                <p className="text-sm text-gray-500">{t("No classes found.")}</p>
+                <p className="text-sm-custom text-ink-400">{t("No classes found.")}</p>
               ) : (
-                <div className="max-h-[420px] overflow-y-auto divide-y">
+                <div className="max-h-[420px] overflow-y-auto divide-y divide-surface-100">
                   {classGroups.map((cg) => (
                     <button
                       key={cg._id}
@@ -269,14 +314,14 @@ const CreateTimeTable = () => {
                       className={`w-full text-left px-3 py-2.5 flex items-center justify-between transition-colors ${
                         selectedClassGroup?._id === cg._id
                           ? "bg-brand-50 text-brand-700"
-                          : "hover:bg-gray-50 text-gray-700"
+                          : "hover:bg-surface-50 text-ink-700"
                       }`}
                     >
-                      <span className="text-sm font-semibold">
+                      <span className="text-sm-custom font-semibold">
                         {cg.displayName || `${cg.grade?.gradeName || ""} ${cg.section || ""}`}
                       </span>
                       {selectedClassGroup?._id === cg._id && (
-                        <i className="fa fa-chevron-right text-xs text-brand-500"></i>
+                        <i className="fa fa-chevron-right text-xs-custom text-brand-500"></i>
                       )}
                     </button>
                   ))}
@@ -294,41 +339,41 @@ const CreateTimeTable = () => {
               className="animate-slide-up"
             >
               {!selectedClassGroup ? (
-                <p className="text-sm text-gray-500 p-2">
+                <p className="text-sm-custom text-ink-400 p-2">
                   {t("Select a class from the list to see its assigned courses and teachers.")}
                 </p>
               ) : isClassGroupDetailsFetching ? (
                 <Loader />
               ) : assignedCourses.length === 0 ? (
-                <p className="text-sm text-gray-500 p-2">
+                <p className="text-sm-custom text-ink-400 p-2">
                   {t("No courses have been assigned to this class yet.")}
                 </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse">
                     <thead>
-                      <tr className="bg-gray-50 border-b">
-                        <th className="p-2 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                      <tr className="bg-surface-50 border-b border-surface-200">
+                        <th className="p-2 text-left text-[10px] font-bold text-ink-400 uppercase tracking-wider">
                           {t("Course")}
                         </th>
-                        <th className="p-2 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        <th className="p-2 text-left text-[10px] font-bold text-ink-400 uppercase tracking-wider">
                           {t("Code")}
                         </th>
-                        <th className="p-2 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        <th className="p-2 text-left text-[10px] font-bold text-ink-400 uppercase tracking-wider">
                           {t("Teacher")}
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y">
+                    <tbody className="divide-y divide-surface-100">
                       {assignedCourses.map((course) => (
                         <tr key={course._id}>
-                          <td className="p-2 text-sm font-semibold text-gray-800">
+                          <td className="p-2 text-sm-custom font-semibold text-ink-900">
                             {course.courseName}
                           </td>
-                          <td className="p-2 text-xs text-gray-500">{course.code || "-"}</td>
-                          <td className="p-2 text-sm text-gray-700">
+                          <td className="p-2 text-xs-custom text-ink-400">{course.code || "-"}</td>
+                          <td className="p-2 text-sm-custom text-ink-700">
                             {course.teacher ? fullName(course.teacher) : (
-                              <span className="text-gray-400 italic">{t("Unassigned")}</span>
+                              <span className="text-ink-300 italic">{t("Unassigned")}</span>
                             )}
                           </td>
                         </tr>

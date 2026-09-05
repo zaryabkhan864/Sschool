@@ -48,9 +48,18 @@ const TeacherLeaveSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Campus",
     },
+    // 👇 FIX: was `type: Number`, but every caller (newTeacherLeave,
+    // updateTeacherLeave, getTeachersLeave, getLeaveBalanceForTeacher) was
+    // already passing it `req.cookies.academicYear` — an AcademicYear
+    // ObjectId string, not a plain number — so every create/query threw
+    // "Cast to Number failed". Changed to match the same
+    // `academicYear: ObjectId ref AcademicYear` pattern used by Course,
+    // SessionTemplate, Announcement, and StudentEnrollment elsewhere in
+    // this codebase.
     year: {
-      type: Number,
-      required: [true, "Please enter course year"],
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AcademicYear",
+      required: [true, "Academic year is required"],
     },
   },
   { timestamps: false }

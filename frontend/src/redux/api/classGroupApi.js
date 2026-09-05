@@ -25,6 +25,7 @@ export const classGroupApi = createApi({
         campus,
         grade,
         academicLevel,
+        teacherId, // 👈 NEW: restrict to class groups whose courses this teacher teaches
         paginate = true,
       } = {}) => {
         const params = new URLSearchParams();
@@ -41,6 +42,7 @@ export const classGroupApi = createApi({
         if (campus) params.append("campus", campus);
         if (grade) params.append("grade", grade);
         if (academicLevel) params.append("academicLevel", academicLevel);
+        if (teacherId) params.append("teacherId", teacherId);
 
         return {
           url: `/class-groups?${params.toString()}`,
@@ -148,6 +150,22 @@ export const classGroupApi = createApi({
         { type: "ClassGroup", id: "DROPDOWN" },
       ],
     }),
+
+    // 👇 NEW: for a teacher, returns just their own courses + the class
+    // groups those courses belong to; for admin, returns everything.
+    // Backed by the existing POST /teacher/class-groups/courses endpoint
+    // (classGroupController.getCoursesAndClassGroupByRole) — used by the
+    // Attendance module so a teacher only sees their own course/class
+    // combinations to take attendance for.
+    getCoursesAndClassGroupByRole: builder.mutation({
+      query(body) {
+        return {
+          url: "/teacher/class-groups/courses",
+          method: "POST",
+          body, // { userId, userRole }
+        };
+      },
+    }),
   }),
 });
 
@@ -161,4 +179,5 @@ export const {
   useCreateClassGroupMutation,
   useUpdateClassGroupMutation,
   useDeleteClassGroupMutation,
+  useGetCoursesAndClassGroupByRoleMutation,
 } = classGroupApi;

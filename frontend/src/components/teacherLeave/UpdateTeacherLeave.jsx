@@ -131,7 +131,7 @@ const UpdateTeacherLeave = () => {
     <AdminLayout>
       <MetaData title={t("Update Teacher Leave")} />
 
-      <div className="max-w-4xl mx-auto">
+      <div className=" mx-auto">
         <AppPageHeader
           title={t("Update Teacher Leave")}
           subtitle={t("Review and update leave status")}

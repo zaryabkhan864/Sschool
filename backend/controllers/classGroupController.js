@@ -1,4 +1,4 @@
-// controllers/classGroup.js - COMPLETE VERSION
+// controllers/classGroupController.js - COMPLETE VERSION
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import ClassGroup from "../models/classGroup.js";
 import Course from "../models/course.js";
@@ -6,6 +6,35 @@ import User from "../models/user.js";
 import StudentEnrollment from "../models/studentEnrollment.js"; // ✅ Added import
 import APIFilters from "../utils/apiFilters.js";
 import ErrorHandler from "../utils/errorHandler.js";
+
+// 👇 FIX: MongoDB's `.sort('displayName')` is a plain STRING sort, so "10 A"
+// sorts before "2 A" (lexicographic: '1' < '2'). That produced the visible
+// 1, 1, 10, 11, 12, 2, 3, 4... ordering. This comparator splits each string
+// into number/non-number chunks and compares numeric chunks numerically, so
+// "2 A" correctly sorts before "10 A".
+const naturalCompare = (a = "", b = "") => {
+  const chunks = (str) => {
+    const out = [];
+    String(str).replace(/(\d+)|(\D+)/g, (_, num, text) => {
+      out.push(num !== undefined ? [1, parseInt(num, 10)] : [0, text]);
+      return "";
+    });
+    return out;
+  };
+  const ax = chunks(a);
+  const bx = chunks(b);
+  const len = Math.max(ax.length, bx.length);
+  for (let i = 0; i < len; i++) {
+    if (!ax[i]) return -1;
+    if (!bx[i]) return 1;
+    const [aType, aVal] = ax[i];
+    const [bType, bVal] = bx[i];
+    if (aType !== bType) return aType - bType;
+    if (aVal < bVal) return -1;
+    if (aVal > bVal) return 1;
+  }
+  return 0;
+};
 
 // 1. CREATE ====================================
 export const newClassGroup = catchAsyncErrors(async (req, res) => {
@@ -77,6 +106,7 @@ export const getClassGroups = catchAsyncErrors(async (req, res) => {
     limit,
     sort,
     paginate,
+    teacherId, // 👈 NEW: restrict to class groups whose courses this teacher teaches
   } = req.query;
 
   // 3. Pagination decision
@@ -131,12 +161,23 @@ export const getClassGroups = catchAsyncErrors(async (req, res) => {
 
   // 10. Sort specification nikal lo (displayName default)
   const sortString = apiFilters.queryStr.sort || 'displayName';
+  const isDefaultDisplayNameSort = sortString === 'displayName';
   const sortSpec = sortString.split(',').join(' ');   // e.g. "displayName,-createdAt" → "displayName -createdAt"
 
   // 11. Base conditions tayyar karo (filters + search) aur section filter manually add karo
   const baseConditions = { ...apiFilters.query._conditions };
   if (section) {
     baseConditions.section = { $regex: new RegExp(`^${section}$`, 'i') };
+  }
+
+  // 👇 NEW: teacherId filter — a ClassGroup doesn't reference a teacher
+  // directly, only via its `courses` array (Course.teacher). So first find
+  // every Course this teacher is assigned to, then only keep class groups
+  // whose `courses` array intersects that set. Used by the Announcements
+  // Wall so a teacher can only post to class groups they actually teach in.
+  if (teacherId) {
+    const teacherCourseIds = await Course.find({ teacher: teacherId }).distinct('_id');
+    baseConditions.courses = { $in: teacherCourseIds };
   }
 
   // 12. Count totals (active/deactive sab filters ke saath)
@@ -149,16 +190,27 @@ export const getClassGroups = catchAsyncErrors(async (req, res) => {
     .populate('grade', '_id gradeName')
     .populate('academicLevel', '_id name code')
     .populate('campus', '_id name')
-    .populate('courses', '_id name code')
-    .sort(sortSpec);   // YAHI SORT APPLY HOGA
+    .populate('courses', '_id name code');
 
-  // 14. Pagination agar enabled hai to skip/limit lagao
-  if (apiFilters.shouldPaginate) {
-    const skip = (apiFilters.page - 1) * apiFilters.limit;
-    classGroupsQuery = classGroupsQuery.skip(skip).limit(apiFilters.limit);
+  // Default displayName sort is done in JS below (natural sort) instead of
+  // here, since Mongo's string sort gives the wrong 1,10,11,12,2,3 order.
+  // Any other explicit sort (e.g. ?sort=-createdAt) still sorts at the DB.
+  if (!isDefaultDisplayNameSort) {
+    classGroupsQuery = classGroupsQuery.sort(sortSpec);
   }
 
-  const classGroups = await classGroupsQuery;
+  let classGroups = await classGroupsQuery;
+
+  if (isDefaultDisplayNameSort) {
+    classGroups = [...classGroups].sort((a, b) => naturalCompare(a.displayName, b.displayName));
+  }
+
+  // 14. Pagination agar enabled hai to slice lagao (JS-level, since sorting
+  // for the default case happens after fetching all matching documents).
+  if (apiFilters.shouldPaginate) {
+    const skip = (apiFilters.page - 1) * apiFilters.limit;
+    classGroups = classGroups.slice(skip, skip + apiFilters.limit);
+  }
 
   // 15. Response tayyar karo – bilkul courses controller jaisa
   const response = {
@@ -318,7 +370,7 @@ export const deleteCourseInClassGroup = catchAsyncErrors(async (req, res, next) 
 
 // Get courses and class groups by role
 export const getCoursesAndClassGroupByRole = catchAsyncErrors(async (req, res, next) => {
-  const { campus, academicYearName } = req.cookies;
+  const { campus, academicYearName, academicYear } = req.cookies;
   const { userId, userRole } = req.body;
 
   if (!userId || !userRole) {
@@ -328,7 +380,13 @@ export const getCoursesAndClassGroupByRole = catchAsyncErrors(async (req, res, n
   let courses, classGroups;
 
   if (userRole === "admin") {
-    courses = await Course.find({ campus, year: academicYearName }).populate("teacher");
+    // 👇 FIX: Course has no `year` field — only `academicYear` (ObjectId
+    // ref AcademicYear). `year` (String, e.g. "2026-2027") only exists on
+    // ClassGroup. Filtering courses by `year: academicYearName` matched
+    // zero documents every time, so this always returned an empty course
+    // list — which is why the Attendance module's course dropdown showed
+    // "No courses assigned to you" for a teacher who genuinely has courses.
+    courses = await Course.find({ campus, academicYear }).populate("teacher");
     classGroups = await ClassGroup.find({ campus, year: academicYearName }).populate("courses");
   } else if (userRole === "teacher") {
     const teacher = await User.findById(userId);
@@ -339,7 +397,7 @@ export const getCoursesAndClassGroupByRole = catchAsyncErrors(async (req, res, n
     courses = await Course.find({ 
       teacher: teacher._id, 
       campus, 
-      year: academicYearName 
+      academicYear 
     }).populate("teacher");
 
     classGroups = await ClassGroup.find({

@@ -40,6 +40,11 @@ import NewCampus from "../campus/NewCampus";
 import UpdateCampus from "../campus/UpdateCampus";
 import ListTeacherLeave from "../teacherLeave/ListTeacherLeave";
 import UpdateTeacherLeave from "../teacherLeave/UpdateTeacherLeave";
+// 👇 FIX: this component existed (as a stub) but was never imported or
+// registered as a route anywhere — ListTeacherLeave.jsx's "view details"
+// button navigates to /admin/teacher-leave/:id/details, which had no
+// matching <Route> at all, hence the 404.
+import TeacherLeaveDetails from "../teacherLeave/TeacherLeaveDetails";
 import CreateTimeTable from "../timetable/CreateTimeTable";
 import NewAcademicLevel from "../timetable/NewAcademiclevel";
 import NewClassGroup from "../classgroup/NewClassGroup";
@@ -61,6 +66,7 @@ import ClassGroupDetails from "../classgroup/ClassGroupDetails";
 import ClassGroupStudents from "../classgroup/ClassGroupStudents";
 import ClassGroupDownload from "../classgroup/ClassGroupDownload";
 import CreateSchool from "../school/createSchool";
+import AttendanceReport from "../attendance/Attendancereport";
 
 
 
@@ -212,6 +218,14 @@ const adminRoutes = () => {
         }
       />
       <Route
+        path="/admin/teacher-leave/:id/details"
+        element={
+          <ProtectedRoute admin={true}>
+            <TeacherLeaveDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin/TeacherLeaves"
         element={
           <ProtectedRoute admin={true}>
@@ -290,6 +304,14 @@ const adminRoutes = () => {
         element={
           <ProtectedRoute admin={true}>
             <AddAttendance />
+          </ProtectedRoute>
+        }
+      />
+           <Route
+        path="/admin/attendance/report"
+        element={
+          <ProtectedRoute admin={true}>
+            <AttendanceReport />
           </ProtectedRoute>
         }
       />

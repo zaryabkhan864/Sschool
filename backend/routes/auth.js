@@ -16,7 +16,6 @@ import {
   getUsersByType,
   getUsersByTypeForEnrollment,
   getYearlyCampusWiseCounts,
-  getClassGroups,           // 🆕
   bulkRegisterTeachers, 
   bulkRegisterStudents 
 } from "../controllers/authControllers.js";
@@ -54,11 +53,13 @@ router
 router.route("/users/:type").get(getUsersByType);
 router.route("/users/enrollment/:type").get(getUsersByTypeForEnrollment);
 
-// ========== Class groups (for filter dropdowns) ==========
-// 🆕 If you already have a class-group route defined elsewhere in your app,
-// remove this block to avoid a duplicate route and just keep the frontend
-// pointed at your existing endpoint.
-router.route("/class-groups").get(isAuthenticatedUser, getClassGroups);
+// 👇 FIX: removed the duplicate `GET /class-groups` route that used to live
+// here (calling authControllers.js's own getClassGroups). Since this file
+// (authRoutes) is registered in app.js BEFORE classGroupRoutes.js, Express
+// matched this route first for every request, so the real controller in
+// classGroupController.js (with populate('academicLevel'), pagination, etc.)
+// was never reached — explaining the missing academicLevel/pagination data.
+// The real, actively-maintained route lives in classGroupRoutes.js.
 
 // ========== Naya stats route ==========
 router

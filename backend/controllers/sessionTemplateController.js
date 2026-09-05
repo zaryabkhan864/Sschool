@@ -69,36 +69,52 @@ export const getSessionTemplates = catchAsyncErrors(async (req, res, next) => {
     });
   }
 
+  const populateOptions = [
+    { path: "academicLevel", select: "name code" },
+    { path: "campus", select: "name" },
+    { path: "academicYear", select: "name" }, // so the frontend can show a readable year label
+  ];
+
+  // 👇 FIX: mirrors academicLevelController/weekDayController — when the
+  // frontend asks for the FULL, unpaginated list (dropdowns/checklists like
+  // CreateDaySessionTemplate's Sessions picker), skip APIFilters entirely
+  // instead of routing it through `.filters()`. APIFilters().filters() was
+  // treating the `paginate` query key itself as a Mongo filter field
+  // (`{ paginate: "false" }`), which no SessionTemplate document has — so a
+  // paginate=false request always came back with `sessions: []`, even though
+  // the exact same campus/academicYear had records (the paginated list page
+  // never sends a `paginate` key, so it never hit this).
+  if (req.query.paginate === "false") {
+    const filter = { campus, academicYear };
+    if (req.query.academicLevel) filter.academicLevel = req.query.academicLevel;
+
+    const sessions = await SessionTemplate.find(filter)
+      .populate(populateOptions)
+      .sort({ order: 1 });
+
+    return res.status(200).json({ success: true, sessions, count: sessions.length });
+  }
+
   // Always filter by campus and academic year from cookies
   req.query.campus = campus;
   req.query.academicYear = academicYear;
 
-  // Apply APIFilters for search, filters, sort, pagination
-  const baseApiFilters = new APIFilters(SessionTemplate, req.query)
-    .setSearchFields(["name", "type"]) // searchable fields
-    .search()
-    .filters()
-    .sort(); // default sort by order (will be handled in model schema)
-
-  const baseQuery = baseApiFilters.query;
-
   // Total count for pagination
-  const total = await SessionTemplate.countDocuments(baseQuery._conditions);
+  const countFilters = new APIFilters(SessionTemplate, req.query)
+    .setSearchFields(["name", "type"])
+    .search()
+    .filters();
+  const total = await SessionTemplate.countDocuments(countFilters.query._conditions);
 
   // Apply pagination
   const apiFilters = new APIFilters(SessionTemplate, req.query)
     .setSearchFields(["name", "type"])
     .search()
     .filters()
-    .sort()
+    .sort() // default sort by order (will be handled in model schema)
     .pagination();
 
   // Populate academic level, campus and academic year
-  const populateOptions = [
-    { path: "academicLevel", select: "name code" },
-    { path: "campus", select: "name" },
-    { path: "academicYear", select: "name" }, // so the frontend can show a readable year label
-  ];
   apiFilters.populate(populateOptions);
 
   const sessions = await apiFilters.query;
